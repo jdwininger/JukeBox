@@ -53,6 +53,12 @@ cat > "$BUNDLE_PATH/Contents/Info.plist" << 'EOF'
   <string>10.12</string>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>LSArchitecturePriority</key>
+  <array>
+    <string>arm64</string>
+  </array>
+  <key>LSRequiresNativeExecution</key>
+  <true/>
   <key>CFBundleShortVersionString</key>
   <string>1.0.0</string>
   <key>CFBundlePackageType</key>
@@ -110,11 +116,17 @@ cat > "$BUNDLE_PATH/Contents/MacOS/JukeBox" << 'EOF'
 # Standalone JukeBox launcher with embedded Python
 set -euo pipefail
 
+# Create a log file to track launches
+LOG_FILE="/tmp/jukebox_standalone_launch.log"
+echo "$(date): JukeBox standalone app bundle launched" >> "$LOG_FILE"
+
 # Get bundle paths
 BUNDLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_DIR="$BUNDLE_DIR/Resources/python"
 APP_DIR="$BUNDLE_DIR/Resources/app"
 PYTHON_BIN="$PYTHON_DIR/bin/python"
+
+echo "Starting JukeBox standalone from: $BUNDLE_DIR" | tee -a "$LOG_FILE"
 
 # Change to app directory
 cd "$APP_DIR"
@@ -123,23 +135,35 @@ cd "$APP_DIR"
 export PYTHONPATH="$APP_DIR"
 export PYGAME_HIDE_SUPPORT_PROMPT=1
 
+# Set environment variables for macOS GUI apps
+export SDL_VIDEO_WINDOW_POS="centered"
+
+# Force native ARM64 execution on Apple Silicon
+export ARCHPREFERENCE="arm64"
+
 # Verify Python exists
 if [ ! -x "$PYTHON_BIN" ]; then
-    echo "Error: Embedded Python not found at $PYTHON_BIN"
+    echo "Error: Embedded Python not found at $PYTHON_BIN" | tee -a "$LOG_FILE"
     exit 1
 fi
 
 # Launch application
-echo "Starting JukeBox with embedded Python..."
-exec "$PYTHON_BIN" src/main.py
+echo "Starting JukeBox with embedded Python..." | tee -a "$LOG_FILE"
+arch -arm64 "$PYTHON_BIN" -c "from src.main import main; main()" 2>&1 | tee -a "$LOG_FILE"
 EOF
 
 # Make launcher executable
 chmod +x "$BUNDLE_PATH/Contents/MacOS/JukeBox"
 
 # Copy icon if it exists
-if [ -f "$PROJECT_ROOT/assets/icon.png" ]; then
+if [ -f "$PROJECT_ROOT/assets/icon.icns" ]; then
     echo "Adding application icon..."
+    cp "$PROJECT_ROOT/assets/icon.icns" "$BUNDLE_PATH/Contents/Resources/"
+    
+    # Update Info.plist to include icon
+    /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string icon.icns" "$BUNDLE_PATH/Contents/Info.plist" 2>/dev/null || true
+elif [ -f "$PROJECT_ROOT/assets/icon.png" ]; then
+    echo "Adding application icon (PNG fallback)..."
     cp "$PROJECT_ROOT/assets/icon.png" "$BUNDLE_PATH/Contents/Resources/"
     
     # Update Info.plist to include icon
