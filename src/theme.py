@@ -47,6 +47,22 @@ class Theme:
         self.slider_track_vertical_svg_path = os.path.join(theme_dir, 'slider_track_vertical.svg')
         self.slider_knob_path = os.path.join(theme_dir, 'slider_knob.png')
         
+        # Media control button paths
+        self.play_button_path = os.path.join(theme_dir, 'play_button.png')
+        self.play_button_svg_path = os.path.join(theme_dir, 'play_button.svg')
+        self.pause_button_path = os.path.join(theme_dir, 'pause_button.png')
+        self.pause_button_svg_path = os.path.join(theme_dir, 'pause_button.svg')
+        self.stop_button_path = os.path.join(theme_dir, 'stop_button.png')
+        self.stop_button_svg_path = os.path.join(theme_dir, 'stop_button.svg')
+        self.config_button_path = os.path.join(theme_dir, 'config_button.png')
+        self.config_button_svg_path = os.path.join(theme_dir, 'config_button.svg')
+        
+        # Navigation button paths
+        self.left_button_path = os.path.join(theme_dir, 'left_button.png')
+        self.left_button_svg_path = os.path.join(theme_dir, 'left_button.svg')
+        self.right_button_path = os.path.join(theme_dir, 'right_button.png')
+        self.right_button_svg_path = os.path.join(theme_dir, 'right_button.svg')
+        
         # Loaded images
         self.background: Optional[pygame.Surface] = None
         self.button: Optional[pygame.Surface] = None
@@ -55,6 +71,12 @@ class Theme:
         self.slider_track: Optional[pygame.Surface] = None
         self.slider_track_vertical: Optional[pygame.Surface] = None
         self.slider_knob: Optional[pygame.Surface] = None
+        
+        # Media control button images
+        self.play_button: Optional[pygame.Surface] = None
+        self.pause_button: Optional[pygame.Surface] = None
+        self.stop_button: Optional[pygame.Surface] = None
+        self.config_button: Optional[pygame.Surface] = None
         
         # Color scheme
         self.colors = {
@@ -135,6 +157,38 @@ class Theme:
                 self.slider_knob = pygame.image.load(self.slider_knob_path)
             except Exception as e:
                 print(f"Error loading slider_knob image: {e}")
+        
+        # Load media control buttons (PNG first, then SVG)
+        self._load_media_button('play', self.play_button_path, self.play_button_svg_path)
+        self._load_media_button('pause', self.pause_button_path, self.pause_button_svg_path)
+        self._load_media_button('stop', self.stop_button_path, self.stop_button_svg_path)
+        self._load_media_button('config', self.config_button_path, self.config_button_svg_path)
+        
+        # Load navigation buttons (PNG first, then SVG)
+        self._load_media_button('left', self.left_button_path, self.left_button_svg_path)
+        self._load_media_button('right', self.right_button_path, self.right_button_svg_path)
+    
+    def _load_media_button(self, button_type: str, png_path: str, svg_path: str) -> None:
+        """Load media button image (PNG first, then SVG)"""
+        button_attr = f"{button_type}_button"
+        
+        # Try PNG first
+        if os.path.exists(png_path):
+            try:
+                setattr(self, button_attr, pygame.image.load(png_path))
+                return
+            except Exception as e:
+                print(f"Error loading {button_type} button PNG: {e}")
+        
+        # Try SVG if PNG failed or doesn't exist
+        if SVG_SUPPORT and os.path.exists(svg_path):
+            try:
+                # Load SVG at standard button size (64x64)
+                svg_surface = self.load_svg_as_surface(svg_path, 64, 64)
+                setattr(self, button_attr, svg_surface)
+                print(f"Loaded SVG {button_type} button: {svg_path}")
+            except Exception as e:
+                print(f"Error loading {button_type} button SVG: {e}")
     
     def load_svg_as_surface(self, svg_path: str, width: int = None, height: int = None) -> pygame.Surface:
         """Convert SVG to pygame surface using svglib"""
@@ -196,6 +250,11 @@ class Theme:
         if default is None:
             default = (128, 128, 128)
         return self.colors.get(color_key, default)
+    
+    def get_media_button_image(self, button_type: str) -> Optional[pygame.Surface]:
+        """Get media button image by type"""
+        button_attr = f"{button_type}_button"
+        return getattr(self, button_attr, None)
 
 
 class ThemeManager:

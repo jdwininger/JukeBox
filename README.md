@@ -1,6 +1,6 @@
 # JukeBox - Python Album Library Music Player
 
-A sophisticated music jukebox application built with Python, pygame, and SDL2 that manages up to 50 albums with full ID3 tag metadata extraction.
+A sophisticated music jukebox application built with Python, pygame, and SDL2 that manages up to 52 albums with full ID3 tag metadata extraction.
 
 ## Features
 
