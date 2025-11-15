@@ -7,6 +7,18 @@
 # - Tested on x86_64 Linux systems.
 
 set -euo pipefail
+
+# Check if running on Linux
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "Error: AppImage builds can only be created on Linux systems."
+    echo "AppImage is a Linux-specific packaging format."
+    echo ""
+    echo "For macOS distribution, use:"
+    echo "  make standalone-macos"
+    echo "  ./scripts/create-standalone-macos.sh"
+    exit 1
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$ROOT_DIR/build"
 APPDIR_NAME="JukeBox.AppDir"
