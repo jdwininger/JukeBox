@@ -34,7 +34,7 @@ class Slider:
         self.theme = theme
         
         # Track properties
-        self.track_rect = pygame.Rect(x, y + height // 2 - 2, width, 4)
+        self.track_rect = pygame.Rect(x, y + height // 2 - 9, width, 18)
         
         # Knob properties
         self.knob_radius = max(height // 2, 8)
@@ -102,9 +102,9 @@ class Slider:
             fill_color: Color of the filled portion
         """
         # Recompute geometry in case external code changed x/y/width/height before draw
-        self.track_rect = pygame.Rect(self.x, self.y + self.height // 2 - 2, self.width, 4)
-        # Adjust knob radius based on current height
-        self.knob_radius = max(self.height // 2, 8)
+        self.track_rect = pygame.Rect(self.x, self.y + self.height // 2 - 9, self.width, 18)
+        # Adjust knob radius based on current height - 32x48 pixel knobs
+        self.knob_radius = max(self.height + 6, 16)  # 16 radius = 32px diameter
         # Preserve current value center when resizing
         current_centerx = self._value_to_x(self.value)
         self.knob_rect = pygame.Rect(0, 0, self.knob_radius * 2, self.knob_radius * 2)
@@ -121,14 +121,43 @@ class Slider:
         fill_rect = pygame.Rect(self.track_rect.x, self.track_rect.y, fill_width, self.track_rect.height)
         pygame.draw.rect(surface, fill_color, fill_rect)
         
-        # Draw track
-        pygame.draw.rect(surface, track_color, self.track_rect)
-        pygame.draw.rect(surface, (255, 255, 255), self.track_rect, 1)
+        # Draw track - use theme image if available, otherwise colored rectangle
+        if self.theme and hasattr(self.theme, 'slider_track') and self.theme.slider_track:
+            # Use PNG image from theme for horizontal track
+            track_image = self.theme.slider_track
+            scaled_track = pygame.transform.scale(track_image, (self.track_rect.width, self.track_rect.height))
+            surface.blit(scaled_track, self.track_rect)
+        else:
+            # Fall back to colored rectangles
+            pygame.draw.rect(surface, track_color, self.track_rect)
+            pygame.draw.rect(surface, (255, 255, 255), self.track_rect, 1)
         
-        # Draw knob
-        knob_color_actual = (150, 255, 150) if self.is_hovered else knob_color
-        pygame.draw.circle(surface, knob_color_actual, self.knob_rect.center, self.knob_radius)
-        pygame.draw.circle(surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2)
+        # Draw knob - use theme image if available, otherwise colored circle
+        if self.theme and hasattr(self.theme, 'slider_knob') and self.theme.slider_knob:
+            # Use PNG image from theme - allow up to 64x128 for horizontal sliders
+            knob_image = self.theme.slider_knob
+            # Scale image to fit knob size, 32x48 for horizontal sliders
+            knob_width = 32
+            knob_height = 48
+            scaled_knob = pygame.transform.smoothscale(knob_image, (knob_width, knob_height))
+            # Apply hover effect by adjusting brightness
+            if self.is_hovered:
+                # Create a brighter version for hover
+                hover_surface = scaled_knob.copy()
+                # Add a light overlay for hover effect
+                light_overlay = pygame.Surface((knob_width, knob_height), pygame.SRCALPHA)
+                light_overlay.fill((255, 255, 255, 60))  # Light white overlay
+                hover_surface.blit(light_overlay, (0, 0), special_flags=pygame.BLEND_ADD)
+                scaled_knob = hover_surface
+            
+            # Center the image on the knob position
+            knob_rect = scaled_knob.get_rect(center=self.knob_rect.center)
+            surface.blit(scaled_knob, knob_rect)
+        else:
+            # Fall back to colored circle
+            knob_color_actual = (150, 255, 150) if self.is_hovered else knob_color
+            pygame.draw.circle(surface, knob_color_actual, self.knob_rect.center, self.knob_radius)
+            pygame.draw.circle(surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2)
         
         # Draw label and value
         if font and self.label:
@@ -152,11 +181,11 @@ class VerticalSlider(Slider):
                  max_val: float = 100.0, initial_val: float = 50.0, label: str = "", theme=None):
         """Initialize vertical slider"""
         super().__init__(x, y, width, height, min_val, max_val, initial_val, label, theme)
-        # Override knob sizing for vertical orientation (use width not height)
-        self.knob_radius = max(width // 2 - 2, 6)
+        # Override knob sizing for vertical orientation (use width not height) - 32x48 pixel knobs
+        self.knob_radius = max(width + 6, 16)  # 16 radius = 32px diameter
         self.knob_rect = pygame.Rect(0, 0, self.knob_radius * 2, self.knob_radius * 2)
         # Override track for vertical orientation
-        self.track_rect = pygame.Rect(x + width // 2 - 2, y, 4, height)
+        self.track_rect = pygame.Rect(x + width // 2 - 9, y, 18, height)
         self.update_knob_position()
     
     def _value_to_y(self, value: float) -> float:
@@ -194,9 +223,9 @@ class VerticalSlider(Slider):
              fill_color: Tuple[int, int, int] = (100, 200, 100)) -> None:
         """Draw the vertical slider"""
         # Recompute geometry in case x/y/height/width changed externally
-        self.track_rect = pygame.Rect(self.x + self.width // 2 - 2, self.y, 4, self.height)
-        # Recalculate knob radius based on current width (stable size)
-        self.knob_radius = max(self.width // 2 - 2, 6)
+        self.track_rect = pygame.Rect(self.x + self.width // 2 - 9, self.y, 18, self.height)
+        # Use same knob radius as horizontal sliders - 32x48 pixel knobs for consistency
+        self.knob_radius = max(self.width + 6, 16)  # 16 radius = 32px diameter
         # Preserve current value center when resizing
         knob_y = self._value_to_y(self.value)
         self.knob_rect = pygame.Rect(0, 0, self.knob_radius * 2, self.knob_radius * 2)
@@ -214,14 +243,48 @@ class VerticalSlider(Slider):
                                self.track_rect.width, fill_height)
         pygame.draw.rect(surface, fill_color, fill_rect)
         
-        # Draw track
-        pygame.draw.rect(surface, track_color, self.track_rect)
-        pygame.draw.rect(surface, (255, 255, 255), self.track_rect, 1)
+        # Draw track - use theme image if available, otherwise colored rectangle
+        if self.theme and hasattr(self.theme, 'slider_track_vertical') and self.theme.slider_track_vertical:
+            # Use PNG image from theme for vertical track
+            track_image = self.theme.slider_track_vertical
+            scaled_track = pygame.transform.scale(track_image, (self.track_rect.width, self.track_rect.height))
+            surface.blit(scaled_track, self.track_rect)
+        elif self.theme and hasattr(self.theme, 'slider_track') and self.theme.slider_track:
+            # Fall back to horizontal track image if vertical not available
+            track_image = self.theme.slider_track
+            scaled_track = pygame.transform.scale(track_image, (self.track_rect.width, self.track_rect.height))
+            surface.blit(scaled_track, self.track_rect)
+        else:
+            # Fall back to colored rectangles
+            pygame.draw.rect(surface, track_color, self.track_rect)
+            pygame.draw.rect(surface, (255, 255, 255), self.track_rect, 1)
         
-        # Draw knob
-        knob_color_actual = (150, 255, 150) if self.is_hovered else knob_color
-        pygame.draw.circle(surface, knob_color_actual, self.knob_rect.center, self.knob_radius)
-        pygame.draw.circle(surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2)
+        # Draw knob - use theme image if available, otherwise colored circle
+        if self.theme and hasattr(self.theme, 'slider_knob') and self.theme.slider_knob:
+            # Use PNG image from theme - allow up to 64x128 for vertical sliders
+            knob_image = self.theme.slider_knob
+            # Scale image to fit knob size, 32x48 for vertical sliders
+            knob_width = 32
+            knob_height = 48
+            scaled_knob = pygame.transform.smoothscale(knob_image, (knob_width, knob_height))
+            # Apply hover effect by adjusting brightness
+            if self.is_hovered:
+                # Create a brighter version for hover
+                hover_surface = scaled_knob.copy()
+                # Add a light overlay for hover effect
+                light_overlay = pygame.Surface((knob_width, knob_height), pygame.SRCALPHA)
+                light_overlay.fill((255, 255, 255, 60))  # Light white overlay
+                hover_surface.blit(light_overlay, (0, 0), special_flags=pygame.BLEND_ADD)
+                scaled_knob = hover_surface
+            
+            # Center the image on the knob position
+            knob_rect = scaled_knob.get_rect(center=self.knob_rect.center)
+            surface.blit(scaled_knob, knob_rect)
+        else:
+            # Fall back to colored circle
+            knob_color_actual = (150, 255, 150) if self.is_hovered else knob_color
+            pygame.draw.circle(surface, knob_color_actual, self.knob_rect.center, self.knob_radius)
+            pygame.draw.circle(surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2)
         
         # Draw label and value
         if font and self.label:

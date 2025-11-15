@@ -41,10 +41,10 @@ env/
 Thumbs.db
 
 # Music files (optional - uncomment if you want to exclude them)
-# *.mp3
-# *.wav
-# *.ogg
-# *.flac
+*.mp3
+*.wav
+*.ogg
+*.flac
 
 # IDE specific
 .pylintrc

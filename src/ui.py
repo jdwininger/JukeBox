@@ -6,7 +6,7 @@ import os
 from src.player import MusicPlayer
 from src.album_library import AlbumLibrary
 from src.config import Config
-from src.audio_effects import Equalizer, AudioFader
+from src.audio_effects import Equalizer
 from src.widgets import Slider, VerticalSlider
 from typing import Tuple, List
 
@@ -161,7 +161,7 @@ class UI:
         
         # Audio effects
         self.equalizer = Equalizer()
-        self.audio_fader = AudioFader(config.get('volume', 0.7))
+
         
         # UI state for effects
         self.show_equalizer = False
@@ -171,7 +171,7 @@ class UI:
         # Album view offset for side navigation
         self.album_view_offset = 0  # Offset from current album for display
 
-        # Screen mode: 'main', 'equalizer', 'fader', 'config'
+        # Screen mode: 'main', 'equalizer', 'config'
         self.screen_mode = 'main'
         # Album art cache
         self.album_art_cache = {}
@@ -267,8 +267,8 @@ class UI:
         self.volume_slider = Slider(
             x=self.margin,
             y=self.header_height + 20,
-            width=240,
-            height=20,
+            width=320,
+            height=30,
             min_val=0.0,
             max_val=100.0,
             initial_val=self.config.get('volume', 0.7) * 100,
@@ -280,13 +280,13 @@ class UI:
         self.eq_sliders: List[VerticalSlider] = []
         eq_start_x = 50
         eq_start_y = 500
-        eq_slider_height = 120
-        eq_spacing = 40
+        eq_slider_height = 150
+        eq_spacing = 50
         
         for i in range(5):
             x = eq_start_x + i * eq_spacing
             slider = VerticalSlider(
-                x=x, y=eq_start_y, width=20, height=eq_slider_height,
+                x=x, y=eq_start_y, width=30, height=eq_slider_height,
                 min_val=-12.0, max_val=12.0, initial_val=0.0,
                 label=f"Band {i+1}",
                 theme=self.current_theme
@@ -302,33 +302,9 @@ class UI:
                 except Exception:
                     pass
 
-        # Fader screen sliders
-        self.fader_target_slider = Slider(
-            x=100, y=300, width=400, height=30,
-            min_val=0.0, max_val=100.0,
-            initial_val=self.config.get('fader_volume', self.audio_fader.get_volume() * 100),
-            label="Target Volume %",
-            theme=self.current_theme
-        )
-        self.fader_speed_slider = Slider(
-            x=100, y=380, width=400, height=30,
-            min_val=1.0, max_val=20.0,
-            initial_val=self.config.get('fade_speed', self.audio_fader.fade_speed * 1000),
-            label="Fade Speed (x1000)",
-            theme=self.current_theme
-        )
-        # If config has stored fade speed, apply to audio_fader
-        stored_speed = self.config.get('fade_speed')
-        if isinstance(stored_speed, (int, float)):
-            try:
-                self.audio_fader.fade_speed = float(stored_speed) / 1000.0
-            except Exception:
-                pass
-
         # Equalizer screen buttons
-        # Equalizer screen primary buttons (moved lower to avoid title/instructions overlap)
-            self.eq_back_button = Button(self.width - 140, 30, 110, 36, "Back", Colors.RED, theme=self.current_theme)
-            self.eq_save_button = Button(self.width - 260, 30, 110, 36, "Save", Colors.GREEN, theme=self.current_theme)
+        self.eq_back_button = Button(self.width - 140, 30, 110, 36, "Back", Colors.RED, theme=self.current_theme)
+        self.eq_save_button = Button(self.width - 260, 30, 110, 36, "Save", Colors.GREEN, theme=self.current_theme)
         self.eq_preset_buttons = []
         preset_names = list(self.equalizer.get_presets().keys())
         # Preset buttons lowered to avoid slider value text overlap
@@ -336,12 +312,7 @@ class UI:
             btn = Button(80 + i * 140, 520, 130, 40, name, Colors.BLUE, theme=self.current_theme)
             self.eq_preset_buttons.append((name, btn))
 
-        # Fader screen buttons
-        self.fader_back_button = Button(self.width - 160, 20, 120, 40, "Back", Colors.RED, theme=self.current_theme)
-        self.fader_save_button = Button(self.width - 300, 20, 120, 40, "Save", Colors.GREEN, theme=self.current_theme)
-        self.fade_in_button = Button(100, 440, 120, 40, "Fade In", Colors.BLUE, theme=self.current_theme)
-        self.fade_out_button = Button(240, 440, 120, 40, "Fade Out", Colors.BLUE, theme=self.current_theme)
-        self.fade_set_button = Button(380, 440, 120, 40, "Set Target", Colors.GRAY, theme=self.current_theme)
+
     
     def setup_config_buttons(self) -> None:
         """Setup configuration screen buttons"""
@@ -356,10 +327,9 @@ class UI:
         self.config_reset_button = Button(center_x - 120, config_y, button_width, button_height, "Reset", Colors.YELLOW)
         self.config_close_button = Button(center_x + 20, config_y, button_width, button_height, "Close", Colors.RED)
         self.config_extract_art_button = Button(center_x + 160, config_y, button_width, button_height, "Extract Art", (128, 0, 128))  # Purple color
-        # Effect screen access buttons (EQ/Fader) moved from main screen
+        # Audio effects access button
         effects_y = config_y + 60
-        self.config_equalizer_button = Button(center_x - 120, effects_y, button_width, button_height, "Equalizer", Colors.BLUE)
-        self.config_fader_button = Button(center_x + 20, effects_y, button_width, button_height, "Fader", Colors.BLUE)
+        self.config_equalizer_button = Button(center_x - 60, effects_y, button_width, button_height, "Equalizer", Colors.BLUE)
         
         # Theme selection buttons
         self.theme_buttons: List[tuple] = []
@@ -370,12 +340,15 @@ class UI:
         self.theme_buttons = []
         themes = list(self.theme_manager.themes.keys())
         
-        # Create buttons for each theme
+        # Create buttons for each theme - positioned horizontally at bottom
         button_width = 100
         button_height = 30
         spacing = 15
-        start_x = 50
-        start_y = 500
+        
+        # Center the theme buttons horizontally
+        total_width = len(themes) * button_width + (len(themes) - 1) * spacing
+        start_x = (self.width - total_width) // 2
+        start_y = self.height - 120  # Near bottom of screen
         
         for i, theme_name in enumerate(sorted(themes)):
             x = start_x + i * (button_width + spacing)
@@ -488,7 +461,7 @@ class UI:
                     self.config_close_button.update(event.pos)
                     self.config_extract_art_button.update(event.pos)
                     self.config_equalizer_button.update(event.pos)
-                    self.config_fader_button.update(event.pos)
+
                     for theme_name, btn in self.theme_buttons:
                         btn.update(event.pos)
                 elif self.screen_mode == 'equalizer':
@@ -537,9 +510,7 @@ class UI:
                     elif self.config_equalizer_button.is_clicked(event.pos):
                         self.screen_mode = 'equalizer'
                         self.config_screen_open = False
-                    elif self.config_fader_button.is_clicked(event.pos):
-                        self.screen_mode = 'fader'
-                        self.config_screen_open = False
+
                     else:
                         # Check theme button clicks
                         self.handle_theme_selection(event.pos)
@@ -743,10 +714,6 @@ class UI:
         slider_volume = self.volume_slider.get_value() / 100.0
         self.player.set_volume(slider_volume)
         
-        # Update audio fader
-        fader_volume = self.audio_fader.update()
-        self.player.set_volume(fader_volume)
-        
         # Update equalizer bands
         for i, slider in enumerate(self.eq_sliders):
             gain = slider.get_value()
@@ -758,8 +725,6 @@ class UI:
             self.draw_config_screen()
         elif self.screen_mode == 'equalizer':
             self.draw_equalizer_screen()
-        elif self.screen_mode == 'fader':
-            self.draw_fader_screen()
         else:
             self.draw_main_screen()
 
@@ -822,46 +787,6 @@ class UI:
 
         pygame.display.flip()
 
-    def draw_fader_screen(self) -> None:
-        """Draw the full-screen audio fader UI"""
-        background = self.current_theme.get_background()
-        if background:
-            scaled_bg = pygame.transform.scale(background, (self.width, self.height))
-            self.screen.blit(scaled_bg, (0, 0))
-        else:
-            self.screen.fill(Colors.DARK_GRAY)
-
-        title = self.large_font.render("Audio Fader", True, Colors.WHITE)
-        self.screen.blit(title, (40, 30))
-
-        # Current volume display
-        current_vol = self.audio_fader.get_volume() * 100
-        vol_text = self.medium_font.render(f"Current Volume: {current_vol:.0f}%", True, Colors.YELLOW)
-        self.screen.blit(vol_text, (40, 90))
-
-        # Target slider
-        self.fader_target_slider.x = 100
-        self.fader_target_slider.y = 180
-        self.fader_target_slider.draw(self.screen, self.small_font, track_color=Colors.GRAY, knob_color=Colors.GREEN, fill_color=Colors.GREEN)
-
-        # Speed slider
-        self.fader_speed_slider.x = 100
-        self.fader_speed_slider.y = 260
-        self.fader_speed_slider.draw(self.screen, self.small_font, track_color=Colors.GRAY, knob_color=Colors.BLUE, fill_color=Colors.BLUE)
-
-        # Buttons
-        self.fade_in_button.draw(self.screen, self.small_font)
-        self.fade_out_button.draw(self.screen, self.small_font)
-        self.fade_set_button.draw(self.screen, self.small_font)
-        self.fader_save_button.draw(self.screen, self.small_font)
-        self.fader_back_button.draw(self.screen, self.small_font)
-
-        # Hint
-        hint = self.small_font.render("Fade In/Out use speed slider; Set Target applies", True, Colors.LIGHT_GRAY)
-        self.screen.blit(hint, (100, 520))
-
-        pygame.display.flip()
-    
     def draw_main_screen(self) -> None:
         """Draw the main playback screen with 3-column 2-row layout"""
         # Use theme background if available
@@ -884,6 +809,9 @@ class UI:
         button_width = 90
         spacing = 12
         # Volume slider positioning
+        volume_label = self.small_font.render("Volume", True, Colors.WHITE)
+        self.screen.blit(volume_label, (self.margin, controls_margin_top + 2))
+        
         self.volume_slider.x = self.margin
         self.volume_slider.y = controls_margin_top + 20  # leave room for its label
         self.volume_slider.width = 220
@@ -1065,11 +993,11 @@ class UI:
             tag_bg = pygame.Surface((40, 20), pygame.SRCALPHA)
             tag_bg.fill((0, 0, 0, 150))
             self.screen.blit(tag_bg, (art_rect.x + 3, art_rect.y + 3))
-            album_num_text = self.tiny_font.render(f"#{album.album_id:02d}", True, Colors.YELLOW)
+            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.YELLOW)
             self.screen.blit(album_num_text, (art_rect.x + 6, art_rect.y + 6))
         else:
             pygame.draw.rect(self.screen, Colors.GRAY, art_rect)
-            album_num_text = self.small_font.render(f"#{album.album_id:02d}", True, Colors.YELLOW)
+            album_num_text = self.medium_font.render(f"#{album.album_id:02d}", True, Colors.YELLOW)
             album_num_rect = album_num_text.get_rect(center=art_rect.center)
             self.screen.blit(album_num_text, album_num_rect)
         
@@ -1078,7 +1006,7 @@ class UI:
         current_y = text_y
         
         # Album ID and artist
-        artist_text = self.small_font.render(f"#{album.album_id:02d} {album.artist[:25]}", True, Colors.WHITE)
+        artist_text = self.small_font.render(f"{album.artist[:25]}", True, Colors.WHITE)
         self.screen.blit(artist_text, (text_x, current_y))
         current_y += line_height
         
@@ -1133,7 +1061,7 @@ class UI:
             self.screen.blit(scaled, art_rect)
         else:
             pygame.draw.rect(self.screen, Colors.GRAY, art_rect)
-            album_num_text = self.medium_font.render(f"#{album.album_id:02d}", True, Colors.YELLOW)
+            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.YELLOW)
             album_num_rect = album_num_text.get_rect(center=art_rect.center)
             self.screen.blit(album_num_text, album_num_rect)
 
@@ -1240,11 +1168,13 @@ class UI:
     
     def draw_theme_selector(self) -> None:
         """Draw theme preview and selection interface"""
-        theme_section_y = 450
+        # Position themes at bottom center
+        theme_section_y = self.height - 180
         
         # Draw section title
-        theme_title = self.small_font.render("Select Theme:", True, Colors.WHITE)
-        self.screen.blit(theme_title, (40, theme_section_y - 30))
+        theme_title = self.medium_font.render("Theme Selection", True, Colors.YELLOW)
+        theme_title_rect = theme_title.get_rect(center=(self.width // 2, theme_section_y - 30))
+        self.screen.blit(theme_title, theme_title_rect)
         
         # Draw theme buttons
         for theme_name, btn in self.theme_buttons:
@@ -1253,7 +1183,8 @@ class UI:
         # Draw theme preview if hovering
         for theme_name, btn in self.theme_buttons:
             if btn.is_hovered:
-                self.draw_theme_preview(theme_name, self.width - 250, 350)
+                # Position preview above theme buttons
+                self.draw_theme_preview(theme_name, self.width // 2 - 100, theme_section_y - 130)
                 break
     
     def draw_theme_preview(self, theme_name: str, x: int, y: int) -> None:
@@ -1322,7 +1253,7 @@ class UI:
         return art_surface
 
     def draw_config_screen(self) -> None:
-        """Draw the configuration screen"""
+        """Draw the configuration screen with improved organization"""
         self.screen.fill(Colors.DARK_GRAY)
         
         # Update message timer
@@ -1331,66 +1262,99 @@ class UI:
         
         # Draw title
         title = self.large_font.render("Configuration", True, Colors.WHITE)
-        title_rect = title.get_rect(center=(self.width // 2, 50))
+        title_rect = title.get_rect(center=(self.width // 2, 40))
         self.screen.blit(title, title_rect)
         
-        # Draw configuration options
-        config_y = 140
-        line_height = 40
+        # Left Column - Settings
+        left_x = 50
+        settings_y = 100
+        
+        # Settings section header
+        settings_header = self.medium_font.render("Settings", True, Colors.YELLOW)
+        self.screen.blit(settings_header, (left_x, settings_y))
+        
+        # Configuration toggles
+        config_y = settings_y + 40
+        line_height = 35
         
         config_items = [
             ("Auto Play Next Track", self.config.get('auto_play_next')),
             ("Shuffle Enabled", self.config.get('shuffle_enabled')),
             ("Show Album Art", self.config.get('show_album_art')),
-            ("Keyboard Shortcuts Enabled", self.config.get('keyboard_shortcut_enabled')),
+            ("Keyboard Shortcuts", self.config.get('keyboard_shortcut_enabled')),
         ]
         
         for i, (label, value) in enumerate(config_items):
             y = config_y + i * line_height
             label_text = self.small_font.render(f"{label}:", True, Colors.WHITE)
-            self.screen.blit(label_text, (40, y))
+            self.screen.blit(label_text, (left_x + 20, y))
             
             value_str = "ON" if value else "OFF"
             value_color = Colors.GREEN if value else Colors.RED
             value_text = self.small_font.render(value_str, True, value_color)
-            self.screen.blit(value_text, (self.width - 200, y))
+            self.screen.blit(value_text, (left_x + 280, y))
         
-        # Draw additional info
-        library_info_y = config_y + len(config_items) * line_height + 20
+        # Library information section
+        info_y = config_y + len(config_items) * line_height + 30
+        info_header = self.medium_font.render("Library Info", True, Colors.YELLOW)
+        self.screen.blit(info_header, (left_x, info_y))
+        
         stats = self.library.get_library_stats()
         info_lines = [
             f"Albums: {stats['total_albums']}/{stats['max_albums']}",
             f"Total Tracks: {stats['total_tracks']}",
             f"Total Duration: {stats['total_duration_formatted']}",
-            f"Theme: {self.config.get('theme')}",
+            f"Current Theme: {self.config.get('theme')}",
         ]
         
         for i, info in enumerate(info_lines):
-            y = library_info_y + i * 30
+            y = info_y + 40 + i * 25
             info_text = self.small_font.render(info, True, Colors.LIGHT_GRAY)
-            self.screen.blit(info_text, (40, y))
+            self.screen.blit(info_text, (left_x + 20, y))
         
-        # Draw theme selection section
+        # Right Column - Actions
+        right_x = self.width // 2 + 50
+        
+        # Library actions section
+        actions_header = self.medium_font.render("Library Actions", True, Colors.YELLOW)
+        self.screen.blit(actions_header, (right_x, settings_y))
+        
+        # Reposition library action buttons vertically
+        action_y = settings_y + 50
+        self.config_rescan_button.rect.x = right_x + 20
+        self.config_rescan_button.rect.y = action_y
+        self.config_rescan_button.draw(self.screen, self.small_font)
+        
+        self.config_extract_art_button.rect.x = right_x + 20
+        self.config_extract_art_button.rect.y = action_y + 50
+        self.config_extract_art_button.draw(self.screen, self.small_font)
+        
+        self.config_reset_button.rect.x = right_x + 20
+        self.config_reset_button.rect.y = action_y + 100
+        self.config_reset_button.draw(self.screen, self.small_font)
+        
+        # Audio effects section
+        effects_y = action_y + 170
+        effects_header = self.medium_font.render("Audio Effects", True, Colors.YELLOW)
+        self.screen.blit(effects_header, (right_x, effects_y))
+        
+        self.config_equalizer_button.rect.x = right_x + 20
+        self.config_equalizer_button.rect.y = effects_y + 40
+        self.config_equalizer_button.draw(self.screen, self.small_font)
+        
+        # Theme selection section (bottom center)
         self.draw_theme_selector()
         
-        # Draw buttons
-        button_y = 300
-        self.config_rescan_button.draw(self.screen, self.medium_font)
-        self.config_reset_button.draw(self.screen, self.medium_font)
-        self.config_close_button.draw(self.screen, self.medium_font)
-        self.config_extract_art_button.draw(self.screen, self.medium_font)
-
-        # Audio Effects section
-        effects_label = self.small_font.render("Audio Effects:", True, Colors.WHITE)
-        self.screen.blit(effects_label, (self.width // 2 - 190, button_y + 60 - 30))
-        self.config_equalizer_button.draw(self.screen, self.medium_font)
-        self.config_fader_button.draw(self.screen, self.medium_font)
+        # Close button (top right)
+        self.config_close_button.rect.x = self.width - 140
+        self.config_close_button.rect.y = 20
+        self.config_close_button.draw(self.screen, self.small_font)
         
         # Draw messages
         if self.config_message and self.config_message_timer > 0:
             msg_color = Colors.GREEN if "success" in self.config_message.lower() or "complete" in self.config_message.lower() else Colors.YELLOW
             message_text = self.medium_font.render(self.config_message, True, msg_color)
-            message_rect = message_text.get_rect(center=(self.width // 2, self.height - 80))
+            message_rect = message_text.get_rect(center=(self.width // 2, self.height - 60))
             self.screen.blit(message_text, message_rect)
         
         # Draw instructions
@@ -1398,7 +1362,8 @@ class UI:
             "ESC or Close button to exit configuration",
             True, Colors.GRAY
         )
-        self.screen.blit(instructions, (self.width // 2 - 200, self.height - 30))
+        instructions_rect = instructions.get_rect(center=(self.width // 2, self.height - 30))
+        self.screen.blit(instructions, instructions_rect)
         
         pygame.display.flip()
     
