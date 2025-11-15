@@ -4,6 +4,21 @@ Theme Manager Module - Handles application theming with images
 import os
 import pygame
 from typing import Dict, Optional, Tuple
+import io
+
+try:
+    from svglib.svglib import svg2rlg
+    from reportlab.graphics import renderPM
+    SVG_SUPPORT = True
+    print("SVG support enabled with svglib/reportlab")
+except ImportError as e:
+    SVG_SUPPORT = False
+    print(f"SVG support not available. Error: {e}")
+    print("Install with: pip install svglib reportlab")
+except OSError as e:
+    SVG_SUPPORT = False
+    print(f"SVG support disabled due to library issue: {e}")
+    print("To fix: pip install svglib reportlab")
 
 
 class Theme:
@@ -22,6 +37,7 @@ class Theme:
         
         # Image paths
         self.background_path = os.path.join(theme_dir, 'background.png')
+        self.background_svg_path = os.path.join(theme_dir, 'background.svg')
         self.button_path = os.path.join(theme_dir, 'button.png')
         self.button_hover_path = os.path.join(theme_dir, 'button_hover.png')
         self.button_pressed_path = os.path.join(theme_dir, 'button_pressed.png')
@@ -56,11 +72,18 @@ class Theme:
     
     def load_images(self) -> None:
         """Load theme images"""
+        # Try to load background (PNG first, then SVG)
         if os.path.exists(self.background_path):
             try:
                 self.background = pygame.image.load(self.background_path)
             except Exception as e:
                 print(f"Error loading background image: {e}")
+        elif SVG_SUPPORT and os.path.exists(self.background_svg_path):
+            try:
+                self.background = self.load_svg_as_surface(self.background_svg_path)
+                print(f"Loaded SVG background: {self.background_svg_path}")
+            except Exception as e:
+                print(f"Error loading background SVG: {e}")
         
         if os.path.exists(self.button_path):
             try:
@@ -113,12 +136,51 @@ class Theme:
             except Exception as e:
                 print(f"Error loading slider_knob image: {e}")
     
+    def load_svg_as_surface(self, svg_path: str, width: int = None, height: int = None) -> pygame.Surface:
+        """Convert SVG to pygame surface using svglib"""
+        if not SVG_SUPPORT:
+            raise ImportError("svglib/reportlab not available for SVG support")
+        
+        try:
+            # Parse SVG file
+            drawing = svg2rlg(svg_path)
+            
+            # Set dimensions if provided
+            if width and height:
+                # Scale drawing to desired size
+                scale_x = width / drawing.width if drawing.width else 1
+                scale_y = height / drawing.height if drawing.height else 1
+                drawing.scale(scale_x, scale_y)
+                drawing.width = width
+                drawing.height = height
+            
+            # Render to PIL image
+            pil_image = renderPM.drawToPIL(drawing)
+            
+            # Convert PIL image to pygame surface
+            mode = pil_image.mode
+            size = pil_image.size
+            raw = pil_image.tobytes()
+            
+            return pygame.image.fromstring(raw, size, mode)
+        except Exception as e:
+            print(f"Failed to convert SVG to surface: {e}")
+            raise
+    
     def is_complete(self) -> bool:
         """Check if theme has all essential images"""
         return self.background is not None
     
-    def get_background(self) -> Optional[pygame.Surface]:
-        """Get background image"""
+    def get_background(self, width: int = None, height: int = None) -> Optional[pygame.Surface]:
+        """Get background image, optionally scaled from SVG"""
+        # If we have SVG and specific dimensions requested, reload at that size
+        if (SVG_SUPPORT and os.path.exists(self.background_svg_path) and 
+            width is not None and height is not None):
+            try:
+                return self.load_svg_as_surface(self.background_svg_path, width, height)
+            except Exception as e:
+                print(f"Error loading scaled SVG background: {e}")
+        
         return self.background
     
     def get_button_image(self, state: str = 'normal') -> Optional[pygame.Surface]:

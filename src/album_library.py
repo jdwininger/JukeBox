@@ -15,7 +15,7 @@ class Album:
         Initialize an album
         
         Args:
-            album_id: Album ID (1-50)
+            album_id: Album ID (1-52)
             directory: Path to the album directory
         """
         self.album_id = album_id
@@ -120,9 +120,9 @@ class Album:
 
 
 class AlbumLibrary:
-    """Manages the entire album library (1-50 albums)"""
+    """Manages the entire album library (1-52 albums)"""
     
-    MAX_ALBUMS = 50
+    MAX_ALBUMS = 52
     
     def __init__(self, library_directory: str):
         """
@@ -142,7 +142,7 @@ class AlbumLibrary:
             print(f"Created library directory: {self.library_directory}")
     
     def scan_library(self) -> None:
-        """Scan all numbered directories (01-50) for albums"""
+        """Scan all numbered directories (01-52) for albums"""
         self.albums = {}
         
         for i in range(1, self.MAX_ALBUMS + 1):
@@ -158,7 +158,7 @@ class AlbumLibrary:
         Get an album by ID
         
         Args:
-            album_id: Album ID (1-50)
+            album_id: Album ID (1-52)
             
         Returns:
             Album object or None if not found
@@ -166,8 +166,21 @@ class AlbumLibrary:
         return self.albums.get(album_id)
     
     def get_albums(self) -> List[Album]:
-        """Get all valid albums"""
-        return sorted(self.albums.values(), key=lambda a: a.album_id)
+        """Get all albums (1-52), including placeholders for empty slots"""
+        result = []
+        for i in range(1, self.MAX_ALBUMS + 1):
+            if i in self.albums:
+                # Real album with content
+                result.append(self.albums[i])
+            else:
+                # Placeholder for empty slot
+                placeholder = Album(i, "")
+                placeholder.artist = f"Empty Slot {i:02d}"
+                placeholder.title = "No Album"
+                placeholder.tracks = []
+                placeholder.is_valid = False
+                result.append(placeholder)
+        return result
     
     def export_to_csv(self, output_file: str) -> bool:
         """
