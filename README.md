@@ -1,14 +1,23 @@
-# JukeBox - Python Album Library Music Player
+# JukeBox - Professional Digital Music Library
 
-A sophisticated music jukebox application built with Python, pygame, and SDL2 that manages up to 52 albums with full ID3 tag metadata extraction.
+A sophisticated, fully-themed music jukebox application built with Python, pygame, and SDL2 that provides a professional album library experience with complete customization capabilities.
 
 ## Features
 
+### Modern Professional Interface
+- **Complete Theming System**: PNG/SVG button support with automatic fallbacks
+- **Rollover Highlights**: Interactive hover effects on all buttons (30% brightness increase)
+- **Responsive Design**: Scales between fullscreen (1280x800) and windowed modes
+- **3-Column Layout**: Browse previous, current, and next albums simultaneously
+- **Enhanced Navigation**: Side navigation buttons with themed graphics
+- **Real-time Feedback**: Visual feedback for all user interactions
+
 ### Album Management
-- **50 Album Limit**: Organize music into up to 50 numbered albums (01-50)
+- **52 Album Library**: Organize music into up to 52 numbered albums (01-52)
 - **Auto-Detection**: Automatically scans numbered directories for audio files
 - **ID3 Tag Reading**: Extracts artist, album name, track title, and duration from audio files
 - **Multiple Formats**: Supports MP3, WAV, OGG, and FLAC files
+- **Smart Text Handling**: Intelligent wrapping and truncation for long titles
 
 ### Audio Controls
 - **Volume Slider**: Horizontal slider for precise volume control (0-100%)
@@ -33,33 +42,44 @@ A sophisticated music jukebox application built with Python, pygame, and SDL2 th
 - Volume control (0-100%)
 
 ### User Interface
-- **Album Library View**: Display of all available albums
-- **Current Album Display**: Shows artist, album title, track list
-- **Status Display**: Real-time playback status and volume
-- **Library Statistics**: Total albums, tracks, and duration
-- **Configuration Screen**: Manage settings, rescan library, export data
-- **4-Digit Selection System**: Quick track selection by album/track number
-- **Clickable Number Pad**: GUI-based number entry
-  - Access via Configuration screen (Equalizer button)
-  - Dark theme (default) - Dark gradient background with gray controls
-  - Light theme - Light gradient background with light gray controls
-  - Extensible theme directory structure for custom themes
+- **Professional 3-Column Layout**: Browse albums with visual card-based design
+- **Enhanced Now Playing Display**: Persistent track information with yellow highlighting
+- **Themed Media Controls**: PNG/SVG play, pause, stop buttons with rollover effects
+- **Responsive Number Pad**: Centered, semi-transparent border with color-coded buttons
+- **Configuration Screen**: Real-time theme switching and settings management
+- **4-Digit Selection System**: Quick track selection with real-time input display
+- **Browse Position System**: Navigate 4 albums at a time with side buttons
+- **Smart Layout Adaptation**: 
+  - Fullscreen: 1.0x scale factor with optimal spacing
+  - Windowed: 0.75x scale factor maintaining proportions
+- **Visual Feedback System**:
+  - Rollover highlights on all interactive elements
+  - Color-coded buttons (Red: CLR, Green: ENT, Blue: Backspace)
+  - Themed PNG/SVG graphics with automatic fallbacks
 
 ### Keyboard Shortcuts
 - `Space`: Play/Pause
 - `←→`: Previous/Next track (within album)
-- `N`/`P`: Previous/Next album
+- `N`/`P`: Previous/Next album  
 - `↑↓`: Increase/Decrease volume
-- `E`: Export library to CSV
 - `C`: Toggle configuration screen
+- `Alt+Enter`: Toggle fullscreen mode
+- `0-9`: Direct number entry for track selection
+- `Enter`: Execute 4-digit selection
+- `Backspace`: Remove last digit from selection
+- `Escape`: Clear current selection
 
 ## Requirements
 
 - Python 3.8+
 - pygame >= 2.5.0
 - mutagen >= 1.45.0
+- svglib >= 1.0.0 (for SVG support)
+- reportlab (dependency for SVG rendering)
 - SDL2 (installed automatically with pygame)
 
+## Installation
+## Installation
 
 1. Clone or download this repository
 2. Create a virtual environment (recommended):
@@ -70,6 +90,8 @@ A sophisticated music jukebox application built with Python, pygame, and SDL2 th
 
 3. Install dependencies:
    ```bash
+   pip install pygame mutagen svglib reportlab
+   # or use requirements.txt if available:
    pip install -r requirements.txt
    ```
 
@@ -157,7 +179,7 @@ Notes for Linux:
    ├── 02/
    ├── 03/
    ...
-   ├── 50/
+   ├── 52/
    ```
 
 2. Copy complete albums into each numbered directory:
@@ -175,13 +197,47 @@ Notes for Linux:
 
 3. Run the application - it automatically scans and indexes all albums
 
-### (Removed Feature)
+## Professional Theming System
 
-Previous versions included CSV export functionality. This feature has been removed to simplify the interface.
+JukeBox features a comprehensive theming system with complete PNG/SVG button support, automatic fallbacks, and real-time theme switching.
 
-## Theme System
+### Current Themes
 
-JukeBox includes a flexible theming system that allows you to customize the application's appearance with background images and themed button/slider designs.
+**Available Built-in Themes:**
+- **dark** (default): Professional dark gradient with themed controls
+- **light**: Clean light gradient with light themed controls  
+- **matrix**: Green matrix-style digital theme
+- **neon**: Vibrant neon cyberpunk theme
+- **wood**: Warm wooden jukebox aesthetic
+- **metal**: Industrial metallic design
+- **retro**: Classic vintage jukebox styling
+
+### Theme Components
+
+Each theme includes:
+
+#### Background Images
+- **Main Background**: Full 1280x800 themed background with scaling support
+
+#### Button Graphics (PNG/SVG with Fallbacks)
+- **Media Controls**: 
+  - `play_button.png/svg` - Play button with theme styling
+  - `pause_button.png/svg` - Pause button with theme styling  
+  - `stop_button.png/svg` - Stop button with theme styling
+  - `config_button.png/svg` - Configuration gear icon
+- **Navigation Controls**:
+  - `nav_left_button.png/svg` - Left navigation arrow (60x80px)
+  - `nav_right_button.png/svg` - Right navigation arrow (60x80px)
+- **Interactive Elements**:
+  - Automatic fallback to solid colors if images missing
+  - Rollover highlights (30% brightness increase) on all buttons
+  - Responsive scaling for fullscreen/windowed modes
+
+#### Theme Selection Interface
+- **Real-time Switching**: Instant theme changes via Configuration screen
+- **Theme Discovery**: Automatic detection of all available themes
+- **Persistent Settings**: Theme choice saved to user configuration
+- **Preview Capability**: See themes immediately when selected
 
 ### Theme Directory Structure
 
@@ -190,26 +246,53 @@ Themes are stored in the `themes/` directory with the following structure:
 ```
 themes/
 ├── dark/                       # Dark theme
-│   ├── background.png         # Main background image
-│   ├── button.png             # Normal button appearance
-│   ├── button_hover.png       # Button when hovered
-│   ├── button_pressed.png     # Button when pressed
-│   ├── slider_track.png       # Slider track/background
-│   └── slider_knob.png        # Slider knob/handle
+│   ├── background.png         # Main background image (1280x800)
+│   ├── play_button.png        # Play button (50x50)
+│   ├── play_button.svg        # Play button SVG (vector)
+│   ├── pause_button.png       # Pause button (50x50) 
+│   ├── pause_button.svg       # Pause button SVG (vector)
+│   ├── stop_button.png        # Stop button (50x50)
+│   ├── stop_button.svg        # Stop button SVG (vector)
+│   ├── config_button.png      # Configuration gear (50x50)
+│   ├── config_button.svg      # Configuration gear SVG (vector)
+│   ├── nav_left_button.png    # Left navigation arrow (60x80)
+│   ├── nav_left_button.svg    # Left navigation arrow SVG (vector)
+│   ├── nav_right_button.png   # Right navigation arrow (60x80)
+│   ├── nav_right_button.svg   # Right navigation arrow SVG (vector)
+│   ├── slider_track.png       # Legacy: Slider track/background
+│   └── slider_knob.png        # Legacy: Slider knob/handle
 ├── light/                      # Light theme
-│   ├── background.png
-│   ├── button.png
-│   ├── button_hover.png
-│   ├── button_pressed.png
+│   ├── background.png         # All same files as dark theme
+│   ├── play_button.png        # with light theme styling
+│   ├── play_button.svg
+│   ├── pause_button.png
+│   ├── pause_button.svg
+│   ├── stop_button.png
+│   ├── stop_button.svg
+│   ├── config_button.png
+│   ├── config_button.svg
+│   ├── nav_left_button.png
+│   ├── nav_left_button.svg
+│   ├── nav_right_button.png
+│   ├── nav_right_button.svg
 │   ├── slider_track.png
 │   └── slider_knob.png
 └── custom/                     # Create your own themes here
-    ├── background.png
-    ├── button.png
-    ├── button_hover.png
-    ├── button_pressed.png
-    ├── slider_track.png
-    └── slider_knob.png
+│   ├── background.png
+│   ├── play_button.png
+│   ├── play_button.svg
+│   ├── pause_button.png
+│   ├── pause_button.svg
+│   ├── stop_button.png
+│   ├── stop_button.svg
+│   ├── config_button.png
+│   ├── config_button.svg
+│   ├── nav_left_button.png
+│   ├── nav_left_button.svg
+│   ├── nav_right_button.png
+│   ├── nav_right_button.svg
+│   ├── slider_track.png
+│   └── slider_knob.png
 ```
 
 ### Available Themes
@@ -224,28 +307,122 @@ themes/
    mkdir themes/mytheme
    ```
 
-2. Add theme images (PNG format recommended):
-  - `background.png`: 1280x800 pixels (current default window size; larger images will be scaled)
-   - `button.png`: Button appearance (any size, will be scaled)
-   - `button_hover.png`: Button hover state
-   - `button_pressed.png`: Button pressed state
-   - `slider_track.png`: Slider background track
-   - `slider_knob.png`: Slider handle/knob
+2. Add theme images (PNG or SVG format):
+   - `background.png`: 1280x800 pixels main background
+   - **Media Button Graphics** (PNG/SVG):
+     - `play_button.png` or `play_button.svg`: 50x50 pixels
+     - `pause_button.png` or `pause_button.svg`: 50x50 pixels  
+     - `stop_button.png` or `stop_button.svg`: 50x50 pixels
+     - `config_button.png` or `config_button.svg`: 50x50 pixels
+   - **Navigation Button Graphics**:
+     - `nav_left_button.png` or `nav_left_button.svg`: 60x80 pixels
+     - `nav_right_button.png` or `nav_right_button.svg`: 60x80 pixels
+   - **Legacy Support** (optional):
+     - `slider_track.png`: Slider background track
+     - `slider_knob.png`: Slider handle/knob
 
-3. (Optional) Edit `~/.jukebox_config.json` to set your theme as default:
-   ```json
-   {
-     "theme": "mytheme"
-   }
-   ```
+3. Theme auto-discovery: Restart application to see new theme in Configuration
+
+### Advanced Theme Features
+
+- **SVG Support**: Vector graphics scale perfectly at any resolution
+- **PNG Fallbacks**: Automatic fallback to PNG if SVG unavailable
+- **Color Fallbacks**: System defaults if no graphics found
+- **Responsive Scaling**: 
+  - Fullscreen mode: Full-size graphics (1.0x scale)
+  - Windowed mode: Proportional scaling (0.75x scale)
+- **Real-time Switching**: No application restart required
 
 ### Theme Image Guidelines
 
-- **Background**: Should be 1280x800 pixels or larger (will be scaled)
-- **Buttons**: Suggest 90x40 pixels for consistency
-- **Sliders**: Track around 200x4 pixels, knob around 20x20 pixels
-- **Format**: PNG with transparency support recommended
-- **Colors**: Ensure good contrast for button text visibility
+- **Background**: Should be 1280x800 pixels or larger (auto-scaled to fit)
+- **Media Buttons**: 50x50 pixels for consistency (PNG or SVG)
+- **Navigation Buttons**: 60x80 pixels (taller than wide, PNG or SVG)  
+- **Format**: PNG with transparency or SVG for vector scaling
+- **Colors**: Ensure good contrast for text visibility over backgrounds
+- **SVG Benefits**: Perfect scaling, smaller file sizes, crisp at any resolution
+- **Fallback Strategy**: Include both SVG and PNG versions for maximum compatibility
+
+## Interface Layout - Professional 3-Column Design
+
+### Main Screen Components
+
+```
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                         JukeBox - Album Library                                   ║
+║ Volume: [████████░░] [▶][⏸][⏹]                              [⚙]                  ║
+├────────────────────┬────────────────────────┬────────────────────┤
+│   LEFT COLUMN      │     CENTER COLUMN      │   RIGHT COLUMN     │
+│  (Browse Albums)   │   (Now Playing Box)    │  (Browse Albums)   │
+├────────────────────┤                        ├────────────────────┤
+│ ┌───────────────┐  │  ┌──────────────────┐  │ ┌───────────────┐  │
+│ │ [📀] Album 01 │  │  │ ♪ Now Playing    │  │ │ [📀] Album 03 │  │
+│ │ Artist Name   │  │  │ ┌──────────────┐ │  │ │ Artist Name   │  │
+│ │ Album Title   │  │  │ │ [Album Art]  │ │  │ │ Album Title   │  │
+│ │ 13 tracks     │  │  │ │ with Number  │ │  │ │ 18 tracks     │  │
+│ │ 1. Track...   │  │  │ └──────────────┘ │  │ │ 1. Track...   │  │
+│ │ 2. Track...   │  │  │ ♫ Current Track  │  │ │ 2. Track...   │  │
+│ └───────────────┘  │  │ Selection XX YY  │  │ └───────────────┘  │
+│                    │  └──────────────────┘  │                    │
+│ ┌───────────────┐  │                        │ ┌───────────────┐  │
+│ │ [📀] Album 02 │  │     Browse Controls    │ │ [📀] Album 04 │  │
+│ │ Artist Name   │  │                        │ │ Artist Name   │  │
+│ │ Album Title   │  │                        │ │ Album Title   │  │
+│ └───────────────┘  │                        │ └───────────────┘  │
+├────────────────────┴────────────────────────┴────────────────────┤
+│                   [<] 4-Digit Selection Pad [>]                   │
+│                      ┌─────────────────────┐                      │
+│                      │  Selection: ____    │                      │
+│                      │ ┌─────────────────┐ │                      │
+│                      │ │ [7] [8] [9]     │ │                      │
+│                      │ │ [4] [5] [6]     │ │                      │
+│                      │ │ [1] [2] [3]     │ │                      │
+│                      │ │ [0] [<]         │ │                      │
+│                      │ │ [CLR] [ENT]     │ │                      │
+│                      │ └─────────────────┘ │                      │
+│                      └─────────────────────┘                      │
+├──────────────────────────────────────────────────────────────────┤
+│ 4-digit: Album(2)+Track(2) | C: Config | Space: Play/Pause | Alt+Enter: Fullscreen │
+╚══════════════════════════════════════════════════════════════════════════════════╝
+```
+
+### Interactive Elements
+
+#### Themed Controls (No Borders)
+- **Media Buttons**: Play, Pause, Stop with PNG/SVG graphics
+- **Configuration Button**: Gear icon with theme styling  
+- **Navigation Arrows**: Side buttons for album browsing
+
+#### Bordered Controls (Text-based)
+- **Number Pad**: Color-coded buttons with white borders
+  - Numbers (0-9): Gray background
+  - CLR: Red background (clear function)
+  - ENT: Green background (enter function)
+  - <: Blue background (backspace function)
+
+#### Responsive Features
+- **Hover Effects**: All buttons brighten 30% on mouse hover
+- **Scaling**: Interface scales proportionally between fullscreen/windowed
+- **Smart Layout**: 3-column design adapts to screen size
+- **Real-time Feedback**: Immediate visual response to all interactions
+
+## Current Status: ✅ PRODUCTION READY
+
+### ✅ **Complete Feature Set**
+- Professional 3-column album browsing interface
+- Complete theming system with PNG/SVG support and real-time switching
+- Rollover highlights and visual feedback on all interactive elements  
+- Responsive design scaling for fullscreen/windowed modes
+- 4-digit selection system with real-time input display
+- Enhanced Now Playing display with persistent track information
+- Browse position system for efficient album navigation
+
+### ✅ **Professional Polish**
+- Themed media controls with automatic fallbacks
+- Smart text wrapping and truncation for long titles
+- Color-coded number pad with visual button states
+- Semi-transparent interface borders for professional appearance
+- Comprehensive keyboard shortcuts for all functions
 
 ## Project Structure
 
@@ -253,22 +430,36 @@ themes/
 JukeBox/
 ├── src/
 │   ├── __init__.py
-│   ├── main.py              # Application entry point
+│   ├── main.py              # Application entry point with enhanced UI
 │   ├── player.py            # MusicPlayer - playback logic
-│   ├── album_library.py     # Album/Library management
+│   ├── album_library.py     # Album/Library management (52 albums)
 │   ├── metadata.py          # ID3 tag reading
-│   ├── ui.py                # User interface
+│   ├── ui.py                # Enhanced user interface with theming
 │   ├── config.py            # Configuration management
-│   ├── theme.py             # Theme system
+│   ├── theme.py             # Complete theme system (PNG/SVG support)
 │   ├── audio_effects.py     # Equalizer and audio fading
-│   └── widgets.py           # UI widgets (sliders)
-├── themes/                  # Theme directories
+│   └── widgets.py           # UI widgets (sliders, buttons)
+├── themes/                  # Theme directories with graphics
 │   ├── dark/                # Default dark theme
-│   └── light/               # Light theme
-├── music/                   # Album directories (01-50)
+│   │   ├── background.png
+│   │   ├── play_button.png
+│   │   ├── pause_button.png
+│   │   ├── stop_button.png
+│   │   ├── config_button.png
+│   │   ├── nav_left_button.png
+│   │   └── nav_right_button.png
+│   ├── light/               # Light theme
+│   ├── matrix/              # Matrix digital theme
+│   ├── neon/                # Neon cyberpunk theme
+│   ├── wood/                # Wooden jukebox theme
+│   ├── metal/               # Industrial metal theme
+│   └── retro/               # Vintage jukebox theme
+├── music/                   # Album directories (01-52)
 │   ├── 01/
 │   ├── 02/
 │   └── ...
+├── COMPREHENSIVE_THEMING.md # Complete theming documentation
+├── MAIN_SCREEN_LAYOUT.md    # Interface layout documentation
 ├── requirements.txt
 ├── setup.py
 ├── README.md
@@ -276,10 +467,10 @@ JukeBox/
 
 ## Helpers
 
-- `run.sh` — a small launcher script that activates the `.venv` (if present) and runs the app.
-- `Makefile` — includes a `make run` target that invokes `./run.sh`.
-- `scripts/package-macos.sh` — helper script to create an unsigned `.dmg` from the included `JukeBox.app` (macOS only).
-- `CONTRIBUTING.md` — contains run & packaging instructions.
+- `run.sh` — launcher script that activates `.venv` and runs the app
+- `Makefile` — includes `make run` target
+- `scripts/package-macos.sh` — creates unsigned `.dmg` (macOS only)
+- `CONTRIBUTING.md` — run & packaging instructions
 ```
 
 ## Module Overview
@@ -290,13 +481,13 @@ JukeBox/
 - Formats duration to MM:SS
 - Handles missing or incomplete metadata gracefully
 
-### `album_library.py` - Album Management
-- **Album Class**: Represents a single album with tracks
-- **AlbumLibrary Class**: Manages all 50 album slots
-  - Scans numbered directories
-  - Tracks valid albums
-  - Exports to CSV format
-  - Provides library statistics
+### `album_library.py` - Enhanced Album Management
+- **Album Class**: Represents individual albums with complete metadata
+- **AlbumLibrary Class**: Manages all 52 album slots with advanced features
+  - Scans numbered directories (01-52)
+  - Smart metadata extraction and caching
+  - Browse position system for efficient navigation
+  - Real-time album discovery and indexing
 
 ### `player.py` - MusicPlayer
 - Manages playback state
@@ -304,22 +495,26 @@ JukeBox/
 - Volume control
 - Export functionality
 
-### `ui.py` - User Interface
-- Pygame-based graphical interface
-- Button controls and keyboard shortcuts
-- Album and track listing
-- Library statistics display
-- Theme integration for background and button images
+### `ui.py` - Enhanced User Interface
+- Professional 3-column layout with responsive design
+- Complete PNG/SVG button integration with rollover highlights
+- Theme-aware rendering with automatic fallbacks
+- Responsive scaling for fullscreen/windowed modes
+- Real-time visual feedback for all user interactions
+- Smart text handling with wrapping and truncation
+- Browse position system with side navigation controls
 
-### `theme.py` - Theme System
-- **Theme Class**: Represents a single theme with images and colors
-  - Loads PNG images for backgrounds and controls
-  - Provides fallback colors when images unavailable
-  - Image types: background, button, button_hover, button_pressed, slider_track, slider_knob
-- **ThemeManager Class**: Manages theme discovery and switching
-  - Automatically discovers themes in `themes/` directory
-  - Switches themes dynamically
-  - Persists theme preference to configuration
+### `theme.py` - Complete Theme System
+- **Theme Class**: Comprehensive theme support with PNG/SVG graphics
+  - Loads background images, media buttons, navigation controls
+  - SVG support with automatic PNG fallbacks
+  - Real-time theme switching without restart
+  - Responsive button scaling for different screen modes
+- **ThemeManager Class**: Advanced theme management
+  - Auto-discovery of all themes in themes/ directory
+  - Real-time theme switching via Configuration screen
+  - Persistent theme preferences in user configuration
+  - Support for custom user themes with automatic integration
 
 ### `config.py` - Configuration Management
 - Loads/saves settings to JSON file
@@ -347,44 +542,88 @@ JukeBox/
 
 ## Tips & Best Practices
 
-- **Organize by Album**: Keep complete albums in each directory for best results
-- **Consistent Tagging**: Ensure MP3/audio files have proper ID3 tags for accurate metadata
-- **Directory Naming**: Albums must be in numbered directories (01-50) to be recognized
+### Album Organization
+- **Complete Albums**: Keep full albums in numbered directories for best experience
+- **Consistent Metadata**: Ensure audio files have proper ID3 tags for accurate display
+- **Directory Naming**: Albums must be in numbered directories (01-52) for recognition
+- **Smart Browsing**: Use side navigation buttons to browse 4 albums at a time
+
+### Theme Customization  
+- **Graphics Format**: Use SVG for scalable vector graphics or PNG for pixel-perfect images
+- **Consistent Sizing**: Follow recommended button sizes for professional appearance
+- **Visual Testing**: Test themes in both fullscreen and windowed modes
+- **Contrast Checking**: Ensure text remains readable over theme backgrounds
+
+### Performance Tips
+- **Theme Caching**: Themes are automatically cached for faster switching
+- **Responsive Design**: Interface optimizes for current screen mode automatically
+- **Memory Management**: Only current theme graphics loaded in memory
 
 ## Troubleshooting
 
 ### Albums not showing?
-- Verify audio files are in numbered directories (01, 02, etc.)
-- Check that files use supported formats (MP3, WAV, OGG, FLAC)
-- Ensure directory names are exactly 2 digits with leading zero if needed
+- Verify audio files are in numbered directories (01-52 with leading zeros)
+- Check supported formats (MP3, WAV, OGG, FLAC)
+- Ensure proper directory permissions for scanning
+
+### Themed buttons not loading?
+- Check theme directory structure matches requirements
+- Verify PNG/SVG files are not corrupted
+- System falls back to colored rectangles if graphics unavailable
+- Check file permissions on theme directories
+
+### Interface scaling issues?
+- Toggle fullscreen mode with `Alt+Enter` to test both modes
+- Interface automatically scales between 1.0x (fullscreen) and 0.75x (windowed)
+- All elements maintain proportional scaling
+
+### Theme switching problems?
+- Restart application if themes not appearing in Configuration
+- Check themes/ directory for proper subdirectory structure
+- Verify theme files follow naming conventions (background.png, play_button.png, etc.)
 
 ### No metadata showing?
-- Check that audio files have proper ID3 tags (especially MP3 files)
+- Check audio files have proper ID3 tags (especially MP3 files)
 - Some formats may need correct metadata encoding
-- Files without tags will show as "Unknown"
+- Files without tags display as "Unknown Artist/Album"
 
-### No sound playing?
-- Verify system audio is working
-- Check file permissions on audio files
-- Try a different audio format to isolate the issue
-
-### Removed Export Feature
-If you are looking for CSV export present in earlier versions, retrieve it from a prior commit or re-implement using the `AlbumLibrary` class.
+### Performance issues?
+- Clear theme cache by restarting application
+- Reduce background image size if experiencing slow loading
+- Check system memory usage with large theme collections
 
 ## Future Enhancements
 
-- [ ] Album artwork display (ID3v2 embedded artwork)
-- [ ] Shuffle and repeat modes
-- [ ] Seek/progress bar visualization
-- [ ] Playlist creation and management
-- [ ] Search and filter functionality
-- [ ] Now Playing indicators
-- [ ] Track time display (current/total)
-- [ ] Drag-and-drop album management
-- [ ] Theme preview in configuration screen
-- [ ] Preset equalizer profiles (Rock, Jazz, Classical, etc.)
+### Planned Features
+- [ ] Embedded album artwork display (ID3v2 artwork extraction)
+- [ ] Shuffle and repeat modes with visual indicators
+- [ ] Seek/progress bar with click-to-seek functionality
+- [ ] Playlist creation and management system
+- [ ] Advanced search and filter capabilities
+- [ ] Drag-and-drop album organization
+- [ ] Theme preview without switching in Configuration screen
+
+### Theme System Expansions
+- [ ] Animated SVG button support
+- [ ] Custom color scheme editor
+- [ ] Theme marketplace integration
+- [ ] Advanced theme validation tools
+- [ ] Theme export/import functionality
+
+### Interface Enhancements  
+- [ ] Customizable column layout options
+- [ ] Advanced keyboard navigation
+- [ ] Touch screen support optimization
+- [ ] Multi-monitor support
+- [ ] Accessibility features (screen reader support)
+
+### Audio Features
+- [ ] Advanced equalizer presets (Rock, Jazz, Classical, Electronic)
+- [ ] Audio visualization effects
+- [ ] Crossfade between tracks
+- [ ] Volume normalization
+- [ ] Audio format conversion tools
 
 ## License
 
 See LICENSE file for details.
-A jukebox written with pygame
