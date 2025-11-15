@@ -26,6 +26,9 @@ class Theme:
         self.button_hover_path = os.path.join(theme_dir, 'button_hover.png')
         self.button_pressed_path = os.path.join(theme_dir, 'button_pressed.png')
         self.slider_track_path = os.path.join(theme_dir, 'slider_track.png')
+        self.slider_track_svg_path = os.path.join(theme_dir, 'slider_track.svg')
+        self.slider_track_vertical_path = os.path.join(theme_dir, 'slider_track_vertical.png')
+        self.slider_track_vertical_svg_path = os.path.join(theme_dir, 'slider_track_vertical.svg')
         self.slider_knob_path = os.path.join(theme_dir, 'slider_knob.png')
         
         # Loaded images
@@ -34,6 +37,7 @@ class Theme:
         self.button_hover: Optional[pygame.Surface] = None
         self.button_pressed: Optional[pygame.Surface] = None
         self.slider_track: Optional[pygame.Surface] = None
+        self.slider_track_vertical: Optional[pygame.Surface] = None
         self.slider_knob: Optional[pygame.Surface] = None
         
         # Color scheme
@@ -76,11 +80,32 @@ class Theme:
             except Exception as e:
                 print(f"Error loading button_pressed image: {e}")
         
+        # Load slider track (horizontal)
         if os.path.exists(self.slider_track_path):
             try:
                 self.slider_track = pygame.image.load(self.slider_track_path)
             except Exception as e:
                 print(f"Error loading slider_track image: {e}")
+        elif os.path.exists(self.slider_track_svg_path):
+            try:
+                # For SVG support, you'd need to install pygame-ce or use cairosvg
+                # For now, we'll skip SVG loading but keep the structure
+                print(f"SVG slider track found but SVG support not implemented: {self.slider_track_svg_path}")
+            except Exception as e:
+                print(f"Error loading slider_track SVG: {e}")
+        
+        # Load vertical slider track
+        if os.path.exists(self.slider_track_vertical_path):
+            try:
+                self.slider_track_vertical = pygame.image.load(self.slider_track_vertical_path)
+            except Exception as e:
+                print(f"Error loading slider_track_vertical image: {e}")
+        elif os.path.exists(self.slider_track_vertical_svg_path):
+            try:
+                # For SVG support, you'd need to install pygame-ce or use cairosvg
+                print(f"Vertical SVG slider track found but SVG support not implemented: {self.slider_track_vertical_svg_path}")
+            except Exception as e:
+                print(f"Error loading slider_track_vertical SVG: {e}")
         
         if os.path.exists(self.slider_knob_path):
             try:
