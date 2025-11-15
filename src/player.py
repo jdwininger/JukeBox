@@ -250,6 +250,22 @@ class MusicPlayer:
         self.volume = max(0.0, min(1.0, volume))
         pygame.mixer.music.set_volume(self.volume)
     
+    def get_volume(self) -> float:
+        """Get the current volume level (0.0 to 1.0)"""
+        return self.volume
+    
+    def get_current_track_info(self) -> Optional[dict]:
+        """Get current track information for optimization comparison"""
+        track = self.get_current_track()
+        if track:
+            return {
+                'album_id': self.current_album_id,
+                'track_index': self.current_track_index,
+                'title': track.get('title', ''),
+                'artist': track.get('artist', '')
+            }
+        return None
+    
     def is_music_playing(self) -> bool:
         """Check if music is currently playing"""
         return pygame.mixer.music.get_busy()
