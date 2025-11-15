@@ -10,7 +10,7 @@ The JukeBox application now has a **complete, fully-functional theming system** 
 - **Theme Class**: Manages individual themes with image assets and color fallbacks
 - **ThemeManager Class**: Discovers, manages, and switches between themes
 - Image types supported:
-  - `background.png` - Main application background (1000x700)
+   - `background.png` - Main application background (1280x800)
   - `button.png` - Normal button appearance
   - `button_hover.png` - Hovered button state
   - `button_pressed.png` - Pressed button state

@@ -68,6 +68,34 @@ class Album:
         self.is_valid = len(self.tracks) > 0
         return self.is_valid
     
+    def extract_cover_art(self) -> bool:
+        """
+        Extract album art from the first track and save as cover.jpg
+        
+        Returns:
+            True if art was extracted and saved, False otherwise
+        """
+        if not self.tracks:
+            return False
+        
+        # Get the first track file path
+        first_track = self.tracks[0]
+        track_path = os.path.join(self.directory, first_track['filename'])
+        cover_path = os.path.join(self.directory, 'cover.jpg')
+        
+        # Skip if cover.jpg already exists
+        if os.path.exists(cover_path):
+            print(f"Album {self.album_id:02d}: cover.jpg already exists")
+            return True
+        
+        # Try to extract embedded art
+        if MetadataReader.extract_album_art(track_path, cover_path):
+            print(f"Album {self.album_id:02d}: Extracted cover art from {first_track['filename']}")
+            return True
+        else:
+            print(f"Album {self.album_id:02d}: No embedded art found in {first_track['filename']}")
+            return False
+    
     def to_csv_rows(self) -> List[List[str]]:
         """
         Convert album data to CSV rows
@@ -212,6 +240,34 @@ class AlbumLibrary:
             'total_duration_seconds': total_duration,
             'total_duration_formatted': self._format_duration(total_duration)
         }
+    
+    def extract_all_cover_art(self) -> Dict[str, int]:
+        """
+        Extract cover art for all albums from their first tracks
+        
+        Returns:
+            Dictionary with extraction statistics
+        """
+        stats = {'extracted': 0, 'existing': 0, 'failed': 0, 'total': 0}
+        
+        for album in self.get_albums():
+            stats['total'] += 1
+            cover_path = os.path.join(album.directory, 'cover.jpg')
+            
+            if os.path.exists(cover_path):
+                stats['existing'] += 1
+            elif album.extract_cover_art():
+                stats['extracted'] += 1
+            else:
+                stats['failed'] += 1
+        
+        print(f"Cover art extraction complete:")
+        print(f"  Total albums: {stats['total']}")
+        print(f"  Already had cover.jpg: {stats['existing']}")
+        print(f"  Successfully extracted: {stats['extracted']}")
+        print(f"  Failed to extract: {stats['failed']}")
+        
+        return stats
     
     @staticmethod
     def _format_duration(seconds: int) -> str:

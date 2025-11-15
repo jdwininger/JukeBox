@@ -170,8 +170,8 @@ Users can navigate:
 ## Responsive Design
 
 - Automatically adjusts column widths
-- 1000px width assumed (standard)
-- 700px height assumed (standard)
+- 1280px width assumed (standard)
+- 800px height assumed (standard)
 - Proportional spacing and margins
 - Truncation of long text to fit columns
 

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Minimal macOS app bundle executable for JukeBox
+# This script will run the project's run.sh launcher (preferred).
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$SCRIPT_DIR/.."
+cd "$REPO_ROOT"
+
+# Prefer bundled run.sh
+if [ -x "$REPO_ROOT/run.sh" ]; then
+  exec "$REPO_ROOT/run.sh"
+fi
+
+# Fallbacks
+if [ -f ".venv/bin/activate" ]; then
+  . .venv/bin/activate
+  exec python -m src.main
+elif [ -x ".venv/bin/python" ]; then
+  exec .venv/bin/python -m src.main
+else
+  exec python3 -m src.main
+fi

@@ -101,6 +101,15 @@ class Slider:
             knob_color: Color of the knob
             fill_color: Color of the filled portion
         """
+        # Recompute geometry in case external code changed x/y/width/height before draw
+        self.track_rect = pygame.Rect(self.x, self.y + self.height // 2 - 2, self.width, 4)
+        # Adjust knob radius based on current height
+        self.knob_radius = max(self.height // 2, 8)
+        # Preserve current value center when resizing
+        current_centerx = self._value_to_x(self.value)
+        self.knob_rect = pygame.Rect(0, 0, self.knob_radius * 2, self.knob_radius * 2)
+        self.knob_rect.center = (current_centerx, self.y + self.height // 2)
+
         # Use theme colors if available
         if self.theme:
             track_color = self.theme.get_color('slider_track', track_color)
@@ -143,9 +152,12 @@ class VerticalSlider(Slider):
                  max_val: float = 100.0, initial_val: float = 50.0, label: str = "", theme=None):
         """Initialize vertical slider"""
         super().__init__(x, y, width, height, min_val, max_val, initial_val, label, theme)
-        
+        # Override knob sizing for vertical orientation (use width not height)
+        self.knob_radius = max(width // 2 - 2, 6)
+        self.knob_rect = pygame.Rect(0, 0, self.knob_radius * 2, self.knob_radius * 2)
         # Override track for vertical orientation
         self.track_rect = pygame.Rect(x + width // 2 - 2, y, 4, height)
+        self.update_knob_position()
     
     def _value_to_y(self, value: float) -> float:
         """Convert value to y position (inverted for typical up=max convention)"""
@@ -181,6 +193,15 @@ class VerticalSlider(Slider):
              knob_color: Tuple[int, int, int] = (200, 200, 200),
              fill_color: Tuple[int, int, int] = (100, 200, 100)) -> None:
         """Draw the vertical slider"""
+        # Recompute geometry in case x/y/height/width changed externally
+        self.track_rect = pygame.Rect(self.x + self.width // 2 - 2, self.y, 4, self.height)
+        # Recalculate knob radius based on current width (stable size)
+        self.knob_radius = max(self.width // 2 - 2, 6)
+        # Preserve current value center when resizing
+        knob_y = self._value_to_y(self.value)
+        self.knob_rect = pygame.Rect(0, 0, self.knob_radius * 2, self.knob_radius * 2)
+        self.knob_rect.center = (self.x + self.width // 2, knob_y)
+
         # Use theme colors if available
         if self.theme:
             track_color = self.theme.get_color('slider_track', track_color)

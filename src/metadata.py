@@ -7,6 +7,8 @@ from mutagen.easyid3 import EasyID3
 from mutagen.flac import FLAC
 from mutagen.oggvorbis import OggVorbis
 from mutagen.wave import WAVE
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3, APIC
 
 
 class MetadataReader:
@@ -57,6 +59,75 @@ class MetadataReader:
             return None
         
         return None
+    
+    @classmethod
+    def extract_album_art(cls, file_path: str, output_path: str) -> bool:
+        """
+        Extract embedded album art from audio file and save as image
+        
+        Args:
+            file_path: Path to the audio file
+            output_path: Path where to save the extracted image
+            
+        Returns:
+            True if art was extracted and saved, False otherwise
+        """
+        if not os.path.exists(file_path):
+            return False
+        
+        filename = os.path.basename(file_path)
+        ext = os.path.splitext(filename)[1].lower()
+        
+        try:
+            if ext == '.mp3':
+                return cls._extract_mp3_art(file_path, output_path)
+            elif ext == '.flac':
+                return cls._extract_flac_art(file_path, output_path)
+            # Note: OGG and WAV album art extraction can be added later if needed
+        except Exception as e:
+            print(f"Error extracting album art from {filename}: {e}")
+            return False
+        
+        return False
+    
+    @staticmethod
+    def _extract_mp3_art(file_path: str, output_path: str) -> bool:
+        """Extract album art from MP3 file"""
+        try:
+            audio = MP3(file_path, ID3=ID3)
+            
+            # Look for attached pictures (album art)
+            for tag in audio.tags.values():
+                if isinstance(tag, APIC):
+                    # Found album art, save it
+                    with open(output_path, 'wb') as img_file:
+                        img_file.write(tag.data)
+                    print(f"Extracted album art to: {output_path}")
+                    return True
+            
+            return False
+        except Exception as e:
+            print(f"Error extracting MP3 art: {e}")
+            return False
+    
+    @staticmethod
+    def _extract_flac_art(file_path: str, output_path: str) -> bool:
+        """Extract album art from FLAC file"""
+        try:
+            audio = FLAC(file_path)
+            
+            # FLAC stores pictures in the pictures attribute
+            if audio.pictures:
+                picture = audio.pictures[0]  # Get first picture
+                with open(output_path, 'wb') as img_file:
+                    img_file.write(picture.data)
+                print(f"Extracted album art to: {output_path}")
+                return True
+            
+            return False
+        except Exception as e:
+            print(f"Error extracting FLAC art: {e}")
+            return False
     
     @staticmethod
     def _read_mp3(file_path: str) -> Optional[Dict]:

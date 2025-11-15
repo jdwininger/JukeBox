@@ -1,6 +1,6 @@
 # JukeBox - Python Album Library Music Player
 
-A sophisticated music jukebox application built with Python, pygame, and SDL2 that manages up to 50 albums with full ID3 tag metadata extraction and CSV export functionality.
+A sophisticated music jukebox application built with Python, pygame, and SDL2 that manages up to 50 albums with full ID3 tag metadata extraction.
 
 ## Features
 
@@ -22,11 +22,7 @@ A sophisticated music jukebox application built with Python, pygame, and SDL2 th
   - Range: -12 dB to +12 dB per band
   - Toggle display with EQ button
 
-### Metadata & Export
-- **CSV Export**: Export library metadata to CSV format
-  - Artist name, album title, track information
-  - Track duration in MM:SS format
-  - Complete library or individual album export
+### Metadata
 - **Automatic Indexing**: Creates organized catalog on startup
 
 ### Playback Controls
@@ -44,7 +40,7 @@ A sophisticated music jukebox application built with Python, pygame, and SDL2 th
 - **Configuration Screen**: Manage settings, rescan library, export data
 - **4-Digit Selection System**: Quick track selection by album/track number
 - **Clickable Number Pad**: GUI-based number entry
-- **Theming System**: Customizable themes with background and button images
+  - Access via Configuration screen (Equalizer button)
   - Dark theme (default) - Dark gradient background with gray controls
   - Light theme - Light gradient background with light gray controls
   - Extensible theme directory structure for custom themes
@@ -64,7 +60,6 @@ A sophisticated music jukebox application built with Python, pygame, and SDL2 th
 - mutagen >= 1.45.0
 - SDL2 (installed automatically with pygame)
 
-## Installation
 
 1. Clone or download this repository
 2. Create a virtual environment (recommended):
@@ -79,12 +74,79 @@ A sophisticated music jukebox application built with Python, pygame, and SDL2 th
    ```
 
 ## Usage
-
 ### Running the Application
 
+Recommended ways to start the app from the command line (macOS / zsh). Run these from the project root (repository root).
+
+- 1) Activate the virtual environment, then run (recommended)
+
 ```bash
+source .venv/bin/activate
+python src/main.py
+# or run as a module:
 python -m src.main
 ```
+
+- 2) Run without activating the venv (use the venv Python directly)
+
+```bash
+.venv/bin/python src/main.py
+```
+
+- 3) If dependencies are missing, install them (inside the venv or with the venv python)
+
+```bash
+# activate venv first
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# or using the venv python without activating
+.venv/bin/python -m pip install -r requirements.txt
+```
+
+Notes:
+- Ensure you run commands from the project root directory.
+- The app uses `pygame` and requires a graphical environment (macOS desktop). If running headless, additional setup is required.
+- To run in background (no terminal blocking):
+
+```bash
+source .venv/bin/activate && python src/main.py & disown
+```
+
+### macOS App Bundle
+
+If you prefer a clickable application on macOS, a minimal `.app` wrapper is included at the project root as `JukeBox.app`. It expects the repository layout and dependencies to be present.
+
+- To run by double-clicking: open `JukeBox.app` in Finder.
+- To run from Terminal using `open`:
+
+```bash
+open ./JukeBox.app
+```
+
+The bundle calls the same `run.sh` launcher and will attempt to use the project's virtual environment if present.
+
+### Running on Linux
+
+Prerequisites (Debian/Ubuntu example):
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip libsdl2-2.0-0 libsdl2-image-2.0-0 libasound2
+```
+
+Create and activate the virtual environment, install dependencies, then run:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+.venv/bin/python src/main.py
+```
+
+Notes for Linux:
+- Ensure SDL2 and related system libraries are installed for `pygame` to initialize the display and audio.
+- On headless servers, run within an X/Wayland session or use a virtual framebuffer (e.g., `Xvfb`).
 
 ### Setting Up Your Album Library
 
@@ -113,28 +175,9 @@ python -m src.main
 
 3. Run the application - it automatically scans and indexes all albums
 
-### Exporting Metadata
+### (Removed Feature)
 
-**Via UI**: Click the "Export CSV" button or press `E`
-
-**Via Command Line**: 
-```python
-from src.album_library import AlbumLibrary
-
-library = AlbumLibrary('./music')
-library.scan_library()
-library.export_to_csv('library_export.csv')
-```
-
-### CSV Export Format
-
-```csv
-Artist,Album Artist
-Album,Album Title
-Track #,Title,Duration
-1,Track Title,3:45
-2,Another Track,4:12
-```
+Previous versions included CSV export functionality. This feature has been removed to simplify the interface.
 
 ## Theme System
 
@@ -182,7 +225,7 @@ themes/
    ```
 
 2. Add theme images (PNG format recommended):
-   - `background.png`: 1000x700 pixels (application window size)
+  - `background.png`: 1280x800 pixels (current default window size; larger images will be scaled)
    - `button.png`: Button appearance (any size, will be scaled)
    - `button_hover.png`: Button hover state
    - `button_pressed.png`: Button pressed state
@@ -198,7 +241,7 @@ themes/
 
 ### Theme Image Guidelines
 
-- **Background**: Should be 1000x700 pixels or larger (will be scaled)
+- **Background**: Should be 1280x800 pixels or larger (will be scaled)
 - **Buttons**: Suggest 90x40 pixels for consistency
 - **Sliders**: Track around 200x4 pixels, knob around 20x20 pixels
 - **Format**: PNG with transparency support recommended
@@ -230,6 +273,13 @@ JukeBox/
 ├── setup.py
 ├── README.md
 └── LICENSE
+
+## Helpers
+
+- `run.sh` — a small launcher script that activates the `.venv` (if present) and runs the app.
+- `Makefile` — includes a `make run` target that invokes `./run.sh`.
+- `scripts/package-macos.sh` — helper script to create an unsigned `.dmg` from the included `JukeBox.app` (macOS only).
+- `CONTRIBUTING.md` — contains run & packaging instructions.
 ```
 
 ## Module Overview
@@ -300,7 +350,6 @@ JukeBox/
 - **Organize by Album**: Keep complete albums in each directory for best results
 - **Consistent Tagging**: Ensure MP3/audio files have proper ID3 tags for accurate metadata
 - **Directory Naming**: Albums must be in numbered directories (01-50) to be recognized
-- **Export Regularly**: Use CSV export to backup your library metadata
 
 ## Troubleshooting
 
@@ -319,10 +368,8 @@ JukeBox/
 - Check file permissions on audio files
 - Try a different audio format to isolate the issue
 
-### CSV export not working?
-- Ensure write permissions in the application directory
-- Check that the music directory contains valid albums
-- Verify album directories have audio files
+### Removed Export Feature
+If you are looking for CSV export present in earlier versions, retrieve it from a prior commit or re-implement using the `AlbumLibrary` class.
 
 ## Future Enhancements
 
