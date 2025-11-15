@@ -10,14 +10,16 @@ from src.album_library import AlbumLibrary
 class MusicPlayer:
     """Manages music playback and playlist operations"""
     
-    def __init__(self, library: AlbumLibrary):
+    def __init__(self, library: AlbumLibrary, equalizer=None):
         """
         Initialize the music player
         
         Args:
             library: AlbumLibrary instance
+            equalizer: Equalizer instance for audio processing
         """
         self.library = library
+        self.equalizer = equalizer
         self.current_album_id = None
         self.current_track_index = 0
         self.is_playing = False
@@ -117,6 +119,14 @@ class MusicPlayer:
         try:
             track = album.tracks[self.current_track_index]
             file_path = os.path.join(album.directory, track['filename'])
+            
+            # Apply equalizer processing if available
+            if self.equalizer and hasattr(self.equalizer, 'process_file'):
+                processed_file = self.equalizer.process_file(file_path)
+                if processed_file and processed_file != file_path:
+                    file_path = processed_file
+                    print(f"Applied equalizer processing")
+            
             pygame.mixer.music.load(file_path)
             pygame.mixer.music.play()
             self.is_playing = True
@@ -242,13 +252,19 @@ class MusicPlayer:
     
     def set_volume(self, volume: float) -> None:
         """
-        Set the volume level
+        Set the volume level with equalizer adjustment
         
         Args:
-            volume: Volume level (0.0 to 1.0)
+            volume: Base volume level (0.0 to 1.0)
         """
         self.volume = max(0.0, min(1.0, volume))
-        pygame.mixer.music.set_volume(self.volume)
+        
+        # Apply equalizer volume adjustment if available
+        final_volume = self.volume
+        if self.equalizer and hasattr(self.equalizer, 'apply_to_volume'):
+            final_volume = self.equalizer.apply_to_volume(self.volume)
+        
+        pygame.mixer.music.set_volume(final_volume)
     
     def get_volume(self) -> float:
         """Get the current volume level (0.0 to 1.0)"""
@@ -279,3 +295,9 @@ class MusicPlayer:
         if self.current_album_id is None:
             return False
         return self.library.export_album_to_csv(self.current_album_id, output_file)
+    
+    def cleanup(self) -> None:
+        """Clean up resources including equalizer temp files"""
+        if self.equalizer and hasattr(self.equalizer, 'cleanup'):
+            self.equalizer.cleanup()
+        pygame.mixer.music.stop()

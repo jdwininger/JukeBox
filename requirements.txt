@@ -1,9 +1,18 @@
+# Core dependencies
 pygame>=2.5.0
 mutagen>=1.45.0
+
+# Audio processing for equalizer functionality
+numpy>=1.24.0
+scipy>=1.10.0
 
 # Optional: for building AppImage/DMG and generating icons
 Pillow>=9.0.0
 
 # Optional: for SVG support (improves UI compatibility)
+# Note: Cairo library may need to be installed separately on some systems
+# macOS: brew install cairo
+# Ubuntu/Debian: apt-get install libcairo2-dev
+# Windows: Use pre-built wheels or conda
 svglib>=1.5.0
 reportlab>=3.6.0

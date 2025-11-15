@@ -38,14 +38,20 @@ def main():
     library = AlbumLibrary(music_dir)
     library.scan_library()
     
-    # Create the player and UI
-    player = MusicPlayer(library)
-    ui = UI(player, library, config, theme_manager)
+    # Create the UI first (which creates the equalizer)
+    ui = UI(None, library, config, theme_manager)  # Pass None for player initially
+    
+    # Create the player with the equalizer from UI
+    player = MusicPlayer(library, ui.equalizer)
+    
+    # Now set the player in the UI
+    ui.player = player
     
     # Run the application
     ui.run()
     
     # Cleanup
+    player.cleanup()
     pygame.quit()
     sys.exit()
 

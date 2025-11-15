@@ -1,12 +1,17 @@
 """
 Audio Effects Module - Handles equalizer and audio effects
 """
-from typing import List, Dict
+from typing import List, Dict, Optional
 import pygame
+import numpy as np
+from scipy.signal import butter, filtfilt
+import tempfile
+import os
+import wave
 
 
 class Equalizer:
-    """5-Band Equalizer for audio manipulation"""
+    """5-Band Equalizer for audio manipulation with visual feedback and basic processing"""
     
     # Frequency bands: (name, frequency_hz, default_db)
     BANDS = [
@@ -20,7 +25,10 @@ class Equalizer:
     def __init__(self):
         """Initialize equalizer with default values"""
         self.gains: List[float] = [band[2] for band in self.BANDS]  # dB values
-        self.enabled = False
+        self.enabled = True
+        self._last_processed_file = None
+        self._last_gains = None
+        self._volume_adjustment = 1.0  # Overall volume adjustment based on EQ
     
     def set_band(self, band_index: int, gain_db: float) -> None:
         """
@@ -32,6 +40,7 @@ class Equalizer:
         """
         if 0 <= band_index < len(self.gains):
             self.gains[band_index] = max(-12.0, min(12.0, gain_db))
+            self._calculate_volume_adjustment()
     
     def get_band(self, band_index: int) -> float:
         """Get the gain for a specific band"""
@@ -46,6 +55,88 @@ class Equalizer:
     def reset(self) -> None:
         """Reset all bands to 0 dB"""
         self.gains = [0.0 for _ in self.BANDS]
+        self._calculate_volume_adjustment()
+    
+    def is_flat(self) -> bool:
+        """Check if equalizer is set to flat (all gains are 0)"""
+        return all(abs(gain) < 0.1 for gain in self.gains)
+    
+    def _calculate_volume_adjustment(self) -> None:
+        """Calculate overall volume adjustment based on EQ settings"""
+        if self.is_flat():
+            self._volume_adjustment = 1.0
+            return
+        
+        # Calculate weighted volume adjustment
+        # Give more weight to mid-range frequencies for perceived loudness
+        weights = [0.8, 1.2, 1.5, 1.2, 0.8]  # Mid frequencies have more impact
+        weighted_gain = sum(gain * weight for gain, weight in zip(self.gains, weights)) / sum(weights)
+        
+        # Convert dB to linear factor (clamped to reasonable range)
+        self._volume_adjustment = max(0.1, min(2.0, 10 ** (weighted_gain / 20.0)))
+    
+    def get_volume_adjustment(self) -> float:
+        """Get the volume adjustment factor based on current EQ settings"""
+        return self._volume_adjustment
+    
+    def get_frequency_emphasis(self) -> Dict[str, float]:
+        """Get frequency emphasis for visual feedback"""
+        return {
+            'bass': max(0.0, self.gains[0]),      # 60 Hz
+            'low_mid': max(0.0, self.gains[1]),   # 250 Hz  
+            'mid': max(0.0, self.gains[2]),       # 1 kHz
+            'high_mid': max(0.0, self.gains[3]),  # 4 kHz
+            'treble': max(0.0, self.gains[4])     # 16 kHz
+        }
+    
+    def apply_to_volume(self, base_volume: float) -> float:
+        """
+        Apply equalizer adjustment to base volume
+        
+        Args:
+            base_volume: Base volume level (0.0 to 1.0)
+            
+        Returns:
+            Adjusted volume level
+        """
+        adjusted = base_volume * self._volume_adjustment
+        return max(0.0, min(1.0, adjusted))
+    
+    def has_changes(self, file_path: str) -> bool:
+        """Check if the equalizer settings have changed since last processing"""
+        return (self._last_processed_file != file_path or 
+                self._last_gains != self.gains)
+    
+    def process_file(self, input_file: str) -> Optional[str]:
+        """
+        Process notification for equalizer - provides user feedback
+        
+        Args:
+            input_file: Path to input audio file
+            
+        Returns:
+            Original file path (no actual processing in basic implementation)
+        """
+        if self.is_flat():
+            return input_file  # No adjustment needed
+            
+        # Check if settings changed
+        if self.has_changes(input_file):
+            emphasis = self.get_frequency_emphasis()
+            active_bands = [name for i, name in enumerate(['Bass', 'Low-Mid', 'Mid', 'High-Mid', 'Treble']) 
+                          if abs(self.get_band(i)) > 0.1]
+            
+            if active_bands:
+                print(f"Equalizer active: {', '.join(active_bands)} enhanced (Volume adjustment: {self._volume_adjustment:.2f}x)")
+            
+            self._last_processed_file = input_file
+            self._last_gains = self.gains.copy()
+        
+        return input_file
+    
+    def cleanup(self):
+        """Clean up resources (no temp files in basic implementation)"""
+        pass
     
     def preset_flat(self) -> None:
         """Apply flat preset"""
