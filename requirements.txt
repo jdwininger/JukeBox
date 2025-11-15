@@ -1,2 +1,5 @@
 pygame>=2.5.0
 mutagen>=1.45.0
+
+# Optional: for building AppImage/DMG and generating icons
+Pillow>=9.0.0

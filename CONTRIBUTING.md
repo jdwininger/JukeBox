@@ -26,6 +26,17 @@ make run
 .venv/bin/python src/main.py
 ```
 
+## Icon Generation
+
+To generate or regenerate the application icon (256×256 PNG), run:
+
+```bash
+pip install Pillow
+python3 scripts/generate-icon.py
+```
+
+This creates `assets/icon.png`, which is used by the AppImage and packaging scripts. You can customize the icon by editing `scripts/generate-icon.py`.
+
 ## macOS: app bundle & DMG
 
 A minimal app bundle (`JukeBox.app`) is included in the repo root. It is a thin wrapper that runs the `run.sh` launcher and will prefer the project's `.venv` if present.

@@ -23,7 +23,7 @@ Each theme requires the following structure:
 ```
 themes/
 └── theme_name/
-    ├── background.png       # Main background (1000x700 recommended)
+   ├── background.png       # Main background (1280x800 recommended)
     ├── button.png           # Normal button state
     ├── button_hover.png     # Button when mouse hovers over it
     ├── button_pressed.png   # Button when clicked/pressed
@@ -43,7 +43,7 @@ mkdir themes/mytheme
 
 Create PNG images for each component:
 
-1. **background.png** (1000x700 pixels)
+1. **background.png** (1280x800 pixels)
    - Main application background
    - Used as the foundation for the UI
    - Larger images will be scaled down
@@ -181,7 +181,7 @@ mkdir themes/cyberpunk
 ### Images Look Distorted
 
 1. Verify background.png is PNG format
-2. Check background size (1000x700 or larger)
+2. Check background size (1280x800 or larger)
 3. Try recreating images with correct dimensions
 
 ### Theme Not Switching
@@ -194,7 +194,7 @@ mkdir themes/cyberpunk
 
 Keep images small for faster loading:
 
-- **background.png**: 3-5 KB (1000x700)
+- **background.png**: 3-5 KB (1280x800)
 - **button.png**: 150-200 bytes (90x40)
 - **slider_track.png**: 100 bytes (200x4)
 - **slider_knob.png**: 150 bytes (20x20)
