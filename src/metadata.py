@@ -70,14 +70,14 @@ class MetadataReader:
             # Get duration
             from mutagen.mp3 import MP3
             mp3_audio = MP3(file_path)
-            duration_seconds = cls.get_duration_seconds(mp3_audio.info.length * 1000)
+            duration_seconds = MetadataReader.get_duration_seconds(mp3_audio.info.length * 1000)
             
             return {
                 'title': title,
                 'artist': artist,
                 'album': album,
                 'duration_seconds': duration_seconds,
-                'duration_formatted': cls.format_time(duration_seconds),
+                'duration_formatted': MetadataReader.format_time(duration_seconds),
                 'filename': os.path.basename(file_path)
             }
         except Exception as e:

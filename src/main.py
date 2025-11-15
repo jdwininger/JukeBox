@@ -24,8 +24,14 @@ def main():
     theme_dir = os.path.join(os.path.dirname(__file__), '..', 'themes')
     theme_manager = ThemeManager(theme_dir)
     theme_manager.discover_themes()
-    theme_name = config.get('theme', 'default')
-    theme_manager.set_current_theme(theme_name)
+    theme_name = config.get('theme', 'dark')  # Default to 'dark' theme
+    if not theme_manager.set_current_theme(theme_name):
+        # Fallback to first available theme if configured theme not found
+        available = theme_manager.get_available_themes()
+        if available:
+            theme_manager.set_current_theme(available[0])
+        else:
+            print("Warning: No themes available")
     
     # Setup library
     music_dir = os.path.join(os.path.dirname(__file__), '..', 'music')
