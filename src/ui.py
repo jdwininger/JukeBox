@@ -27,7 +27,7 @@ class Colors:
 class Button:
     """Simple button class for UI controls"""
     
-    def __init__(self, x: int, y: int, width: int, height: int, text: str, color: Tuple[int, int, int] = Colors.GRAY):
+    def __init__(self, x: int, y: int, width: int, height: int, text: str, color: Tuple[int, int, int] = Colors.GRAY, theme=None):
         """
         Initialize a button
         
@@ -37,19 +37,34 @@ class Button:
             width: Button width
             height: Button height
             text: Button label
-            color: Button color
+            color: Button color (fallback if theme not available)
+            theme: Optional Theme object for theming
         """
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
         self.color = color
         self.hover_color = tuple(min(c + 50, 255) for c in color)
         self.is_hovered = False
+        self.theme = theme
     
     def draw(self, surface: pygame.Surface, font: pygame.font.Font) -> None:
         """Draw the button on the surface"""
-        color = self.hover_color if self.is_hovered else self.color
-        pygame.draw.rect(surface, color, self.rect)
-        pygame.draw.rect(surface, Colors.WHITE, self.rect, 2)
+        if self.theme:
+            # Use theme images if available
+            button_img = self.theme.get_button_image('hover' if self.is_hovered else 'normal')
+            if button_img:
+                scaled_img = pygame.transform.scale(button_img, (self.rect.width, self.rect.height))
+                surface.blit(scaled_img, self.rect)
+            else:
+                # Fallback to color if image not available
+                color = self.hover_color if self.is_hovered else self.color
+                pygame.draw.rect(surface, color, self.rect)
+                pygame.draw.rect(surface, Colors.WHITE, self.rect, 2)
+        else:
+            # No theme, use color
+            color = self.hover_color if self.is_hovered else self.color
+            pygame.draw.rect(surface, color, self.rect)
+            pygame.draw.rect(surface, Colors.WHITE, self.rect, 2)
         
         text_surface = font.render(self.text, True, Colors.WHITE)
         text_rect = text_surface.get_rect(center=self.rect.center)
@@ -142,6 +157,9 @@ class UI:
         # UI state for effects
         self.show_equalizer = False
         
+        # Album view offset for side navigation
+        self.album_view_offset = 0  # Offset from current album for display
+        
         # Create buttons
         self.setup_buttons()
     
@@ -167,6 +185,9 @@ class UI:
         self.export_button = Button(640, 20, button_width + 40, button_height, "Export CSV", Colors.YELLOW)
         self.config_button = Button(self.width - 300, 20, button_width, button_height, "Config", Colors.YELLOW)
         
+        # Side navigation buttons for main screen album browsing
+        self.left_nav_button = Button(10, self.height // 2 - 30, 30, 60, "<", Colors.BLUE, theme=self.current_theme)
+        self.right_nav_button = Button(self.width - 40, self.height // 2 - 30, 30, 60, ">", Colors.BLUE, theme=self.current_theme)
         # Number pad (bottom right)
         self.setup_number_pad()
         
@@ -270,9 +291,6 @@ class UI:
         # Theme selection buttons
         self.theme_buttons: List[tuple] = []
         self.setup_theme_buttons()
-        
-        # Number pad (bottom right)
-        self.setup_number_pad()
     
     def setup_theme_buttons(self) -> None:
         """Setup theme selection buttons"""
@@ -401,6 +419,10 @@ class UI:
                     self.fader_button.update(event.pos)
                     self.equalizer_button.update(event.pos)
                     
+                    # Update side navigation button hovers
+                    self.left_nav_button.update(event.pos)
+                    self.right_nav_button.update(event.pos)
+                    
                     # Update slider hovers
                     mouse_pressed = pygame.mouse.get_pressed()[0]
                     self.volume_slider.update(event.pos, mouse_pressed)
@@ -458,6 +480,10 @@ class UI:
                         self.audio_fader.fade_to_mute(0.1)
                     elif self.equalizer_button.is_clicked(event.pos):
                         self.show_equalizer = not self.show_equalizer
+                    elif self.left_nav_button.is_clicked(event.pos):
+                        self.album_view_offset -= 1
+                    elif self.right_nav_button.is_clicked(event.pos):
+                        self.album_view_offset += 1
                     else:
                         # Check number pad buttons
                         self.handle_number_pad_click(event.pos)
@@ -577,6 +603,10 @@ class UI:
                 # Update button colors to reflect selection
                 self.setup_theme_buttons()
                 
+                # Update side navigation buttons with new theme
+                self.left_nav_button.theme = self.current_theme
+                self.right_nav_button.theme = self.current_theme
+                
                 # Show confirmation message
                 self.config_message = f"Theme changed to {theme_name.capitalize()}"
                 self.config_message_timer = 180
@@ -606,7 +636,7 @@ class UI:
             self.draw_main_screen()
     
     def draw_main_screen(self) -> None:
-        """Draw the main playback screen"""
+        """Draw the main playback screen with 3-column 2-row layout"""
         # Use theme background if available
         background = self.current_theme.get_background()
         if background:
@@ -616,90 +646,238 @@ class UI:
         else:
             self.screen.fill(Colors.DARK_GRAY)
         
-        # Draw title
+        # Draw title at top
         title = self.large_font.render("JukeBox - Album Library", True, Colors.WHITE)
-        title_rect = title.get_rect(center=(self.width // 2, 80))
+        title_rect = title.get_rect(center=(self.width // 2, 25))
         self.screen.blit(title, title_rect)
         
-        # Draw current album info
-        album = self.player.get_current_album()
-        if album:
-            album_text = self.medium_font.render(
-                f"Album {album.album_id:02d}: {album.artist} - {album.title}",
+        # Get albums for display
+        albums = self.library.get_albums()
+        
+        # Handle empty library
+        if len(albums) == 0:
+            # Draw empty library message
+            empty_msg = self.medium_font.render("No albums found", True, Colors.YELLOW)
+            empty_msg_rect = empty_msg.get_rect(center=(self.width // 2, self.height // 2 - 60))
+            self.screen.blit(empty_msg, empty_msg_rect)
+            
+            hint_msg = self.small_font.render(
+                "Add music files to the 'music' directory and use Config > Rescan",
                 True, Colors.LIGHT_GRAY
             )
-        else:
-            album_text = self.medium_font.render("No album loaded", True, Colors.RED)
-        album_rect = album_text.get_rect(center=(self.width // 2, 130))
-        self.screen.blit(album_text, album_rect)
-        
-        # Draw current track
-        track = self.player.get_current_track()
-        if track:
-            track_text = self.medium_font.render(
-                f"Track: {track['title']} ({track['duration_formatted']})",
-                True, Colors.YELLOW
+            hint_msg_rect = hint_msg.get_rect(center=(self.width // 2, self.height // 2))
+            self.screen.blit(hint_msg, hint_msg_rect)
+            
+            # Draw buttons at top
+            self.draw_main_buttons()
+            
+            # Draw side navigation buttons
+            self.left_nav_button.draw(self.screen, self.small_font)
+            self.right_nav_button.draw(self.screen, self.small_font)
+            
+            # Draw instructions at very bottom
+            instructions = self.small_font.render(
+                "C: Config | Space: Play/Pause | ↑↓: Volume",
+                True, Colors.GRAY
             )
-        else:
-            track_text = self.medium_font.render("No track loaded", True, Colors.LIGHT_GRAY)
-        track_rect = track_text.get_rect(center=(self.width // 2, 165))
-        self.screen.blit(track_text, track_rect)
+            self.screen.blit(instructions, (20, self.height - 25))
+            
+            pygame.display.flip()
+            return
         
-        # Draw status
-        status = "Playing" if self.player.is_playing else "Stopped"
-        if self.player.is_paused:
-            status = "Paused"
-        status_text = self.small_font.render(f"Status: {status}", True, Colors.GREEN)
-        self.screen.blit(status_text, (20, 210))
+        # 3-column layout with margins
+        col_width = (self.width - 60) // 3
+        margin = 20
+        col1_x = margin
+        col2_x = margin + col_width + margin
+        col3_x = margin + col_width * 2 + margin * 2
         
-        # Draw volume
-        volume_text = self.small_font.render(f"Volume: {int(self.player.volume * 100)}%", True, Colors.GREEN)
-        self.screen.blit(volume_text, (20, 240))
+        # Row 1 and Row 2 positions (2-row layout)
+        row1_y = 60
+        row2_y = row1_y + 300
         
-        # Draw library stats
-        stats = self.library.get_library_stats()
-        stats_text = self.small_font.render(
-            f"Library: {stats['total_albums']}/{stats['max_albums']} albums, {stats['total_tracks']} tracks total",
-            True, Colors.GREEN
+        current_album_idx = None
+        for i, alb in enumerate(albums):
+            if alb.album_id == self.player.current_album_id:
+                current_album_idx = i
+                break
+        
+        if current_album_idx is None:
+            current_album_idx = 0
+        
+        # Apply view offset for side navigation
+        display_album_idx = (current_album_idx + self.album_view_offset) % len(albums)
+        
+        # Get adjacent albums relative to display offset
+        prev_album_idx = (display_album_idx - 1) % len(albums)
+        next_album_idx = (display_album_idx + 1) % len(albums)
+        prev_album_idx_2 = (display_album_idx - 2) % len(albums)
+        next_album_idx_2 = (display_album_idx + 2) % len(albums)
+        
+        # LEFT COLUMN - Previous 2 albums
+        if len(albums) > 0:
+            self.draw_album_card(albums[prev_album_idx_2], col1_x, row1_y, col_width - 10)
+            self.draw_album_card(albums[prev_album_idx], col1_x, row2_y, col_width - 10)
+        
+        # CENTER COLUMN - Current album with big display
+        if display_album_idx < len(albums):
+            self.draw_current_album_display(albums[display_album_idx], col2_x, row1_y, col_width - 10)
+        
+        # RIGHT COLUMN - Next 2 albums
+        if len(albums) > 0:
+            self.draw_album_card(albums[next_album_idx], col3_x, row1_y, col_width - 10)
+            self.draw_album_card(albums[next_album_idx_2], col3_x, row2_y, col_width - 10)
+        
+        # Draw side navigation buttons
+        self.left_nav_button.draw(self.screen, self.small_font)
+        self.right_nav_button.draw(self.screen, self.small_font)
+        
+        # Draw buttons at top
+        self.draw_main_buttons()
+        
+        # Draw number pad in center bottom
+        self.draw_number_pad_centered()
+        
+        # Draw audio controls above number pad
+        self.draw_audio_controls()
+        
+        # Draw instructions at very bottom
+        instructions = self.small_font.render(
+            "4-digit: Album(2) + Track(2) | C: Config | Space: Play/Pause | N/P: Album | ↑↓: Volume",
+            True, Colors.GRAY
         )
-        self.screen.blit(stats_text, (20, 270))
+        self.screen.blit(instructions, (20, self.height - 25))
         
-        # Draw 4-digit selection buffer
-        if self.selection_mode:
-            selection_display = f"Selection: {self.selection_buffer:<4}"
-            selection_color = Colors.YELLOW if len(self.selection_buffer) > 0 else Colors.GRAY
-            selection_text = self.medium_font.render(selection_display, True, selection_color)
-            self.screen.blit(selection_text, (20, 300))
+        pygame.display.flip()
+    
+    def draw_album_card(self, album, x: int, y: int, width: int) -> None:
+        """Draw a card displaying album information"""
+        card_height = 280
+        card_rect = pygame.Rect(x, y, width, card_height)
         
-        # Draw current album playlist
-        playlist_y = 340 if self.selection_mode else 310
-        playlist_label = self.medium_font.render("Current Album Tracks:", True, Colors.WHITE)
-        self.screen.blit(playlist_label, (20, playlist_y))
+        # Draw card background (semi-transparent)
+        pygame.draw.rect(self.screen, Colors.DARK_GRAY, card_rect)
+        pygame.draw.rect(self.screen, Colors.LIGHT_GRAY, card_rect, 2)
         
-        if album:
-            for i, track in enumerate(album.tracks[:10]):  # Show first 10 tracks
-                prefix = "► " if i == self.player.current_track_index else "  "
-                track_item = self.small_font.render(
-                    f"{prefix}{i + 1:02d}. {track['title']} ({track['duration_formatted']})",
+        # Card padding
+        padding = 10
+        content_x = x + padding
+        content_y = y + padding
+        content_width = width - padding * 2
+        
+        # Album number and art area (top)
+        art_height = 100
+        art_rect = pygame.Rect(content_x, content_y, content_width, art_height)
+        pygame.draw.rect(self.screen, Colors.GRAY, art_rect)
+        
+        # Album number in art area
+        album_num_text = self.large_font.render(f"#{album.album_id:02d}", True, Colors.YELLOW)
+        album_num_rect = album_num_text.get_rect(center=art_rect.center)
+        self.screen.blit(album_num_text, album_num_rect)
+        
+        # Album artist (below art)
+        artist_y = content_y + art_height + padding
+        artist_text = self.small_font.render(f"Artist: {album.artist[:20]}", True, Colors.WHITE)
+        self.screen.blit(artist_text, (content_x, artist_y))
+        
+        # Album name (truncated)
+        album_name_y = artist_y + 25
+        album_name_text = self.small_font.render(f"Album: {album.title[:18]}", True, Colors.LIGHT_GRAY)
+        self.screen.blit(album_name_text, (content_x, album_name_y))
+        
+        # Track list header
+        tracks_header_y = album_name_y + 25
+        tracks_header = self.small_font.render("Tracks:", True, Colors.YELLOW)
+        self.screen.blit(tracks_header, (content_x, tracks_header_y))
+        
+        # Show first 3 tracks
+        track_y = tracks_header_y + 22
+        for i, track in enumerate(album.tracks[:3]):
+            if track_y + 20 < y + card_height:
+                track_text = self.small_font.render(
+                    f"  {i+1}. {track['title'][:16]}",
                     True, Colors.LIGHT_GRAY
                 )
-                self.screen.blit(track_item, (30, playlist_y + 35 + i * 22))
+                self.screen.blit(track_text, (content_x, track_y))
+                track_y += 18
+    
+    def draw_current_album_display(self, album, x: int, y: int, width: int) -> None:
+        """Draw large display for currently playing album"""
+        display_height = 580
+        display_rect = pygame.Rect(x, y, width, display_height)
         
-        # Draw album list (right side)
-        album_list_y = 310
-        album_list_label = self.medium_font.render("Albums:", True, Colors.WHITE)
-        self.screen.blit(album_list_label, (self.width - 280, album_list_y))
+        # Draw display background
+        pygame.draw.rect(self.screen, Colors.DARK_GRAY, display_rect)
+        pygame.draw.rect(self.screen, Colors.YELLOW, display_rect, 3)
         
-        albums = self.library.get_albums()
-        for i, alb in enumerate(albums[:15]):  # Show first 15 albums
-            prefix = "► " if alb.album_id == self.player.current_album_id else "  "
-            album_item = self.small_font.render(
-                f"{prefix}{alb.album_id:02d}. {alb.artist[:20]} - {alb.title[:20]}",
-                True, Colors.LIGHT_GRAY if alb.album_id != self.player.current_album_id else Colors.YELLOW
+        # Padding
+        padding = 15
+        content_x = x + padding
+        content_y = y + padding
+        content_width = width - padding * 2
+        
+        # Large album art area (top)
+        art_height = 150
+        art_rect = pygame.Rect(content_x, content_y, content_width, art_height)
+        pygame.draw.rect(self.screen, Colors.GRAY, art_rect)
+        
+        # Album number in art area
+        album_num_text = self.large_font.render(f"#{album.album_id:02d}", True, Colors.YELLOW)
+        album_num_rect = album_num_text.get_rect(center=art_rect.center)
+        self.screen.blit(album_num_text, album_num_rect)
+        
+        # Current track display (if playing from this album)
+        track = self.player.get_current_track()
+        current_album = self.player.get_current_album()
+        
+        display_y = content_y + art_height + padding
+        
+        # Album and artist info
+        artist_text = self.medium_font.render(f"Artist: {album.artist}", True, Colors.WHITE)
+        self.screen.blit(artist_text, (content_x, display_y))
+        
+        album_name_y = display_y + 35
+        album_name_text = self.medium_font.render(f"Album: {album.title}", True, Colors.WHITE)
+        self.screen.blit(album_name_text, (content_x, album_name_y))
+        
+        # Current track info (if from this album)
+        if current_album and current_album.album_id == album.album_id and track:
+            track_info_y = album_name_y + 40
+            track_label = self.small_font.render("Now Playing:", True, Colors.YELLOW)
+            self.screen.blit(track_label, (content_x, track_info_y))
+            
+            track_num_y = track_info_y + 25
+            track_num_text = self.medium_font.render(
+                f"Track #{self.player.current_track_index + 1:02d}: {track['title']}",
+                True, Colors.LIGHT_GRAY
             )
-            self.screen.blit(album_item, (self.width - 280, album_list_y + 35 + i * 20))
+            self.screen.blit(track_num_text, (content_x, track_num_y))
+            
+            duration_y = track_num_y + 35
+            duration_text = self.small_font.render(f"Duration: {track['duration_formatted']}", True, Colors.GREEN)
+            self.screen.blit(duration_text, (content_x, duration_y))
         
-        # Draw buttons
+        # Track list header
+        tracks_header_y = album_name_y + 80 if not (current_album and current_album.album_id == album.album_id) else album_name_y + 150
+        tracks_header = self.medium_font.render("All Tracks:", True, Colors.YELLOW)
+        self.screen.blit(tracks_header, (content_x, tracks_header_y))
+        
+        # All tracks list
+        track_y = tracks_header_y + 30
+        for i, track_info in enumerate(album.tracks):
+            if track_y + 20 < y + display_height:
+                current_indicator = "► " if (current_album and current_album.album_id == album.album_id and i == self.player.current_track_index) else "  "
+                track_text = self.small_font.render(
+                    f"{current_indicator}{i+1:02d}. {track_info['title'][:25]} ({track_info['duration_formatted']})",
+                    True, Colors.LIGHT_GRAY if i != self.player.current_track_index else Colors.YELLOW
+                )
+                self.screen.blit(track_text, (content_x, track_y))
+                track_y += 22
+    
+    def draw_main_buttons(self) -> None:
+        """Draw playback buttons at the top"""
+        button_y = self.height - 320
+        
         self.play_button.draw(self.screen, self.small_font)
         self.pause_button.draw(self.screen, self.small_font)
         self.stop_button.draw(self.screen, self.small_font)
@@ -709,25 +887,31 @@ class UI:
         self.next_album_button.draw(self.screen, self.small_font)
         self.export_button.draw(self.screen, self.small_font)
         self.config_button.draw(self.screen, self.small_font)
+    
+    def draw_number_pad_centered(self) -> None:
+        """Draw number pad centered at bottom"""
+        pad_x = self.width // 2 - 160
+        pad_y = self.height - 260
         
-        # Draw audio controls
-        self.draw_audio_controls()
+        # Draw label
+        pad_label = self.small_font.render("4-Digit Selection Pad:", True, Colors.WHITE)
+        label_rect = pad_label.get_rect(center=(self.width // 2, pad_y - 25))
+        self.screen.blit(pad_label, label_rect)
         
-        # Draw number pad
-        pad_label = self.small_font.render("Number Pad:", True, Colors.WHITE)
-        self.screen.blit(pad_label, (self.width - 330, self.height - 280))
-        
+        # Draw number pad buttons
         for btn in self.number_pad_buttons:
+            # Update button positions to be centered
+            btn.rect.x = pad_x + (self.number_pad_buttons.index(btn) % 3) * 60 + ((self.number_pad_buttons.index(btn) // 3) % 2) * 30
+            btn.rect.y = pad_y + (self.number_pad_buttons.index(btn) // 3) * 60
             btn.draw(self.screen, self.small_font)
         
-        # Draw instructions
-        instructions = self.small_font.render(
-            "4-digit: Album(2) + Track(2) | C: Config | Space: Play/Pause | ←→: Track | N/P: Album | E: Export | ↑↓: Volume",
-            True, Colors.GRAY
-        )
-        self.screen.blit(instructions, (20, self.height - 30))
-        
-        pygame.display.flip()
+        # Draw selection display above pad
+        if self.selection_mode:
+            selection_display = f"Selection: {self.selection_buffer:<4}"
+            selection_color = Colors.YELLOW
+            selection_text = self.medium_font.render(selection_display, True, selection_color)
+            selection_rect = selection_text.get_rect(center=(self.width // 2, pad_y - 60))
+            self.screen.blit(selection_text, selection_rect)
     
     def draw_audio_controls(self) -> None:
         """Draw audio control elements"""
