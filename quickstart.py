@@ -1,58 +1,257 @@
 #!/usr/bin/env python3
 """
-Quick Start Example - Demonstrates library usage
+JukeBox Quick Start - Enhanced Music Player with Equalizer
+Demonstrates the complete JukeBox application with all features
 """
-from src.album_library import AlbumLibrary
+
 import os
+import sys
+import pygame
+from src.album_library import AlbumLibrary
+from src.player import MusicPlayer
+from src.config import Config
+from src.theme import ThemeManager
+from src.ui import UI
+from src.audio_effects import Equalizer
 
 
-def main():
-    """Run quick start example"""
-    # Setup library directory
+def display_banner():
+    """Display JukeBox banner"""
+    print(f"\n{'='*70}")
+    print("🎵 JukeBox - Enhanced Music Player with Professional Equalizer 🎵")
+    print(f"{'='*70}")
+    print("Features:")
+    print("  ✓ Real-time 5-band equalizer with numpy/scipy processing")
+    print("  ✓ Beautiful themed UI with semi-transparent overlays")
+    print("  ✓ Album library management (supports 50 albums)")
+    print("  ✓ Professional media controls and volume slider")
+    print("  ✓ Multiple themes (dark, light, custom)")
+    print("  ✓ PNG-optimized backgrounds for smooth performance")
+    print("  ✓ Self-contained macOS app distribution")
+    print("  ✓ Virtual environment management")
+    print(f"{'='*70}\n")
+
+
+def check_dependencies():
+    """Check if required dependencies are installed"""
+    print("Checking dependencies...")
+    
+    try:
+        import numpy
+        print("  ✓ numpy - for real-time audio processing")
+    except ImportError:
+        print("  ✗ numpy - REQUIRED for equalizer functionality")
+        return False
+        
+    try:
+        import scipy
+        print("  ✓ scipy - for frequency band filtering")
+    except ImportError:
+        print("  ✗ scipy - REQUIRED for equalizer functionality")
+        return False
+        
+    try:
+        import pygame
+        print("  ✓ pygame - for audio playback and UI")
+    except ImportError:
+        print("  ✗ pygame - REQUIRED for music playback")
+        return False
+        
+    try:
+        import mutagen
+        print("  ✓ mutagen - for metadata extraction")
+    except ImportError:
+        print("  ✗ mutagen - REQUIRED for music file parsing")
+        return False
+        
+    try:
+        import svglib
+        import reportlab
+        print("  ✓ svglib/reportlab - for theme system")
+    except ImportError:
+        print("  ✗ svglib/reportlab - REQUIRED for theme backgrounds")
+        return False
+    
+    print("  ✓ All dependencies satisfied!\n")
+    return True
+
+
+def setup_library():
+    """Setup and scan the music library"""
     music_dir = os.path.join(os.path.dirname(__file__), 'music')
     
-    # Create library instance
-    library = AlbumLibrary(music_dir)
+    print(f"Setting up music library...")
+    print(f"Library directory: {music_dir}")
     
-    # Scan for albums
-    print("Scanning library...")
+    if not os.path.exists(music_dir):
+        print(f"  Creating music directory...")
+        os.makedirs(music_dir, exist_ok=True)
+        
+        # Create sample album directories
+        for i in range(1, 3):
+            album_dir = os.path.join(music_dir, f"{i:02d}")
+            os.makedirs(album_dir, exist_ok=True)
+            
+        print(f"  ✓ Created sample album directories (01, 02)")
+        print(f"  📁 Add your music files to: {music_dir}/01/, {music_dir}/02/, etc.")
+    
+    library = AlbumLibrary(music_dir)
+    print(f"  📀 Scanning for albums...")
     library.scan_library()
     
-    # Display statistics
+    return library
+
+
+def display_library_info(library):
+    """Display library statistics and album information"""
     stats = library.get_library_stats()
-    print(f"\n{'='*60}")
-    print(f"Library Statistics")
-    print(f"{'='*60}")
+    albums = library.get_albums()
+    
+    print(f"\n{'='*70}")
+    print(f"📊 Library Statistics")
+    print(f"{'='*70}")
     print(f"Albums Found: {stats['total_albums']}/{stats['max_albums']}")
     print(f"Total Tracks: {stats['total_tracks']}")
     print(f"Total Duration: {stats['total_duration_formatted']}")
-    print()
+    print(f"Library Size: {len(albums)} albums")
     
-    # Display albums
-    albums = library.get_albums()
     if albums:
-        print(f"{'='*60}")
-        print(f"Albums in Library")
-        print(f"{'='*60}")
-        for album in albums:
+        print(f"\n{'='*70}")
+        print(f"🎵 Albums in Library")
+        print(f"{'='*70}")
+        for album in albums[:5]:  # Show first 5 albums
             print(f"\n[Album {album.album_id:02d}] {album.artist} - {album.title}")
-            print(f"  Tracks: {len(album.tracks)}")
-            for i, track in enumerate(album.tracks[:5], 1):
+            print(f"  📀 {len(album.tracks)} tracks")
+            for i, track in enumerate(album.tracks[:3], 1):
                 print(f"    {i}. {track['title']} ({track['duration_formatted']})")
-            if len(album.tracks) > 5:
-                print(f"    ... and {len(album.tracks) - 5} more tracks")
+            if len(album.tracks) > 3:
+                print(f"    ... and {len(album.tracks) - 3} more tracks")
+        
+        if len(albums) > 5:
+            print(f"\n... and {len(albums) - 5} more albums")
     else:
-        print("\nNo albums found!")
-        print("Please add music files to the 'music/' directory in numbered folders (01-50)")
+        print(f"\n⚠️  No albums found!")
+        print(f"   📁 Add music files to numbered folders in: {library.library_path}")
+        print(f"   💡 Example: music/01/song1.mp3, music/02/album2_song1.mp3")
     
-    # Export library
-    print(f"\n{'='*60}")
+    print(f"{'='*70}")
+
+
+def display_equalizer_info():
+    """Display equalizer feature information"""
+    print(f"\n{'='*70}")
+    print(f"🎛️  Professional Equalizer Features")
+    print(f"{'='*70}")
+    
+    equalizer = Equalizer()
+    presets = equalizer.get_presets()
+    
+    print(f"5-Band Frequency Control:")
+    print(f"  🎵 60 Hz    - Sub-bass and kick drums")
+    print(f"  🎵 250 Hz   - Bass and low midrange") 
+    print(f"  🎵 1 kHz    - Midrange vocals and instruments")
+    print(f"  🎵 4 kHz    - Presence and vocal clarity")
+    print(f"  🎵 16 kHz   - High frequencies and air")
+    
+    print(f"\nAvailable Presets:")
+    for i, preset_name in enumerate(presets.keys(), 1):
+        preset_values = presets[preset_name]
+        print(f"  {i}. {preset_name}: {preset_values}")
+    
+    print(f"\nReal-time Processing:")
+    print(f"  ✓ numpy-based frequency analysis")
+    print(f"  ✓ scipy signal processing filters")
+    print(f"  ✓ Live audio effects during playback")
+    print(f"  ✓ Persistent settings saved to config")
+    print(f"{'='*70}")
+
+
+def launch_application():
+    """Launch the full JukeBox application"""
+    print(f"\n🚀 Launching JukeBox Application...")
+    print(f"   Use the configuration button to access the equalizer!")
+    print(f"   Press ESC or close window to exit")
+    print(f"{'='*70}\n")
+    
+    try:
+        # Initialize pygame
+        pygame.init()
+        pygame.mixer.init()
+        
+        # Load configuration
+        config = Config()
+        
+        # Initialize theme system
+        theme_dir = os.path.join(os.path.dirname(__file__), 'themes')
+        theme_manager = ThemeManager(theme_dir)
+        theme_manager.discover_themes()
+        theme_name = config.get('theme', 'dark')
+        
+        if not theme_manager.set_current_theme(theme_name):
+            available = theme_manager.get_available_themes()
+            if available:
+                theme_manager.set_current_theme(available[0])
+                print(f"   Using theme: {available[0]}")
+        
+        # Setup library
+        music_dir = os.path.join(os.path.dirname(__file__), 'music')
+        library = AlbumLibrary(music_dir)
+        library.scan_library()
+        
+        # Create UI and player
+        ui = UI(None, library, config, theme_manager)
+        player = MusicPlayer(library, ui.equalizer)
+        ui.player = player
+        
+        # Run the application
+        ui.run()
+        
+        # Cleanup
+        player.cleanup()
+        pygame.quit()
+        
+    except KeyboardInterrupt:
+        print(f"\n👋 JukeBox closed by user")
+    except Exception as e:
+        print(f"\n❌ Error launching JukeBox: {e}")
+        print(f"   Try running: make run")
+
+
+def main():
+    """Main entry point for JukeBox quickstart"""
+    display_banner()
+    
+    # Check dependencies
+    if not check_dependencies():
+        print(f"❌ Missing dependencies. Run: pip install -r requirements.txt")
+        sys.exit(1)
+    
+    # Setup library
+    library = setup_library()
+    
+    # Display information
+    display_library_info(library)
+    display_equalizer_info()
+    
+    # Export library data
+    print(f"\n📄 Exporting library data...")
     export_path = os.path.join(os.path.dirname(__file__), 'library_export.csv')
     if library.export_to_csv(export_path):
-        print(f"✓ Library exported to: {export_path}")
+        print(f"  ✓ Library data exported to: {export_path}")
     else:
-        print("✗ Export failed")
-    print(f"{'='*60}\n")
+        print(f"  ✗ Export failed")
+    
+    # Offer to launch full application
+    print(f"\n{'='*70}")
+    choice = input("🎵 Launch full JukeBox application? (y/N): ").lower().strip()
+    if choice in ['y', 'yes']:
+        launch_application()
+    else:
+        print(f"\n💡 To launch JukeBox manually, run:")
+        print(f"   make run")
+        print(f"   # or")
+        print(f"   python3 src/main.py")
+        print(f"\n👋 Quickstart complete!")
 
 
 if __name__ == '__main__':
