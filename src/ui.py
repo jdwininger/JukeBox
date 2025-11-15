@@ -8,7 +8,7 @@ from src.album_library import AlbumLibrary
 from src.config import Config
 from src.audio_effects import Equalizer
 from src.widgets import Slider, VerticalSlider
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 
 class Colors:
@@ -262,12 +262,12 @@ class NumberPadButton(Button):
 class UI:
     """Main UI class for the JukeBox application"""
     
-    def __init__(self, player: MusicPlayer, library: AlbumLibrary, config: Config, theme_manager):
+    def __init__(self, player: Optional[MusicPlayer], library: AlbumLibrary, config: Config, theme_manager):
         """
         Initialize the UI
         
         Args:
-            player: MusicPlayer instance
+            player: MusicPlayer instance (can be None initially)
             library: AlbumLibrary instance
             config: Config instance
             theme_manager: ThemeManager instance
@@ -350,6 +350,19 @@ class UI:
         
         # Create buttons
         self.setup_buttons()
+    
+    def _player_safe_call(self, method_name: str, *args, **kwargs):
+        """Safely call player methods, handling None player"""
+        if self.player is None:
+            return None
+        method = getattr(self.player, method_name, None)
+        if method and callable(method):
+            try:
+                return method(*args, **kwargs)
+            except Exception as e:
+                print(f"Error calling player.{method_name}: {e}")
+                return None
+        return None
     
     def setup_buttons(self) -> None:
         """Setup UI buttons"""
@@ -463,7 +476,7 @@ class UI:
             slider = VerticalSlider(
                 x=x, y=eq_start_y, width=30, height=eq_slider_height,
                 min_val=-12.0, max_val=12.0, initial_val=0.0,
-                label=f"Band {i+1}",
+                label="",  # Remove band number labels
                 theme=self.current_theme
             )
             self.eq_sliders.append(slider)
@@ -604,7 +617,7 @@ class UI:
             
             # Play the selected track
             print(f"Selection: Album {album_id:02d}, Track {track_num:02d}")
-            self.player.play(album_id=album_id, track_index=track_index)
+            self._player_safe_call('play', album_id=album_id, track_index=track_index)
             self.selection_buffer = ""
             self.selection_mode = False
             
@@ -714,10 +727,14 @@ class UI:
                         # Save before leaving
                         self.config.set('equalizer_values', [s.get_value() for s in self.eq_sliders])
                         self.config.save()
+                        # Apply equalizer changes
+                        self.update_audio_controls()
                         self.screen_mode = 'main'
                     elif self.eq_save_button.is_clicked(event.pos):
                         self.config.set('equalizer_values', [s.get_value() for s in self.eq_sliders])
                         self.config.save()
+                        # Apply equalizer changes
+                        self.update_audio_controls()
                     else:
                         # Preset buttons
                         for name, btn in self.eq_preset_buttons:
@@ -728,6 +745,8 @@ class UI:
                                     # Update sliders to equalizer model
                                     for i, gain in enumerate(self.equalizer.get_all_bands()):
                                         self.eq_sliders[i].set_value(gain)
+                                    # Update volume to apply equalizer changes
+                                    self.update_audio_controls()
                                 break
                 elif self.screen_mode == 'fader':
                     if self.fader_back_button.is_clicked(event.pos):
@@ -755,14 +774,14 @@ class UI:
                 else:
                     # Main screen button clicks
                     if self.play_button.is_clicked(event.pos):
-                        self.player.play()
+                        self._player_safe_call('play')
                     elif self.pause_button.is_clicked(event.pos):
-                        if self.player.is_paused:
-                            self.player.resume()
-                        else:
-                            self.player.pause()
+                        if self.player and self.player.is_paused:
+                            self._player_safe_call('resume')
+                        elif self.player:
+                            self._player_safe_call('pause')
                     elif self.stop_button.is_clicked(event.pos):
-                        self.player.stop()
+                        self._player_safe_call('stop')
                     elif self.config_button.is_clicked(event.pos):
                         self.config_screen_open = True
                         self.config_message = ""
@@ -953,12 +972,14 @@ class UI:
         """Update audio controls and apply effects"""
         # Update volume from slider
         slider_volume = self.volume_slider.get_value() / 100.0
-        self.player.set_volume(slider_volume)
         
-        # Update equalizer bands
+        # Update equalizer bands first
         for i, slider in enumerate(self.eq_sliders):
             gain = slider.get_value()
             self.equalizer.set_band(i, gain)
+        
+        # Set volume after equalizer update (so EQ adjustments are applied)
+        self._player_safe_call('set_volume', slider_volume)
     
     def get_cached_text(self, text: str, font: pygame.font.Font, color: Tuple[int, int, int]) -> pygame.Surface:
         """Get cached text surface or create new one"""
@@ -1009,33 +1030,51 @@ class UI:
             self.draw_main_screen()
 
     def draw_equalizer_screen(self) -> None:
-        """Draw the full-screen equalizer adjustment UI"""
-        # Background - request specific size for SVG optimization
-        background = self.current_theme.get_background(self.width, self.height)
-        if background:
-            # If we got a pre-scaled SVG, use it directly, otherwise scale
-            if background.get_size() == (self.width, self.height):
-                self.screen.blit(background, (0, 0))
-            else:
-                scaled_bg = pygame.transform.scale(background, (self.width, self.height))
-                self.screen.blit(scaled_bg, (0, 0))
-        else:
-            self.screen.fill(Colors.DARK_GRAY)
+        """Draw the full-screen equalizer adjustment UI with centered layout"""
+        # Use cached background for performance (like main screen)
+        background = self.get_cached_background()
+        self.screen.blit(background, (0, 0))
 
-        # Title (leave left margin clear of buttons)
-        title = self.large_font.render("Equalizer", True, Colors.WHITE)
-        self.screen.blit(title, (40, 32))
-
-        # Instructions
-        instructions = self.small_font.render("Adjust gains, apply preset, then Save or Back", True, Colors.LIGHT_GRAY)
-        self.screen.blit(instructions, (40, 78))
-
-        # Slider area
+        # Calculate centered equalizer layout
         band_names = ["60 Hz", "250 Hz", "1 kHz", "4 kHz", "16 kHz"]
-        start_x = 120
         spacing = 150
-        slider_top = 140
         slider_height = 300
+        slider_width = 30
+        
+        # Calculate total width needed for sliders
+        total_slider_width = (len(band_names) - 1) * spacing + slider_width
+        
+        # Calculate equalizer box dimensions
+        eq_box_padding = 40
+        eq_box_width = total_slider_width + (eq_box_padding * 2)
+        eq_box_height = 520  # Reduced height to minimize dead space below preset buttons
+        
+        # Center the equalizer box on screen
+        eq_box_x = (self.width - eq_box_width) // 2
+        eq_box_y = (self.height - eq_box_height) // 2
+        
+        # Draw semi-transparent black background box
+        eq_background = pygame.Surface((eq_box_width, eq_box_height))
+        eq_background.set_alpha(int(255 * 0.75))  # 75% opacity
+        eq_background.fill((0, 0, 0))  # Black
+        self.screen.blit(eq_background, (eq_box_x, eq_box_y))
+        
+        # Calculate centered positions within the box
+        start_x = eq_box_x + eq_box_padding
+        title_y = eq_box_y + 20
+        instructions_y = title_y + 35
+        slider_top = instructions_y + 50
+        preset_y = slider_top + slider_height + 60
+        
+        # Title centered in the box
+        title = self.large_font.render("Equalizer", True, Colors.WHITE)
+        title_rect = title.get_rect(center=(eq_box_x + eq_box_width // 2, title_y))
+        self.screen.blit(title, title_rect)
+
+        # Instructions centered in the box
+        instructions = self.small_font.render("Adjust gains, apply preset, then Save or Back", True, Colors.LIGHT_GRAY)
+        instructions_rect = instructions.get_rect(center=(eq_box_x + eq_box_width // 2, instructions_y))
+        self.screen.blit(instructions, instructions_rect)
 
         # Draw each vertical slider with label & value
         for i, (slider, name) in enumerate(zip(self.eq_sliders, band_names)):
@@ -1044,7 +1083,7 @@ class UI:
             slider.height = slider_height
             slider.draw(self.screen, self.small_font, track_color=Colors.GRAY, knob_color=Colors.BLUE, fill_color=Colors.BLUE)
 
-            # Label
+            # Frequency label (keep these - 60 Hz, 250 Hz, etc.)
             label = self.small_font.render(name, True, Colors.WHITE)
             label_rect = label.get_rect(center=(slider.x + slider.width // 2, slider_top - 25))
             self.screen.blit(label, label_rect)
@@ -1056,20 +1095,20 @@ class UI:
             val_rect = val_text.get_rect(center=(slider.x + slider.width // 2, slider_top + slider_height + 15))
             self.screen.blit(val_text, val_rect)
 
-        # Preset buttons
-        for _, btn in self.eq_preset_buttons:
+        # Update and draw preset buttons - center them in the box
+        preset_start_x = eq_box_x + (eq_box_width - (len(self.eq_preset_buttons) * 140 - 10)) // 2
+        for i, (name, btn) in enumerate(self.eq_preset_buttons):
+            btn.rect.x = preset_start_x + i * 140
+            btn.rect.y = preset_y
             btn.draw(self.screen, self.small_font)
 
-        # Save / Back buttons
-        # Save / Back buttons (ensure they stay top-right even if window resized)
+        # Save / Back buttons (keep in top-right corner outside the box)
         self.eq_save_button.rect.x = self.width - 260
         self.eq_back_button.rect.x = self.width - 140
         self.eq_save_button.rect.y = 30
         self.eq_back_button.rect.y = 30
         self.eq_save_button.draw(self.screen, self.small_font)
         self.eq_back_button.draw(self.screen, self.small_font)
-
-        pygame.display.flip()
 
     def draw_main_screen(self) -> None:
         """Draw the main playbook screen with 3-column 2-row layout"""
@@ -1083,13 +1122,15 @@ class UI:
         self._last_volume = current_volume
         self._last_track_info = current_track
         
-        # Draw title at top header area
-        title = self.get_cached_text("JukeBox - Album Library", self.large_font, Colors.WHITE)
-        title_rect = title.get_rect(center=(self.width // 2, self.header_height // 2 + 2))
+        # Draw title at top header area with overlay
+        text_y = self.header_height // 2 + 2
+        self.draw_top_text_overlay(text_y)
+        title = self.get_cached_text("JukeBox", self.large_font, Colors.WHITE)
+        title_rect = title.get_rect(center=(self.width // 2, text_y))
         self.screen.blit(title, title_rect)
 
         # Top controls layout (volume slider left, playback buttons centered, config button right)
-        controls_margin_top = self.header_height + 5
+        controls_margin_top = self.header_height + 20  # Increased margin to avoid title bar overlap
         button_height = 50  # Match square button size
         media_button_size = 50  # Square buttons
         spacing = 12
@@ -1098,7 +1139,7 @@ class UI:
         self.screen.blit(volume_label, (self.margin, controls_margin_top + 2))
         
         self.volume_slider.x = self.margin
-        self.volume_slider.y = controls_margin_top + 20  # leave room for its label
+        self.volume_slider.y = controls_margin_top + 25  # Adjusted for increased margin
         self.volume_slider.width = 220
         self.volume_slider.height = 20
         self.volume_slider.draw(self.screen, self.small_font,
@@ -1109,7 +1150,7 @@ class UI:
         col_width = (self.width - self.margin * 4) // 3
         col2_x = self.margin * 2 + col_width
         center_x = col2_x + (col_width // 2)
-        buttons_y = controls_margin_top + 15
+        buttons_y = controls_margin_top + 20  # Adjusted for increased margin
         # Use actual button widths to prevent overlap
         bw_play = self.play_button.rect.width
         bw_pause = self.pause_button.rect.width
@@ -1127,7 +1168,7 @@ class UI:
         self.stop_button.draw(self.screen, self.small_font)
         # Config button at top-right
         self.config_button.rect.x = self.width - self.margin - media_button_size
-        self.config_button.rect.y = controls_margin_top + 10
+        self.config_button.rect.y = controls_margin_top + 15  # Adjusted for increased margin
         self.config_button.draw(self.screen, self.small_font)
 
         # Determine start of album content area below controls
@@ -1156,15 +1197,17 @@ class UI:
             self.left_nav_button.draw(self.screen, self.small_font)
             self.right_nav_button.draw(self.screen, self.small_font)
             
-            # Draw instructions at very bottom
+            # Draw instructions at very bottom with overlay
+            text_y = self.height - 20  # 20 pixels from bottom
+            self.draw_bottom_text_overlay(text_y)
             instructions = self.small_font.render(
                 "C: Config | Space: Play/Pause | ↑↓: Volume",
-                True, Colors.GRAY
+                True, Colors.WHITE
             )
-            self.screen.blit(instructions, (20, self.height - 25))
+            self.screen.blit(instructions, (20, text_y))
             
             pygame.display.flip()
-            return
+            return  # Exit early for empty library
         
         # Content area (between top controls and bottom area)
         content_height = self.height - content_top - self.bottom_area_height - 20
@@ -1251,12 +1294,14 @@ class UI:
         # Draw audio controls above number pad
         self.draw_audio_controls()
         
-        # Draw instructions at very bottom
+        # Draw instructions at very bottom with overlay
+        text_y = self.height - 20  # 20 pixels from bottom
+        self.draw_bottom_text_overlay(text_y)
         instructions = self.small_font.render(
             "4-digit: Album(2) + Track(2) | C: Config | Space: Play/Pause | Alt+Enter: Fullscreen | ↑↓: Volume",
-            True, Colors.GRAY
+            True, Colors.WHITE
         )
-        self.screen.blit(instructions, (20, self.height - 25))
+        self.screen.blit(instructions, (20, text_y))
         
         # Draw queue counter in lower right corner
         queue_count = len(self.player.queue)
@@ -1265,7 +1310,7 @@ class UI:
             queue_surface = self.small_font.render(queue_text, True, Colors.WHITE)
             queue_rect = queue_surface.get_rect()
             queue_x = self.width - queue_rect.width - 20
-            queue_y = self.height - 25
+            queue_y = text_y  # Use same y position as instructions
             self.screen.blit(queue_surface, (queue_x, queue_y))
         
         pygame.display.flip()
@@ -1751,6 +1796,24 @@ class UI:
         # Draw theme name
         name_text = self.small_font.render(theme_name.capitalize(), True, Colors.WHITE)
         self.screen.blit(name_text, (x + 20, y + preview_height + 5))
+
+    def draw_bottom_text_overlay(self, text_y_position, text_height=25):
+        """Draw a semi-transparent black overlay across the bottom for better text contrast"""
+        overlay_surface = pygame.Surface((self.width, text_height))
+        overlay_surface.set_alpha(int(255 * 0.85))  # 85% opacity
+        overlay_surface.fill(Colors.BLACK)
+        # Position overlay to cover the text area
+        overlay_y = text_y_position - 5  # Slightly above the text
+        self.screen.blit(overlay_surface, (0, overlay_y))
+
+    def draw_top_text_overlay(self, text_y_position, text_height=50):
+        """Draw a semi-transparent black overlay across the top for better text contrast"""
+        overlay_surface = pygame.Surface((self.width, text_height))
+        overlay_surface.set_alpha(int(255 * 0.85))  # 85% opacity
+        overlay_surface.fill(Colors.BLACK)
+        # Position overlay to cover the text area from the top
+        overlay_y = 0  # Start from the very top of the screen
+        self.screen.blit(overlay_surface, (0, overlay_y))
 
     def get_album_art(self, album):
         """Return cached album art surface or attempt to load one"""
