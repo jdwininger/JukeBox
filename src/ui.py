@@ -130,7 +130,16 @@ class UI:
         # Window setup (dynamic resolution via config; defaults 1280x800)
         self.width = int(self.config.get('window_width', 1280))
         self.height = int(self.config.get('window_height', 800))
-        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+        self.fullscreen = self.config.get('fullscreen', False)
+        
+        # Set display mode based on fullscreen setting
+        if self.fullscreen:
+            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            # Get actual fullscreen dimensions
+            self.width = self.screen.get_width()
+            self.height = self.screen.get_height()
+        else:
+            self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
         pygame.display.set_caption("JukeBox - Album Library")
         self.clock = pygame.time.Clock()
         self.running = True
@@ -145,10 +154,11 @@ class UI:
         self.bottom_area_height = 230
         
         # Fonts
-        self.large_font = pygame.font.Font(None, 48)
-        self.medium_font = pygame.font.Font(None, 28)
-        self.small_font = pygame.font.Font(None, 18)
-        self.tiny_font = pygame.font.Font(None, 14)
+        self.large_font = pygame.font.SysFont('Arial', 36)
+        self.medium_font = pygame.font.SysFont('Arial', 20)
+        self.small_medium_font = pygame.font.SysFont('Arial', 20)
+        self.small_font = pygame.font.SysFont('Arial', 14)
+        self.tiny_font = pygame.font.SysFont('Arial', 10)
         
         # 4-digit selection system (AATT: Album Album Track Track)
         self.selection_buffer = ""
@@ -169,7 +179,7 @@ class UI:
         self.last_track_info = None
         
         # Album view offset for side navigation
-        self.album_view_offset = 0  # Offset from current album for display
+        self.browse_position = 0  # Absolute position when browsing, starts showing albums 1-4
 
         # Screen mode: 'main', 'equalizer', 'config'
         self.screen_mode = 'main'
@@ -329,7 +339,8 @@ class UI:
         self.config_extract_art_button = Button(center_x + 160, config_y, button_width, button_height, "Extract Art", (128, 0, 128))  # Purple color
         # Audio effects access button
         effects_y = config_y + 60
-        self.config_equalizer_button = Button(center_x - 60, effects_y, button_width, button_height, "Equalizer", Colors.BLUE)
+        self.config_equalizer_button = Button(center_x - 120, effects_y, button_width, button_height, "Equalizer", Colors.BLUE)
+        self.config_fullscreen_button = Button(center_x + 20, effects_y, button_width, button_height, "Fullscreen", Colors.GRAY)
         
         # Theme selection buttons
         self.theme_buttons: List[tuple] = []
@@ -443,14 +454,15 @@ class UI:
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.VIDEORESIZE:
-                # Update internal dimensions and recreate screen surface
-                self.width, self.height = event.w, event.h
-                self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
-                # Optionally clamp minimum size for layout integrity
-                if self.width < 800 or self.height < 600:
-                    self.width = max(800, self.width)
-                    self.height = max(600, self.height)
+                if not self.fullscreen:  # Only handle resize if not in fullscreen
+                    # Update internal dimensions and recreate screen surface
+                    self.width, self.height = event.w, event.h
                     self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+                    # Optionally clamp minimum size for layout integrity
+                    if self.width < 800 or self.height < 600:
+                        self.width = max(800, self.width)
+                        self.height = max(600, self.height)
+                        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
                 
                 # Navigation button positions are now handled in draw_number_pad_centered()
             
@@ -461,6 +473,7 @@ class UI:
                     self.config_close_button.update(event.pos)
                     self.config_extract_art_button.update(event.pos)
                     self.config_equalizer_button.update(event.pos)
+                    self.config_fullscreen_button.update(event.pos)
 
                     for theme_name, btn in self.theme_buttons:
                         btn.update(event.pos)
@@ -510,6 +523,9 @@ class UI:
                     elif self.config_equalizer_button.is_clicked(event.pos):
                         self.screen_mode = 'equalizer'
                         self.config_screen_open = False
+                    elif self.config_fullscreen_button.is_clicked(event.pos):
+                        self.toggle_fullscreen()
+                        self.setup_config_buttons()  # Refresh button positions
 
                     else:
                         # Check theme button clicks
@@ -573,9 +589,15 @@ class UI:
                         self.config_screen_open = True
                         self.config_message = ""
                     elif self.left_nav_button.is_clicked(event.pos):
-                        self.album_view_offset -= 1
+                        albums = self.player.library.get_albums()
+                        if albums:
+                            # Move left by 4 albums, but don't go before album 01
+                            self.browse_position = max(0, self.browse_position - 4)
                     elif self.right_nav_button.is_clicked(event.pos):
-                        self.album_view_offset += 1
+                        albums = self.player.library.get_albums()
+                        if albums:
+                            # Move right by 4 albums, but don't go past album 49
+                            self.browse_position = min(48, self.browse_position + 4)
                     else:
                         # Check number pad buttons
                         self.handle_number_pad_click(event.pos)
@@ -597,7 +619,10 @@ class UI:
                 
                 # Enter to execute selection
                 elif event.key == pygame.K_RETURN:
-                    if not self.config_screen_open:
+                    # Check for Alt+Enter for fullscreen toggle
+                    if pygame.key.get_pressed()[pygame.K_LALT] or pygame.key.get_pressed()[pygame.K_RALT]:
+                        self.toggle_fullscreen()
+                    elif not self.config_screen_open:
                         self.execute_selection()
                 
                 # Other keyboard shortcuts
@@ -609,10 +634,10 @@ class UI:
                             self.player.play()
                 elif event.key == pygame.K_RIGHT:
                     if not self.config_screen_open:
-                        self.player.next()
+                        self.player.next_track()
                 elif event.key == pygame.K_LEFT:
                     if not self.config_screen_open:
-                        self.player.previous()
+                        self.player.previous_track()
                 elif event.key == pygame.K_UP:
                     if not self.config_screen_open:
                         self.player.set_volume(self.player.volume + 0.1)
@@ -730,11 +755,15 @@ class UI:
 
     def draw_equalizer_screen(self) -> None:
         """Draw the full-screen equalizer adjustment UI"""
-        # Background
-        background = self.current_theme.get_background()
+        # Background - request specific size for SVG optimization
+        background = self.current_theme.get_background(self.width, self.height)
         if background:
-            scaled_bg = pygame.transform.scale(background, (self.width, self.height))
-            self.screen.blit(scaled_bg, (0, 0))
+            # If we got a pre-scaled SVG, use it directly, otherwise scale
+            if background.get_size() == (self.width, self.height):
+                self.screen.blit(background, (0, 0))
+            else:
+                scaled_bg = pygame.transform.scale(background, (self.width, self.height))
+                self.screen.blit(scaled_bg, (0, 0))
         else:
             self.screen.fill(Colors.DARK_GRAY)
 
@@ -789,12 +818,15 @@ class UI:
 
     def draw_main_screen(self) -> None:
         """Draw the main playback screen with 3-column 2-row layout"""
-        # Use theme background if available
-        background = self.current_theme.get_background()
+        # Use theme background - request specific size for SVG optimization
+        background = self.current_theme.get_background(self.width, self.height)
         if background:
-            # Scale background to fit screen
-            scaled_bg = pygame.transform.scale(background, (self.width, self.height))
-            self.screen.blit(scaled_bg, (0, 0))
+            # If we got a pre-scaled SVG, use it directly, otherwise scale
+            if background.get_size() == (self.width, self.height):
+                self.screen.blit(background, (0, 0))
+            else:
+                scaled_bg = pygame.transform.scale(background, (self.width, self.height))
+                self.screen.blit(scaled_bg, (0, 0))
         else:
             self.screen.fill(Colors.DARK_GRAY)
         
@@ -894,7 +926,7 @@ class UI:
         
         # Two rows within content area
         row1_y = content_top + 10
-        row2_y = row1_y + content_height // 2 + 10
+        row2_y = row1_y + content_height // 2 + 35
         
         current_album_idx = None
         for i, alb in enumerate(albums):
@@ -905,35 +937,39 @@ class UI:
         if current_album_idx is None:
             current_album_idx = 0
         
-        # Apply view offset for side navigation
-        display_album_idx = (current_album_idx + self.album_view_offset) % len(albums)
+        # Determine which albums to show in left and right columns
+        # Left column: albums 1,2 | Right column: albums 3,4 (as requested)
+        # Browse position shows 4 albums: position, position+1, position+2, position+3
+        left_album_1 = self.browse_position       # Top left: album 1
+        left_album_2 = self.browse_position + 1   # Bottom left: album 2
+        right_album_1 = self.browse_position + 2  # Top right: album 3
+        right_album_2 = self.browse_position + 3  # Bottom right: album 4
         
-        # Get adjacent albums relative to display offset
-        prev_album_idx = (display_album_idx - 1) % len(albums)
-        next_album_idx = (display_album_idx + 1) % len(albums)
-        prev_album_idx_2 = (display_album_idx - 2) % len(albums)
-        next_album_idx_2 = (display_album_idx + 2) % len(albums)
-        
-        # LEFT COLUMN - Previous 2 albums (each taking half height)
+        # LEFT COLUMN - Two albums (each taking half height)
         if len(albums) > 0:
-            card_h = (content_height // 2) - 15  # Half height minus spacing
-            self.draw_album_card(albums[prev_album_idx_2], col1_x, row1_y, col_width - 10, card_h)
-            self.draw_album_card(albums[prev_album_idx], col1_x, row2_y, col_width - 10, card_h)
+            card_h = (content_height // 2) + 15  # Half height plus extra space
+            # Only draw if indices are valid
+            if left_album_1 >= 0 and left_album_1 < len(albums):
+                self.draw_album_card(albums[left_album_1], col1_x, row1_y, col_width - 10, card_h)
+            if left_album_2 >= 0 and left_album_2 < len(albums):
+                self.draw_album_card(albums[left_album_2], col1_x, row2_y, col_width - 10, card_h)
         
-        # CENTER COLUMN - Always show Now Playing box for the currently playing album (if any)
+        # CENTER COLUMN - Always show Now Playing, never browsed albums
         current_album_obj = self.player.get_current_album()
-        if current_album_obj:
+        if current_album_obj and self.player.is_music_playing():
             self.draw_current_album_display(current_album_obj, col2_x, row1_y, col_width - 10, content_height - 10)
         else:
-            # No album playing yet; keep box stable with placeholder
-            if display_album_idx < len(albums):
-                self.draw_current_album_display(albums[display_album_idx], col2_x, row1_y, col_width - 10, content_height - 10)
+            # Show empty Now Playing box when nothing is playing
+            self.draw_empty_now_playing(col2_x, row1_y, col_width - 10, content_height - 10)
         
-        # RIGHT COLUMN - Next 2 albums (each taking half height)
+        # RIGHT COLUMN - Two albums (each taking half height)
         if len(albums) > 0:
-            card_h = (content_height // 2) - 15  # Half height minus spacing
-            self.draw_album_card(albums[next_album_idx], col3_x, row1_y, col_width - 10, card_h)
-            self.draw_album_card(albums[next_album_idx_2], col3_x, row2_y, col_width - 10, card_h)
+            card_h = (content_height // 2) + 15  # Half height plus extra space
+            # Only draw if indices are valid
+            if right_album_1 >= 0 and right_album_1 < len(albums):
+                self.draw_album_card(albums[right_album_1], col3_x, row1_y, col_width - 10, card_h)
+            if right_album_2 >= 0 and right_album_2 < len(albums):
+                self.draw_album_card(albums[right_album_2], col3_x, row2_y, col_width - 10, card_h)
         
         # Draw side navigation buttons
         self.left_nav_button.draw(self.screen, self.small_font)
@@ -949,10 +985,20 @@ class UI:
         
         # Draw instructions at very bottom
         instructions = self.small_font.render(
-            "4-digit: Album(2) + Track(2) | C: Config | Space: Play/Pause | N/P: Album | ↑↓: Volume",
+            "4-digit: Album(2) + Track(2) | C: Config | Space: Play/Pause | Alt+Enter: Fullscreen | ↑↓: Volume",
             True, Colors.GRAY
         )
         self.screen.blit(instructions, (20, self.height - 25))
+        
+        # Draw queue counter in lower right corner
+        queue_count = len(self.player.queue)
+        if queue_count > 0:
+            queue_text = f"Queue: {queue_count} song{'s' if queue_count != 1 else ''}"
+            queue_surface = self.small_font.render(queue_text, True, Colors.WHITE)
+            queue_rect = queue_surface.get_rect()
+            queue_x = self.width - queue_rect.width - 20
+            queue_y = self.height - 25
+            self.screen.blit(queue_surface, (queue_x, queue_y))
         
         pygame.display.flip()
     
@@ -962,8 +1008,8 @@ class UI:
         card_rect = pygame.Rect(x, y, width, card_height)
         
         # Draw card background
-        pygame.draw.rect(self.screen, Colors.DARK_GRAY, card_rect)
-        pygame.draw.rect(self.screen, Colors.LIGHT_GRAY, card_rect, 2)
+        pygame.draw.rect(self.screen, Colors.WHITE, card_rect)
+        pygame.draw.rect(self.screen, Colors.GRAY, card_rect, 2)
         
         # Card padding
         padding = 8
@@ -989,50 +1035,102 @@ class UI:
             # Scale to square maintaining aspect ratio
             scaled = pygame.transform.smoothscale(art_img, (art_size, art_size))
             self.screen.blit(scaled, art_rect)
-            # Overlay album id tag
-            tag_bg = pygame.Surface((40, 20), pygame.SRCALPHA)
-            tag_bg.fill((0, 0, 0, 150))
-            self.screen.blit(tag_bg, (art_rect.x + 3, art_rect.y + 3))
-            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.YELLOW)
-            self.screen.blit(album_num_text, (art_rect.x + 6, art_rect.y + 6))
+            # Overlay album id tag with white border
+            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.BLACK)
+            text_rect = album_num_text.get_rect()
+            # Create white border background
+            border_padding = 4
+            border_rect = pygame.Rect(art_rect.x + 3 - border_padding, art_rect.y + 3 - border_padding, 
+                                    text_rect.width + border_padding * 2, text_rect.height + border_padding * 2)
+            pygame.draw.rect(self.screen, Colors.WHITE, border_rect)
+            pygame.draw.rect(self.screen, Colors.BLACK, border_rect, 2)
+            self.screen.blit(album_num_text, (art_rect.x + 3, art_rect.y + 3))
         else:
             pygame.draw.rect(self.screen, Colors.GRAY, art_rect)
-            album_num_text = self.medium_font.render(f"#{album.album_id:02d}", True, Colors.YELLOW)
-            album_num_rect = album_num_text.get_rect(center=art_rect.center)
-            self.screen.blit(album_num_text, album_num_rect)
+            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.BLACK)
+            # Position consistently with album art overlay (top-left corner)
+            text_x = art_rect.x + 3
+            text_y = art_rect.y + 3
+            # Add white border around the number
+            border_padding = 4  # Match the padding used for album art overlay
+            border_rect = pygame.Rect(text_x - border_padding, text_y - border_padding,
+                                    album_num_text.get_width() + border_padding * 2, 
+                                    album_num_text.get_height() + border_padding * 2)
+            pygame.draw.rect(self.screen, Colors.WHITE, border_rect)
+            pygame.draw.rect(self.screen, Colors.BLACK, border_rect, 2)
+            self.screen.blit(album_num_text, (text_x, text_y))
         
-        # Text content (left side)
-        line_height = 16
+        # Text content (left side) - adjust spacing for fullscreen
+        line_height = 24 if self.fullscreen else 16
         current_y = text_y
         
-        # Album ID and artist
-        artist_text = self.small_font.render(f"{album.artist[:25]}", True, Colors.WHITE)
+        # Album ID and artist - use larger font in fullscreen
+        artist_font = self.large_font if self.fullscreen else self.medium_font
+        artist_text = artist_font.render(f"{album.artist[:25]}", True, Colors.BLACK)
+        # Add 2px transparent padding around artist name
+        artist_rect = artist_text.get_rect()
+        artist_bg_rect = pygame.Rect(text_x - 2, current_y - 2, artist_rect.width + 4, artist_rect.height + 4)
+        # Create transparent surface for padding
+        padding_surface = pygame.Surface((artist_rect.width + 4, artist_rect.height + 4), pygame.SRCALPHA)
+        padding_surface.fill((0, 0, 0, 0))  # Fully transparent
+        self.screen.blit(padding_surface, (text_x - 2, current_y - 2))
         self.screen.blit(artist_text, (text_x, current_y))
-        current_y += line_height
+        spacing_after_artist = 6 if self.fullscreen else 4
+        current_y += line_height + spacing_after_artist + 4  # Add extra space after artist name + 4px between artist and album
         
-        # Album title
-        album_text = self.small_font.render(f"{album.title[:30]}", True, Colors.LIGHT_GRAY)
+        # Album title - use larger font in fullscreen
+        album_font = self.medium_font if self.fullscreen else self.small_medium_font
+        album_text = album_font.render(f"{album.title[:30]}", True, Colors.DARK_GRAY)
         self.screen.blit(album_text, (text_x, current_y))
-        current_y += line_height + 2
+        spacing_after_album = 4 if self.fullscreen else 2
+        current_y += line_height + spacing_after_album
         
-        # Track count
-        track_count_text = self.tiny_font.render(f"{len(album.tracks)} tracks", True, Colors.YELLOW)
+        # Track count - use larger font in fullscreen
+        count_font = self.small_medium_font if self.fullscreen else self.tiny_font
+        track_count_text = count_font.render(f"{len(album.tracks)} tracks", True, Colors.BLUE)
         self.screen.blit(track_count_text, (text_x, current_y))
-        current_y += line_height + 3
+        spacing_after_count = 5 if self.fullscreen else 3
+        current_y += line_height + spacing_after_count
         
-        # Show all tracks that fit
-        max_tracks = min(len(album.tracks), (content_height - (current_y - text_y) - 10) // 12)
+        # Show all tracks that fit - adjust track line height for fullscreen
+        track_line_height = 18 if self.fullscreen else 12
+        max_tracks = min(len(album.tracks), (content_height - (current_y - text_y) - 10) // track_line_height)
         for i, track in enumerate(album.tracks[:max_tracks]):
-            if current_y + 12 < y + card_height - padding:
+            if current_y + track_line_height < y + card_height - padding:
                 # Truncate track title to fit
                 max_chars = max(15, int(text_width // 7))  # Ensure integer
                 title = track['title'][:max_chars]
                 if len(track['title']) > max_chars:
                     title += "..."
-                track_text = self.tiny_font.render(f"{i+1:2d}. {title}", True, Colors.LIGHT_GRAY)
+                # Use larger font for track listing in fullscreen
+                track_font = self.small_font if self.fullscreen else self.tiny_font
+                track_text = track_font.render(f"{i+1:2d}. {title}", True, Colors.GRAY)
                 self.screen.blit(track_text, (text_x + 5, current_y))
-                current_y += 12
+                current_y += track_line_height
     
+    def draw_empty_now_playing(self, x: int, y: int, width: int, height: int) -> None:
+        """Draw empty 'Now Playing' box when nothing is playing"""
+        display_height = max(200, height)
+        display_rect = pygame.Rect(x, y, width, display_height)
+        
+        # Draw display background
+        pygame.draw.rect(self.screen, Colors.DARK_GRAY, display_rect)
+        pygame.draw.rect(self.screen, Colors.YELLOW, display_rect, 3)
+        
+        # Draw "Now Playing" header
+        padding = 15
+        content_x = x + padding
+        content_y = y + padding
+        
+        label_text = self.medium_font.render("Now Playing", True, Colors.YELLOW)
+        self.screen.blit(label_text, (content_x, content_y))
+        
+        # Draw centered "Choose an album and song." message
+        center_y = y + display_height // 2
+        no_music_text = self.medium_font.render("Choose an album and song.", True, Colors.LIGHT_GRAY)
+        text_rect = no_music_text.get_rect(center=(x + width // 2, center_y))
+        self.screen.blit(no_music_text, text_rect)
+
     def draw_current_album_display(self, album, x: int, y: int, width: int, height: int) -> None:
         """Draw persistent 'Now Playing' box with only current track details.
         Does not clear when playback stops; only updates upon new playing track."""
@@ -1061,8 +1159,14 @@ class UI:
             self.screen.blit(scaled, art_rect)
         else:
             pygame.draw.rect(self.screen, Colors.GRAY, art_rect)
-            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.YELLOW)
+            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.BLACK)
             album_num_rect = album_num_text.get_rect(center=art_rect.center)
+            # Add white border around the number
+            border_padding = 6
+            border_rect = pygame.Rect(album_num_rect.x - border_padding, album_num_rect.y - border_padding,
+                                    album_num_rect.width + border_padding * 2, album_num_rect.height + border_padding * 2)
+            pygame.draw.rect(self.screen, Colors.WHITE, border_rect)
+            pygame.draw.rect(self.screen, Colors.BLACK, border_rect, 2)
             self.screen.blit(album_num_text, album_num_rect)
 
         # Update persistent info if a track is actively playing from this album
@@ -1282,6 +1386,7 @@ class UI:
             ("Shuffle Enabled", self.config.get('shuffle_enabled')),
             ("Show Album Art", self.config.get('show_album_art')),
             ("Keyboard Shortcuts", self.config.get('keyboard_shortcut_enabled')),
+            ("Fullscreen Mode", self.fullscreen),
         ]
         
         for i, (label, value) in enumerate(config_items):
@@ -1342,6 +1447,11 @@ class UI:
         self.config_equalizer_button.rect.y = effects_y + 40
         self.config_equalizer_button.draw(self.screen, self.small_font)
         
+        # Fullscreen button
+        self.config_fullscreen_button.rect.x = right_x + 150
+        self.config_fullscreen_button.rect.y = effects_y + 40
+        self.config_fullscreen_button.draw(self.screen, self.small_font)
+        
         # Theme selection section (bottom center)
         self.draw_theme_selector()
         
@@ -1359,7 +1469,7 @@ class UI:
         
         # Draw instructions
         instructions = self.small_font.render(
-            "ESC or Close button to exit configuration",
+            "ESC or Close button to exit | Alt+Enter: Toggle Fullscreen",
             True, Colors.GRAY
         )
         instructions_rect = instructions.get_rect(center=(self.width // 2, self.height - 30))
@@ -1372,13 +1482,34 @@ class UI:
         while self.running:
             self.handle_events()
             self.update_audio_controls()
+            # Update music state and handle queue progression
+            self.player.update_music_state()
             self.draw()
             self.clock.tick(self.fps)
-            
-            # Auto-play next track if current one finished (only on main screen)
-            if not self.config_screen_open and self.player.is_playing and not self.player.is_music_playing():
-                self.player.next()
 
         # Persist window size on exit
         self.config.set('window_width', self.width)
         self.config.set('window_height', self.height)
+        self.config.set('fullscreen', self.fullscreen)
+    
+    def toggle_fullscreen(self) -> None:
+        """Toggle between fullscreen and windowed mode"""
+        self.fullscreen = not self.fullscreen
+        
+        if self.fullscreen:
+            # Switch to fullscreen
+            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            # Get actual fullscreen dimensions
+            self.width = self.screen.get_width()
+            self.height = self.screen.get_height()
+        else:
+            # Switch to windowed mode
+            windowed_width = self.config.get('window_width', 1200)
+            windowed_height = self.config.get('window_height', 800)
+            self.width = windowed_width
+            self.height = windowed_height
+            self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+        
+        # Save fullscreen state
+        self.config.set('fullscreen', self.fullscreen)
+        print(f"Switched to {'fullscreen' if self.fullscreen else 'windowed'} mode")

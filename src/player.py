@@ -24,6 +24,10 @@ class MusicPlayer:
         self.is_paused = False
         self.volume = 0.7
         
+        # Queue system: list of (album_id, track_index) tuples
+        self.queue = []
+        self.queue_index = 0
+        
         # Set initial volume
         pygame.mixer.music.set_volume(self.volume)
         
@@ -52,20 +56,54 @@ class MusicPlayer:
             return [track['title'] for track in album.tracks]
         return []
     
-    def play(self, album_id: Optional[int] = None, track_index: Optional[int] = None) -> None:
-        """
-        Play a track from the library
+    def add_to_queue(self, album_id: int, track_index: int) -> None:
+        """Add a track to the queue"""
+        was_empty = len(self.queue) == 0
+        self.queue.append((album_id, track_index))
+        print(f"Added to queue: Album {album_id:02d}, Track {track_index + 1:02d}")
         
-        Args:
-            album_id: Album ID to play from. If None, uses current album
-            track_index: Track index. If None, plays from current index
-        """
-        if album_id is not None:
-            self.current_album_id = album_id
-            self.current_track_index = 0
+        # If queue was empty and nothing is playing, start playing
+        if was_empty and not self.is_music_playing():
+            self.start_queue()
+    
+    def get_queue(self) -> List[tuple]:
+        """Get the current queue"""
+        return self.queue
+    
+    def clear_queue(self) -> None:
+        """Clear the entire queue"""
+        self.queue = []
+        self.queue_index = 0
+        print("Queue cleared")
+    
+    def get_queue_info(self) -> str:
+        """Get formatted queue information"""
+        if not self.queue:
+            return "Queue is empty"
         
-        if track_index is not None:
-            self.current_track_index = track_index
+        queue_text = f"Queue ({len(self.queue)} songs):\n"
+        for i, (album_id, track_index) in enumerate(self.queue):
+            album = self.library.get_album(album_id)
+            if album and 0 <= track_index < len(album.tracks):
+                track = album.tracks[track_index]
+                status = " [PLAYING]" if i == 0 and self.is_playing else ""
+                queue_text += f"{i+1:2d}. {album.artist} - {track['title']}{status}\n"
+        return queue_text.strip()
+    
+    def play_from_queue(self) -> None:
+        """Play the current track from the queue (always at index 0)"""
+        if not self.queue:
+            print("Queue is empty")
+            return
+        
+        self.queue_index = 0
+        album_id, track_index = self.queue[0]
+        self._play_track(album_id, track_index)
+    
+    def _play_track(self, album_id: int, track_index: int) -> None:
+        """Internal method to play a specific track"""
+        self.current_album_id = album_id
+        self.current_track_index = track_index
         
         album = self.get_current_album()
         if not album or not album.tracks:
@@ -73,7 +111,8 @@ class MusicPlayer:
             return
         
         if not (0 <= self.current_track_index < len(album.tracks)):
-            self.current_track_index = 0
+            print("Invalid track index")
+            return
         
         try:
             track = album.tracks[self.current_track_index]
@@ -86,6 +125,68 @@ class MusicPlayer:
             print(f"Track: {track['title']} ({track['duration_formatted']})")
         except Exception as e:
             print(f"Error playing track: {e}")
+    
+    def play(self, album_id: Optional[int] = None, track_index: Optional[int] = None) -> None:
+        """
+        Add a track to the queue instead of playing immediately
+        
+        Args:
+            album_id: Album ID to add to queue. If None and queue exists, play from queue
+            track_index: Track index to add to queue
+        """
+        if album_id is not None and track_index is not None:
+            # Add to queue instead of playing immediately
+            self.add_to_queue(album_id, track_index)
+        elif self.queue and not self.is_music_playing():
+            # If nothing is playing and we have a queue, play from queue
+            self.play_from_queue()
+        else:
+            print("No track specified or already playing")
+    
+    def next_track(self) -> None:
+        """Play the next track in the queue"""
+        if not self.queue:
+            print("Queue is empty")
+            return
+        
+        # Remove the currently playing song from the queue
+        if len(self.queue) > 0:
+            completed_song = self.queue.pop(0)
+            print(f"Completed: {completed_song}")
+        
+        # Play the next song (now at index 0) if queue not empty
+        if self.queue:
+            self.queue_index = 0
+            self.play_from_queue()
+        else:
+            print("Queue completed")
+            self.is_playing = False
+            pygame.mixer.music.stop()
+    
+    def previous_track(self) -> None:
+        """Play the previous track (restart current track since previous songs are removed)"""
+        if not self.queue:
+            print("Queue is empty")
+            return
+        
+        # Since previous songs are removed, just restart the current track
+        print("Restarting current track")
+        self.queue_index = 0
+        self.play_from_queue()
+    
+    def update_music_state(self) -> None:
+        """Update music state and advance queue if track ended"""
+        if self.is_playing and not pygame.mixer.music.get_busy():
+            # Track ended, move to next in queue
+            self.next_track()
+    
+    def start_queue(self) -> None:
+        """Start playing from the beginning of the queue"""
+        if self.queue:
+            self.queue_index = 0
+            self.play_from_queue()
+        else:
+            print("Queue is empty")
     
     def pause(self) -> None:
         """Pause the current track"""

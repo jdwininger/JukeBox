@@ -140,23 +140,13 @@ class Slider:
             knob_width = 32
             knob_height = 48
             scaled_knob = pygame.transform.smoothscale(knob_image, (knob_width, knob_height))
-            # Apply hover effect by adjusting brightness
-            if self.is_hovered:
-                # Create a brighter version for hover
-                hover_surface = scaled_knob.copy()
-                # Add a light overlay for hover effect
-                light_overlay = pygame.Surface((knob_width, knob_height), pygame.SRCALPHA)
-                light_overlay.fill((255, 255, 255, 60))  # Light white overlay
-                hover_surface.blit(light_overlay, (0, 0), special_flags=pygame.BLEND_ADD)
-                scaled_knob = hover_surface
             
             # Center the image on the knob position
             knob_rect = scaled_knob.get_rect(center=self.knob_rect.center)
             surface.blit(scaled_knob, knob_rect)
         else:
             # Fall back to colored circle
-            knob_color_actual = (150, 255, 150) if self.is_hovered else knob_color
-            pygame.draw.circle(surface, knob_color_actual, self.knob_rect.center, self.knob_radius)
+            pygame.draw.circle(surface, knob_color, self.knob_rect.center, self.knob_radius)
             pygame.draw.circle(surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2)
         
         # Draw label and value
@@ -267,23 +257,13 @@ class VerticalSlider(Slider):
             knob_width = 32
             knob_height = 48
             scaled_knob = pygame.transform.smoothscale(knob_image, (knob_width, knob_height))
-            # Apply hover effect by adjusting brightness
-            if self.is_hovered:
-                # Create a brighter version for hover
-                hover_surface = scaled_knob.copy()
-                # Add a light overlay for hover effect
-                light_overlay = pygame.Surface((knob_width, knob_height), pygame.SRCALPHA)
-                light_overlay.fill((255, 255, 255, 60))  # Light white overlay
-                hover_surface.blit(light_overlay, (0, 0), special_flags=pygame.BLEND_ADD)
-                scaled_knob = hover_surface
             
             # Center the image on the knob position
             knob_rect = scaled_knob.get_rect(center=self.knob_rect.center)
             surface.blit(scaled_knob, knob_rect)
         else:
             # Fall back to colored circle
-            knob_color_actual = (150, 255, 150) if self.is_hovered else knob_color
-            pygame.draw.circle(surface, knob_color_actual, self.knob_rect.center, self.knob_radius)
+            pygame.draw.circle(surface, knob_color, self.knob_rect.center, self.knob_radius)
             pygame.draw.circle(surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2)
         
         # Draw label and value

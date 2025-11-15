@@ -49,3 +49,6 @@ Thumbs.db
 # IDE specific
 .pylintrc
 .flake8
+
+# Image files
+cover.jpg
