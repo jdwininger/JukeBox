@@ -2,21 +2,32 @@
 # Minimal macOS app bundle executable for JukeBox
 # This script will run the project's run.sh launcher (preferred).
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPO_ROOT="$SCRIPT_DIR/.."
+
+# Get the real repo root (4 levels up from MacOS folder: MacOS -> Contents -> JukeBox.app -> repo)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUNDLE_CONTENTS="$(dirname "$SCRIPT_DIR")"
+BUNDLE_DIR="$(dirname "$BUNDLE_CONTENTS")"
+REPO_ROOT="$(dirname "$BUNDLE_DIR")"
+
+echo "Starting JukeBox from: $REPO_ROOT"
 cd "$REPO_ROOT"
+
+# Set PYTHONPATH for module imports
+export PYTHONPATH="$REPO_ROOT"
 
 # Prefer bundled run.sh
 if [ -x "$REPO_ROOT/run.sh" ]; then
+  echo "Using run.sh launcher"
   exec "$REPO_ROOT/run.sh"
 fi
 
-# Fallbacks
-if [ -f ".venv/bin/activate" ]; then
-  . .venv/bin/activate
-  exec python -m src.main
-elif [ -x ".venv/bin/python" ]; then
-  exec .venv/bin/python -m src.main
+# Fallbacks with correct paths
+echo "Using fallback launch method"
+if [ -f "$REPO_ROOT/.venv/bin/activate" ]; then
+  . "$REPO_ROOT/.venv/bin/activate"
+  exec python "$REPO_ROOT/src/main.py"
+elif [ -x "$REPO_ROOT/.venv/bin/python" ]; then
+  exec "$REPO_ROOT/.venv/bin/python" "$REPO_ROOT/src/main.py"
 else
-  exec python3 -m src.main
+  exec python3 "$REPO_ROOT/src/main.py"
 fi
