@@ -30,8 +30,21 @@ class MusicPlayer:
         self.queue = []
         self.queue_index = 0
         
-        # Set initial volume
-        pygame.mixer.music.set_volume(self.volume)
+        # Set initial volume if an audio mixer is available — otherwise warn.
+        try:
+            from src.audio_utils import is_mixer_available
+        except Exception:
+            is_mixer_available = None
+
+        if is_mixer_available is not None and is_mixer_available():
+            try:
+                pygame.mixer.music.set_volume(self.volume)
+            except Exception:
+                # If calling mixer functions fails for any reason, continue
+                # but provide a helpful message later when playback is attempted.
+                pass
+        else:
+            print("Warning: audio mixer not available — playback disabled until mixer is provided.")
         
         # Start with first available album
         albums = self.library.get_albums()
@@ -127,6 +140,15 @@ class MusicPlayer:
                     file_path = processed_file
                     print(f"Applied equalizer processing")
             
+            # Ensure the mixer is available before attempting to play audio
+            try:
+                from src.audio_utils import is_mixer_available
+            except Exception:
+                is_mixer_available = None
+
+            if is_mixer_available is None or not is_mixer_available():
+                raise RuntimeError("Audio mixer is not available. Ensure pygame was installed with SDL_mixer/system audio libs and reinstall pygame.")
+
             pygame.mixer.music.load(file_path)
             pygame.mixer.music.play()
             self.is_playing = True
@@ -171,7 +193,17 @@ class MusicPlayer:
         else:
             print("Queue completed")
             self.is_playing = False
-            pygame.mixer.music.stop()
+            # Stop only if mixer is available
+            try:
+                from src.audio_utils import is_mixer_available
+            except Exception:
+                is_mixer_available = None
+
+            if is_mixer_available is not None and is_mixer_available():
+                try:
+                    pygame.mixer.music.stop()
+                except Exception:
+                    pass
     
     def previous_track(self) -> None:
         """Play the previous track (restart current track since previous songs are removed)"""

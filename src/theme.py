@@ -95,9 +95,17 @@ class Theme:
     def load_images(self) -> None:
         """Load theme images"""
         # Try to load background (PNG first, then SVG)
-        if os.path.exists(self.background_path):
+        # Use a robust loader that falls back to Pillow if pygame can't load PNGs
+        try:
+            from src.image_utils import load_image_surface
+        except Exception:
+            load_image_surface = None
+
+        if load_image_surface is not None and os.path.exists(self.background_path):
             try:
-                self.background = pygame.image.load(self.background_path)
+                self.background = load_image_surface(self.background_path)
+                if self.background is None:
+                    raise RuntimeError("failed to load background via robust loader")
             except Exception as e:
                 print(f"Error loading background image: {e}")
         elif SVG_SUPPORT and os.path.exists(self.background_svg_path):
@@ -107,54 +115,65 @@ class Theme:
             except Exception as e:
                 print(f"Error loading background SVG: {e}")
         
-        if os.path.exists(self.button_path):
+        if os.path.exists(self.button_path) and load_image_surface is not None:
             try:
-                self.button = pygame.image.load(self.button_path)
+                self.button = load_image_surface(self.button_path)
+                if self.button is None:
+                    raise RuntimeError("failed to load button image")
             except Exception as e:
                 print(f"Error loading button image: {e}")
         
-        if os.path.exists(self.button_hover_path):
+        if os.path.exists(self.button_hover_path) and load_image_surface is not None:
             try:
-                self.button_hover = pygame.image.load(self.button_hover_path)
+                self.button_hover = load_image_surface(self.button_hover_path)
+                if self.button_hover is None:
+                    raise RuntimeError("failed to load button_hover image")
             except Exception as e:
                 print(f"Error loading button_hover image: {e}")
         
-        if os.path.exists(self.button_pressed_path):
+        if os.path.exists(self.button_pressed_path) and load_image_surface is not None:
             try:
-                self.button_pressed = pygame.image.load(self.button_pressed_path)
+                self.button_pressed = load_image_surface(self.button_pressed_path)
+                if self.button_pressed is None:
+                    raise RuntimeError("failed to load button_pressed image")
             except Exception as e:
                 print(f"Error loading button_pressed image: {e}")
         
         # Load slider track (horizontal)
-        if os.path.exists(self.slider_track_path):
+        if os.path.exists(self.slider_track_path) and load_image_surface is not None:
             try:
-                self.slider_track = pygame.image.load(self.slider_track_path)
+                self.slider_track = load_image_surface(self.slider_track_path)
+                if self.slider_track is None:
+                    raise RuntimeError('failed to load slider_track image')
             except Exception as e:
                 print(f"Error loading slider_track image: {e}")
-        elif os.path.exists(self.slider_track_svg_path):
+        elif os.path.exists(self.slider_track_svg_path) and SVG_SUPPORT:
             try:
-                # For SVG support, you'd need to install pygame-ce or use cairosvg
-                # For now, we'll skip SVG loading but keep the structure
-                print(f"SVG slider track found but SVG support not implemented: {self.slider_track_svg_path}")
+                self.slider_track = self.load_svg_as_surface(self.slider_track_svg_path)
+                print(f"Loaded SVG slider track: {self.slider_track_svg_path}")
             except Exception as e:
                 print(f"Error loading slider_track SVG: {e}")
         
         # Load vertical slider track
-        if os.path.exists(self.slider_track_vertical_path):
+        if os.path.exists(self.slider_track_vertical_path) and load_image_surface is not None:
             try:
-                self.slider_track_vertical = pygame.image.load(self.slider_track_vertical_path)
+                self.slider_track_vertical = load_image_surface(self.slider_track_vertical_path)
+                if self.slider_track_vertical is None:
+                    raise RuntimeError('failed to load slider_track_vertical image')
             except Exception as e:
                 print(f"Error loading slider_track_vertical image: {e}")
-        elif os.path.exists(self.slider_track_vertical_svg_path):
+        elif os.path.exists(self.slider_track_vertical_svg_path) and SVG_SUPPORT:
             try:
-                # For SVG support, you'd need to install pygame-ce or use cairosvg
-                print(f"Vertical SVG slider track found but SVG support not implemented: {self.slider_track_vertical_svg_path}")
+                self.slider_track_vertical = self.load_svg_as_surface(self.slider_track_vertical_svg_path)
+                print(f"Loaded vertical SVG slider track: {self.slider_track_vertical_svg_path}")
             except Exception as e:
                 print(f"Error loading slider_track_vertical SVG: {e}")
         
-        if os.path.exists(self.slider_knob_path):
+        if os.path.exists(self.slider_knob_path) and load_image_surface is not None:
             try:
-                self.slider_knob = pygame.image.load(self.slider_knob_path)
+                self.slider_knob = load_image_surface(self.slider_knob_path)
+                if self.slider_knob is None:
+                    raise RuntimeError('failed to load slider_knob image')
             except Exception as e:
                 print(f"Error loading slider_knob image: {e}")
         
@@ -175,7 +194,22 @@ class Theme:
         # Try PNG first
         if os.path.exists(png_path):
             try:
-                setattr(self, button_attr, pygame.image.load(png_path))
+                # Import the robust loader locally (this method may be called
+                # from a different scope where load_image_surface isn't defined)
+                try:
+                    from src.image_utils import load_image_surface
+                except Exception:
+                    load_image_surface = None
+
+                if load_image_surface is not None:
+                    surf = load_image_surface(png_path, size=(64, 64))
+                else:
+                    surf = pygame.image.load(png_path)
+
+                if surf is None:
+                    raise RuntimeError('failed to load PNG for button')
+
+                setattr(self, button_attr, surf)
                 return
             except Exception as e:
                 print(f"Error loading {button_type} button PNG: {e}")
