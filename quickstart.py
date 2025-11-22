@@ -176,6 +176,17 @@ def launch_application():
     try:
         # Initialize pygame
         pygame.init()
+
+        # Check for mixer availability before trying to init - helps on systems
+        # where pygame was installed without SDL_mixer / system audio libs.
+        try:
+            from src.audio_utils import is_mixer_available
+        except Exception:
+            is_mixer_available = None
+
+        if is_mixer_available is None or not is_mixer_available():
+            raise ModuleNotFoundError("mixer module not available")
+
         pygame.mixer.init()
         
         # Load configuration
@@ -213,14 +224,120 @@ def launch_application():
     except KeyboardInterrupt:
         print(f"\n👋 JukeBox closed by user")
     except Exception as e:
+        # Provide clearer, actionable advice for common platform problems (e.g., missing mixer)
         print(f"\n❌ Error launching JukeBox: {e}")
-        print(f"   Try running: make run")
+
+        # Detect common case where pygame was built without audio/mixer support
+        err_msg = str(e).lower()
+        if 'mixer module not available' in err_msg or 'no module named \"pygame.mixer\"' in err_msg:
+            print('\n🩺 Diagnostic: The pygame.mixer module was not found. This usually means SDL_mixer or system audio libraries were missing when pygame was installed.')
+            print('\n🔧 Quick fixes (pick one for your distro):')
+            print('\n  Debian/Ubuntu:')
+            print('    sudo apt-get update && sudo apt-get install -y libsdl2-dev libsdl2-mixer-dev libsndfile1-dev')
+            print('\n  Fedora/RPM:')
+            print('    sudo dnf install -y SDL2-devel SDL2_mixer SDL2_mixer-devel libsndfile-devel')
+            print('\n  After installing system packages, reinstall pygame inside your virtualenv:')
+            print(f"    {sys.executable} -m pip install --upgrade --force-reinstall --no-cache-dir pygame")
+        else:
+            print(f"   Try running: make run")
 
 
 def main():
     """Main entry point for JukeBox quickstart"""
     display_banner()
     
+    import argparse
+
+    parser = argparse.ArgumentParser(prog='quickstart', add_help=False)
+    parser.add_argument('--diagnose', action='store_true', help='Run system diagnostics and exit')
+    parser.add_argument('--fix', action='store_true', help='Run diagnostics and interactively attempt suggested fixes')
+    parser.add_argument('--autofix', action='store_true', help='Run diagnostics and automatically attempt suggested fixes (no prompts)')
+    parser.add_argument('--autofix-yes', dest='autofix_yes', action='store_true', help='Skip confirmation when using --autofix')
+    parser.add_argument('--preview-fix', action='store_true', help='Run diagnostics and only show commands that would be executed (preview only)')
+    args, _ = parser.parse_known_args()
+
+    if args.diagnose or args.fix or args.autofix:
+        # Run interactive diagnostics and exit
+        try:
+            from src.diagnostics import run_diagnostics, print_diagnostics
+        except Exception as e:
+            print('Diagnostics unavailable:', e)
+            sys.exit(2)
+
+        res = run_diagnostics()
+        print_diagnostics(res)
+
+        if args.fix or args.autofix or args.preview_fix:
+            auto = bool(args.autofix)
+            try:
+                from src.diagnostics import interactive_fix_pick
+            except Exception as e:
+                print('Fixer helper unavailable:', e)
+                sys.exit(2)
+
+            # Preview-only mode (do not execute)
+            if args.preview_fix:
+                try:
+                    from src.diagnostics import preview_fix_commands
+                except Exception as e:
+                    print('Preview helper unavailable:', e)
+                    sys.exit(2)
+
+                preview = preview_fix_commands(res)
+                print('\nPreview commands (no actions performed):')
+                for area, cmds in preview.items():
+                    print(f"\n{area}:")
+                    for c in cmds:
+                        print(f"  {c}")
+                results = {}
+            else:
+                # If automatic mode, ask for a final confirmation unless --autofix-yes
+                if args.autofix:
+                    try:
+                        from src.diagnostics import preview_fix_commands, perform_fix
+                    except Exception as e:
+                        print('Fixer helper unavailable:', e)
+                        sys.exit(2)
+
+                    to_run = preview_fix_commands(res)
+                    if not to_run:
+                        print('No suggested commands to run.')
+                        results = {}
+                    else:
+                        print('\nCommands that would be executed:')
+                        for area, cmds in to_run.items():
+                            print(f"\n{area}:")
+                            for c in cmds:
+                                print(f"  {c}")
+
+                        do_it = False
+                        if args.autofix_yes:
+                            do_it = True
+                        else:
+                            print('\nProceed to run the commands above? (y/N):')
+                            answer = input('> ').strip().lower()
+                            if answer in ('y', 'yes'):
+                                do_it = True
+
+                        run_results = {}
+                        if do_it:
+                            for area, cmds in to_run.items():
+                                area_results = []
+                                for cmd in cmds:
+                                    print(f"Running: {cmd}")
+                                    rc, out, err = perform_fix(cmd, capture_output=True)
+                                    area_results.append({'command': cmd, 'rc': rc, 'stdout': out, 'stderr': err})
+                                run_results[area] = area_results
+                        results = run_results
+                else:
+                    results = interactive_fix_pick(res, auto_accept=auto)
+            print('\nFixer results:')
+            for area, runs in results.items():
+                for entry in runs:
+                    status = 'OK' if entry['rc'] == 0 else f'ERR({entry["rc"]})'
+                    print(f"  {area}: {status} - {entry['command']}")
+        sys.exit(0)
+
     # Check dependencies
     if not check_dependencies():
         print(f"❌ Missing dependencies. Run: pip install -r requirements.txt")

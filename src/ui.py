@@ -1822,10 +1822,25 @@ class UI:
         candidates = ['cover.jpg','cover.png','folder.jpg','folder.png','album.jpg','album.png','art.jpg','art.png']
         art_surface = None
         try:
+            # Prefer robust loader which can use Pillow if pygame doesn't
+            try:
+                from src.image_utils import load_image_surface
+            except Exception:
+                load_image_surface = None
+
             for name in candidates:
                 path = os.path.join(album.directory, name)
                 if os.path.isfile(path):
-                    art_surface = pygame.image.load(path).convert_alpha()
+                    if load_image_surface is not None:
+                        art_surface = load_image_surface(path)
+                    else:
+                        art_surface = pygame.image.load(path)
+
+                    # Convert to alpha if available
+                    try:
+                        art_surface = art_surface.convert_alpha()
+                    except Exception:
+                        pass
                     break
         except Exception as e:
             print(f"Album art load failed for album {album.album_id:02d}: {e}")

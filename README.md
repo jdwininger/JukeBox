@@ -166,9 +166,102 @@ pip install -r requirements.txt
 .venv/bin/python src/main.py
 ```
 
+Running diagnostics
+-------------------
+
+If the app behaves oddly on your system (no audio, missing images, themes not loading), run the built-in diagnostics which will inspect pygame, mixer, image and svg support and give distro-specific hints:
+
+```bash
+# Using quickstart
+python quickstart.py --diagnose
+
+# Using main app
+python -m src.main --diagnose
+
+# Or run directly
+python -m src.diagnostics
+```
+
+The command prints a short human-readable report and recommendations for resolving missing dependencies.
+
+Automatic fixer helper
+----------------------
+
+If you want JukeBox to *attempt* to install missing system packages for you, use the `--fix` or `--autofix` options.
+
+- `--fix` will run diagnostics then interactively prompt you which suggested commands to run.
+- `--autofix` will run diagnostics and attempt all suggested fixes without prompting.
+
+Example (interactive):
+
+```bash
+python quickstart.py --fix
+```
+
+Example (automatic — requires confirmation):
+
+```bash
+# Run suggested fixes, but you'll be asked to confirm before any commands run
+python quickstart.py --autofix
+
+# Skip the confirmation prompt (runs immediately - use with care):
+python quickstart.py --autofix --autofix-yes
+```
+
+Notes:
+- The fixer helper prints the commands it will run; most are distro package manager commands (apt-get / dnf) and require sudo.
+- The helper runs commands using the shell; confirm you understand the commands before allowing them.
+
+Preview-only mode
+-----------------
+
+If you want to *see* exactly what commands would be run without executing anything, use the `--preview-fix` flag. This is the safest way to inspect the OS commands the fixer would run.
+
+```bash
+python quickstart.py --preview-fix
+```
+
+This prints the list of commands grouped by area (audio/image/svg) and exits — no system changes are made.
+
 Notes for Linux:
 - Ensure SDL2 and related system libraries are installed for `pygame` to initialize the display and audio.
 - On headless servers, run within an X/Wayland session or use a virtual framebuffer (e.g., `Xvfb`).
+
+Additional diagnostics & improvements:
+
+- The app now includes a more robust image loader that falls back to Pillow (Pillow must be installed) when pygame can't load a PNG. This resolves cases where SDL_image isn't available or built without PNG support.
+
+- The `music/` library directory is created automatically (if missing) and the app now also seeds the expected 01..52 album slot directories so the UI shows placeholders and you can drop music files into numbered folders.
+
+- If you don't see your music, verify the repo's music directory (project-root/music) or set up your own by putting audio files into `music/01/`, `music/02/`, etc. Supported formats: mp3, wav, ogg, flac.
+
+#### Common Linux troubleshooting: missing audio / mixer
+
+If the app starts but later fails with errors about `pygame.mixer` or audio missing ("mixer module not available" or "No module named 'pygame.mixer'"), it usually means system audio libraries (SDL_mixer / libsndfile) were not present when pygame was installed.
+
+Quick fixes for most distros (run as root or with sudo):
+
+Debian / Ubuntu:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libsdl2-dev libsdl2-mixer-dev libsndfile1-dev
+```
+
+Fedora / RHEL / CentOS:
+
+```bash
+sudo dnf install -y SDL2-devel SDL2_mixer SDL2_mixer-devel libsndfile-devel
+```
+
+After installing system deps, reinstall pygame inside your virtualenv to ensure mixer is built/available there:
+
+```bash
+source .venv/bin/activate
+python -m pip install --upgrade --force-reinstall --no-cache-dir pygame
+```
+
+If you still see audio issues, check that your system audio stack (PulseAudio or PipeWire) is running and that the user has permission to access the sound devices.
 
 ### Setting Up Your Album Library
 

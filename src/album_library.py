@@ -140,6 +140,17 @@ class AlbumLibrary:
         if not os.path.exists(self.library_directory):
             os.makedirs(self.library_directory)
             print(f"Created library directory: {self.library_directory}")
+
+        # Ensure the standard numbered album directories exist (01..52)
+        for i in range(1, self.MAX_ALBUMS + 1):
+            album_dir = os.path.join(self.library_directory, f"{i:02d}")
+            if not os.path.exists(album_dir):
+                try:
+                    os.makedirs(album_dir)
+                except Exception:
+                    # If we can't create the subdirectories that's non-fatal
+                    # but log it so users know why albums may not be discoverable.
+                    print(f"Warning: unable to create album slot dir: {album_dir}")
     
     def scan_library(self) -> None:
         """Scan all numbered directories (01-52) for albums"""
