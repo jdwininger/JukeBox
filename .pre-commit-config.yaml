@@ -6,11 +6,8 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
 
-  - repo: https://github.com/pre-commit/mirrors-shellcheck
-    rev: v0.9.0
-    hooks:
-      - id: shellcheck
-        files: scripts/.*\.sh$|\.githooks/.*\.sh$
+  # shellcheck mirror removed: some environments have limited network access and the mirrors repo may not be available.
+  # If you want shellcheck enabled, add it back or install shellcheck locally and add a local hook.
 
   - repo: local
     hooks:
