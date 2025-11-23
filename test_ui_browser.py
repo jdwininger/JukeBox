@@ -310,7 +310,8 @@ def test_theme_preview_position_fullscreen_vs_windowed():
         assert py2 < py1
         # Verify exact expected positions after the 40px upward shift:
         # windowed: theme_section_y - 130 - 40
-        expected_py1 = ui.height - 180 - 130 - 40
+        # windowed now has extra 20px upward nudge (total 60)
+        expected_py1 = ui.height - 180 - 130 - 60
         # fullscreen: title_y - 10 - 120 - 40
         expected_py2 = ui.height - 180 - 30 - 10 - 120 - 40
         assert py1 == expected_py1
