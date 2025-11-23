@@ -3,12 +3,14 @@ UI Module - Handles the graphical user interface
 """
 import pygame
 import os
+import sys
 from src.player import MusicPlayer
 from src.album_library import AlbumLibrary
 from src.config import Config
 from src.audio_effects import Equalizer
 from src.widgets import Slider, VerticalSlider
 from typing import Tuple, List, Optional
+from src.fs_utils import list_directory
 
 
 class Colors:
@@ -330,6 +332,22 @@ class UI:
         self.config_screen_open = False
         self.config_message = ""
         self.config_message_timer = 0
+        # In-app music folder editor / preview modal
+        self.config_music_editing = False
+        self.config_music_input = ""
+        self.config_music_preview = None
+        # Hover state for modal buttons ('browse','preview','apply','cancel')
+        self.config_music_hover = None
+        # Pure-pygame browser state
+        self.config_browser_open = False
+        self.config_browser_path = None
+        self.config_browser_entries = []
+        self.config_browser_selected = 0
+        self.config_browser_scroll = 0
+        # Double-click and mouse handling for browser
+        self._browser_last_click_time = 0
+        self._browser_last_click_idx = -1
+        self._double_click_threshold_ms = 400
         
         # Audio effects
         self.equalizer = Equalizer()
@@ -515,6 +533,9 @@ class UI:
         self.config_reset_button = Button(center_x - 120, config_y, button_width, button_height, "Reset", Colors.YELLOW, theme=self.current_theme)
         self.config_close_button = Button(center_x + 20, config_y, button_width, button_height, "Close", Colors.RED, theme=self.current_theme)
         self.config_extract_art_button = Button(center_x + 160, config_y, button_width, button_height, "Extract Art", (128, 0, 128), theme=self.current_theme)  # Purple color
+        # Music library chooser button (opens a system folder dialog)
+        # Lowered 20px to avoid clipping into the text above
+        self.config_choose_music_button = Button(center_x + 300, config_y + 20, button_width + 80, button_height, "Choose Library", (40, 120, 200), theme=self.current_theme)
         # Audio effects access button
         effects_y = config_y + 60
         self.config_equalizer_button = Button(center_x - 120, effects_y, button_width, button_height, "Equalizer", Colors.BLUE, theme=self.current_theme)
@@ -657,12 +678,115 @@ class UI:
             
             elif event.type == pygame.MOUSEMOTION:
                 if self.config_screen_open:
+                    # If the in-app music-directory modal is open, handle modal clicks first
+                    if self.config_music_editing:
+                        # Update hover state only (actual actions happen on click)
+                        rects = self._get_music_modal_rects()
+                        hover = None
+                        if rects['browse'].collidepoint(event.pos):
+                            hover = 'browse'
+                        elif rects['preview'].collidepoint(event.pos):
+                            hover = 'preview'
+                        elif rects['apply'].collidepoint(event.pos):
+                            hover = 'apply'
+                        elif rects['cancel'].collidepoint(event.pos):
+                            hover = 'cancel'
+                        self.config_music_hover = hover
+                        # If the user hovers away from buttons, close browser hover
+                        if hover != 'browse' and self.config_browser_open:
+                            # do not close browser on hover changes, only on explicit actions
+                            pass
+                        # If the browser is open, allow clicks inside the preview area
+                        if self.config_browser_open:
+                            pa = rects['preview_area']
+                            if pa.collidepoint(event.pos):
+                                # compute index relative to visible entries
+                                x, y = event.pos
+                                header_h = self.small_font.get_height() + 8
+                                row_h = max(self.small_font.get_height(), 18)
+                                rel_y = y - (pa.y + 8 + header_h)
+                                if rel_y >= 0:
+                                    idx = self.config_browser_scroll + (rel_y // row_h)
+                                    if 0 <= idx < len(self.config_browser_entries):
+                                        self.config_browser_selected = int(idx)
+                                        # Update text input to selected path so apply will work
+                                        ent = self.config_browser_entries[self.config_browser_selected]
+                                        full = os.path.join(self.config_browser_path, ent['name'])
+                                        self.config_music_input = full
+                                        # Double-click detection (more robust than relying on event.clicks)
+                                        now = pygame.time.get_ticks()
+                                        last_idx = self._browser_last_click_idx
+                                        last_time = self._browser_last_click_time
+                                        self._browser_last_click_idx = int(self.config_browser_selected)
+                                        self._browser_last_click_time = now
+                                        # If same index clicked within threshold -> open directory
+                                        if last_idx == self.config_browser_selected and (now - last_time) <= self._double_click_threshold_ms:
+                                            if ent['is_dir']:
+                                                self._open_browser(full)
+                                # ignore other click areas
+                                continue
+
+                        # If browser is open, allow clicks inside the large preview area as selection/open actions
+                        if self.config_browser_open:
+                            pa2 = rects['preview_area']
+                            if pa2.collidepoint(event.pos):
+                                x, y = event.pos
+                                header_h = self.small_font.get_height()
+                                row_h = max(self.small_font.get_height(), 18)
+                                rel_y = y - (pa2.y + header_h + 8)
+                                if rel_y >= 0:
+                                    idx = self.config_browser_scroll + (rel_y // row_h)
+                                    if 0 <= idx < len(self.config_browser_entries):
+                                        self.config_browser_selected = int(idx)
+                                        ent = self.config_browser_entries[self.config_browser_selected]
+                                        full = os.path.join(self.config_browser_path, ent['name'])
+                                        self.config_music_input = full
+                                        # double-click detection
+                                        now = pygame.time.get_ticks()
+                                        last_idx = self._browser_last_click_idx
+                                        last_time = self._browser_last_click_time
+                                        self._browser_last_click_idx = int(self.config_browser_selected)
+                                        self._browser_last_click_time = now
+                                        if last_idx == self.config_browser_selected and (now - last_time) <= self._double_click_threshold_ms:
+                                            if ent['is_dir']:
+                                                self._open_browser(full)
+                                continue
+
+                        # If the browser is open, handle clicks inside the preview area (selection/open)
+                        if self.config_browser_open:
+                            pa2 = rects['preview_area']
+                            if pa2.collidepoint(event.pos):
+                                x, y = event.pos
+                                header_h = self.small_font.get_height()
+                                row_h = max(self.small_font.get_height(), 18)
+                                rel_y = y - (pa2.y + header_h + 8)
+                                if rel_y >= 0:
+                                    idx = self.config_browser_scroll + (rel_y // row_h)
+                                    if 0 <= idx < len(self.config_browser_entries):
+                                        self.config_browser_selected = int(idx)
+                                        ent = self.config_browser_entries[self.config_browser_selected]
+                                        full = os.path.join(self.config_browser_path, ent['name'])
+                                        self.config_music_input = full
+                                        # double-click detection
+                                        now = pygame.time.get_ticks()
+                                        last_idx = self._browser_last_click_idx
+                                        last_time = self._browser_last_click_time
+                                        self._browser_last_click_idx = int(self.config_browser_selected)
+                                        self._browser_last_click_time = now
+                                        if last_idx == self.config_browser_selected and (now - last_time) <= self._double_click_threshold_ms:
+                                            if ent['is_dir']:
+                                                self._open_browser(full)
+                                continue
+
+                        # do not process other config clicks while modal open
+                        continue
                     self.config_rescan_button.update(event.pos)
                     self.config_reset_button.update(event.pos)
                     self.config_close_button.update(event.pos)
                     self.config_extract_art_button.update(event.pos)
                     self.config_equalizer_button.update(event.pos)
                     self.config_fullscreen_button.update(event.pos)
+                    self.config_choose_music_button.update(event.pos)
 
                     for theme_name, btn in self.theme_buttons:
                         btn.update(event.pos)
@@ -699,6 +823,18 @@ class UI:
                         btn.update(event.pos)
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
+                # If browser open and using older SDL, button 4/5 indicate wheel scroll
+                if self.config_music_editing and self.config_browser_open and hasattr(event, 'button') and event.button in (4, 5):
+                    rects_local = self._get_music_modal_rects()
+                    pa = rects_local['preview_area']
+                    # Only scroll when mouse is inside preview area
+                    if pa.collidepoint(pygame.mouse.get_pos()):
+                        if event.button == 4:
+                            self.config_browser_scroll = max(0, self.config_browser_scroll - 1)
+                        else:
+                            max_scroll = max(0, len(self.config_browser_entries) - self._browser_visible_count())
+                            self.config_browser_scroll = min(max_scroll, self.config_browser_scroll + 1)
+                        continue
                 if self.config_screen_open:
                     # Config screen button clicks
                     if self.config_rescan_button.is_clicked(event.pos):
@@ -717,6 +853,61 @@ class UI:
                     elif self.config_fullscreen_button.is_clicked(event.pos):
                         self.toggle_fullscreen()
                         self.setup_config_buttons()  # Refresh button positions
+                    elif self.config_choose_music_button.is_clicked(event.pos):
+                        # Open in-app modal editor for choosing/previewing the music directory
+                        self.config_music_editing = True
+                        self.config_music_hover = None
+                        cur = self.config.get('music_dir')
+                        if not cur:
+                            if sys.platform.startswith('linux') or sys.platform == 'darwin':
+                                cur = os.path.expanduser(os.path.join('~', 'Music', 'JukeBox'))
+                            else:
+                                cur = os.path.join(os.path.dirname(__file__), '..', 'music')
+                        self.config_music_input = cur
+                        self.config_music_preview = None
+                        # don't process other clicks
+                        continue
+
+                    # If modal is active, handle clicks on modal buttons
+                    if self.config_music_editing:
+                        rects = self._get_music_modal_rects()
+                        if rects['browse'].collidepoint(event.pos):
+                            # Open the pure-pygame browser (modal preview area becomes folder browser)
+                            self.config_browser_open = True
+                            start_path = os.path.expanduser(self.config_music_input or os.path.expanduser(os.path.join('~', 'Music', 'JukeBox')))
+                            self._open_browser(start_path)
+                        elif rects['preview'].collidepoint(event.pos):
+                            path = os.path.expanduser(self.config_music_input)
+                            self.config_music_preview = self._compute_music_preview(path)
+                        elif rects['apply'].collidepoint(event.pos):
+                            path = os.path.expanduser(self.config_music_input)
+                            try:
+                                new_lib = AlbumLibrary(path)
+                                new_lib.scan_library()
+                                self.library = new_lib
+                                if self.player:
+                                    try:
+                                        self.player.library = new_lib
+                                    except Exception:
+                                        pass
+                                self.config.set('music_dir', path)
+                                self.config.save()
+                                self.config_message = f'Music directory set to: {path}'
+                                self.config_message_timer = 200
+                                self.config_music_editing = False
+                                self.config_music_preview = None
+                                self.clear_caches()
+                            except Exception as e:
+                                self.config_message = f'Failed to set music dir: {e}'
+                                self.config_message_timer = 200
+                        elif rects['cancel'].collidepoint(event.pos):
+                            self.config_music_editing = False
+                            self.config_music_preview = None
+                            self.config_browser_open = False
+                            self.config_browser_entries = []
+                            self.config_browser_selected = 0
+                        # do not process other config clicks while modal open
+                        continue
 
                     else:
                         # Check theme button clicks
@@ -800,7 +991,85 @@ class UI:
                         # Check number pad buttons
                         self.handle_number_pad_click(event.pos)
             
+            elif event.type == pygame.MOUSEWHEEL:
+                # Scroll browser when wheel used
+                if self.config_music_editing and self.config_browser_open:
+                    rects_local = self._get_music_modal_rects()
+                    pa = rects_local['preview_area']
+                    # Only scroll when mouse inside preview area
+                    if pa.collidepoint(pygame.mouse.get_pos()):
+                        # event.y: positive up, negative down
+                        delta = -int(event.y)
+                        max_scroll = max(0, len(self.config_browser_entries) - self._browser_visible_count())
+                        self.config_browser_scroll = max(0, min(max_scroll, self.config_browser_scroll + delta))
+                        continue
+
             elif event.type == pygame.KEYDOWN:
+                # If in music dir modal, capture typing and modal key actions
+                if self.config_music_editing:
+                    if event.key == pygame.K_ESCAPE:
+                        self.config_music_editing = False
+                        self.config_music_preview = None
+                    elif event.key == pygame.K_RETURN:
+                        # Apply selection
+                        path = os.path.expanduser(self.config_music_input)
+                        try:
+                            new_lib = AlbumLibrary(path)
+                            new_lib.scan_library()
+                            self.library = new_lib
+                            if self.player:
+                                try:
+                                    self.player.library = new_lib
+                                except Exception:
+                                    pass
+                            self.config.set('music_dir', path)
+                            self.config.save()
+                            self.config_message = f'Music directory set to: {path}'
+                            self.config_message_timer = 200
+                            self.config_music_editing = False
+                            self.config_music_preview = None
+                            self.clear_caches()
+                        except Exception as e:
+                            self.config_message = f'Failed to set music dir: {e}'
+                            self.config_message_timer = 200
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.config_music_input = self.config_music_input[:-1]
+                    else:
+                        # Accept printable characters
+                        try:
+                            ch = event.unicode
+                            if ch and len(ch) == 1 and (32 <= ord(ch) <= 126):
+                                self.config_music_input += ch
+                        except Exception:
+                            pass
+                    # If the in-modal pure-pygame browser is open handle navigation keys
+                    if self.config_browser_open:
+                        if event.key == pygame.K_UP:
+                            self.config_browser_selected = max(0, self.config_browser_selected - 1)
+                            if self.config_browser_selected < self.config_browser_scroll:
+                                self.config_browser_scroll = self.config_browser_selected
+                        elif event.key == pygame.K_DOWN:
+                            self.config_browser_selected = min(len(self.config_browser_entries) - 1, self.config_browser_selected + 1)
+                            h = self._browser_visible_count()
+                            if self.config_browser_selected >= self.config_browser_scroll + h:
+                                self.config_browser_scroll = max(0, self.config_browser_selected - h + 1)
+                        elif event.key == pygame.K_RIGHT or event.key == pygame.K_RETURN:
+                            # Enter directory or select
+                            if 0 <= self.config_browser_selected < len(self.config_browser_entries):
+                                ent = self.config_browser_entries[self.config_browser_selected]
+                                if ent['is_dir']:
+                                    newpath = os.path.join(self.config_browser_path, ent['name'])
+                                    self._open_browser(newpath)
+                                else:
+                                    # for files do nothing, require apply
+                                    pass
+                        elif event.key == pygame.K_LEFT:
+                            parent = os.path.dirname(self.config_browser_path)
+                            if parent and os.path.isdir(parent) and parent != self.config_browser_path:
+                                self._open_browser(parent)
+                    # Don't process global shortcuts while editing
+                    continue
+
                 # Close config screen with Escape
                 if event.key == pygame.K_ESCAPE:
                     if self.config_screen_open:
@@ -1019,6 +1288,333 @@ class UI:
         self._text_cache.clear()
         self._text_cache_size = 0
         self._needs_full_redraw = True
+
+    def choose_music_directory(self) -> None:
+        """Open a folder selection dialog (if available) and update the music library.
+
+        Tries to use tkinter.filedialog.askdirectory for a native dialog; falls back
+        to a simple console prompt if tkinter is unavailable or fails.
+        """
+        # Determine an initial directory for the dialog
+        initial = self.config.get('music_dir')
+        if not initial:
+            if sys.platform.startswith('linux') or sys.platform == 'darwin':
+                initial = os.path.expanduser(os.path.join('~', 'Music', 'JukeBox'))
+            else:
+                initial = os.path.join(os.path.dirname(__file__), '..', 'music')
+
+        selected = None
+        # Try to use tkinter for a GUI folder chooser
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+
+            root = tk.Tk()
+            root.withdraw()
+            selected = filedialog.askdirectory(title='Select JukeBox Music Directory', initialdir=initial)
+            root.destroy()
+        except Exception:
+            # Fallback to console input
+            print('Tkinter folder dialog not available. Enter path to music directory:')
+            selected = input('> ').strip()
+
+        if not selected:
+            self.config_message = 'No directory selected'
+            self.config_message_timer = 120
+            return
+
+        selected = os.path.expanduser(selected)
+
+        # Create new library and re-wire UI/player to use it
+        new_lib = AlbumLibrary(selected)
+        new_lib.scan_library()
+
+        self.library = new_lib
+        if self.player is not None:
+            try:
+                self.player.library = new_lib
+            except Exception:
+                # Safe fallback if player doesn't accept direct assignment
+                pass
+
+        # Persist selection to config
+        self.config.set('music_dir', selected)
+        self.config.save()
+
+        # Give user visual feedback and refresh caches
+        self.config_message = f'Music directory set to: {selected}'
+        self.config_message_timer = 240
+        self.clear_caches()
+
+    def _compute_music_preview(self, path: str) -> dict:
+        """Return a short preview summary of the selected directory.
+
+        Returns a dict containing: total_files, audio_files, sample_files (list), total_size_bytes
+        """
+        result = {'total_files': 0, 'audio_files': 0, 'sample_files': [], 'total_size_bytes': 0}
+        try:
+            if not os.path.exists(path):
+                return result
+
+            supported = getattr(AlbumLibrary, 'MAX_ALBUMS', None)  # not used here
+            audio_exts = ('.mp3', '.wav', '.ogg', '.flac')
+            total = 0
+            audio_count = 0
+            samples = []
+            total_size = 0
+            # Walk top-level files and immediate subdirectories (non-recursive for preview)
+            # Collect sample files for display
+            for entry in sorted(os.listdir(path)):
+                p = os.path.join(path, entry)
+                if os.path.isfile(p):
+                    total += 1
+                    sz = os.path.getsize(p)
+                    total_size += sz
+                    if entry.lower().endswith(audio_exts):
+                        audio_count += 1
+                        if len(samples) < 10:
+                            samples.append(entry)
+                elif os.path.isdir(p):
+                    # Optionally list files inside first few subdirs
+                    try:
+                        for f in sorted(os.listdir(p))[:3]:
+                            total += 1
+                            fp = os.path.join(p, f)
+                            if os.path.isfile(fp):
+                                sz = os.path.getsize(fp)
+                                total_size += sz
+                                if f.lower().endswith(audio_exts):
+                                    audio_count += 1
+                                    if len(samples) < 10:
+                                        samples.append(os.path.join(entry, f))
+                    except Exception:
+                        pass
+
+            result['total_files'] = total
+            result['audio_files'] = audio_count
+            result['sample_files'] = samples
+            result['total_size_bytes'] = total_size
+        except Exception:
+            pass
+
+        return result
+
+    def _get_music_modal_rects(self) -> dict:
+        """Return rects for the music modal's elements (input field, buttons, preview area)."""
+        w = min(900, int(self.width * 0.8))
+        h = min(480, int(self.height * 0.6))
+        x = (self.width - w) // 2
+        y = (self.height - h) // 2
+        # Input field at top
+        input_rect = pygame.Rect(x + 20, y + 40, w - 40, 32)
+        # Buttons row below input
+        btn_w = 140
+        btn_h = 36
+        spacing = 12
+        btn_y = y + 88
+        btn_x = x + 20
+        browse_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+        preview_rect = pygame.Rect(btn_x + (btn_w + spacing), btn_y, btn_w, btn_h)
+        apply_rect = pygame.Rect(btn_x + 2 * (btn_w + spacing), btn_y, btn_w, btn_h)
+        cancel_rect = pygame.Rect(btn_x + 3 * (btn_w + spacing), btn_y, btn_w, btn_h)
+
+        preview_area = pygame.Rect(x + 20, btn_y + btn_h + 20, w - 40, h - (btn_y - y) - btn_h - 40)
+
+        return {
+            'bg': pygame.Rect(x, y, w, h),
+            'input': input_rect,
+            'browse': browse_rect,
+            'preview': preview_rect,
+            'apply': apply_rect,
+            'cancel': cancel_rect,
+            'preview_area': preview_area,
+        }
+
+    def _open_browser(self, path: str) -> None:
+        """Open a directory in the in-modal pure-pygame browser.
+
+        This loads entries using src.fs_utils.list_directory and resets selection/scroll.
+        """
+        try:
+            info = list_directory(path)
+            self.config_browser_path = info.get('path')
+            self.config_browser_entries = info.get('entries', [])
+            # reset selection/scroll
+            self.config_browser_selected = 0
+            self.config_browser_scroll = 0
+            # Also update the input path field so the user can apply the selection
+            self.config_music_input = self.config_browser_path
+        except Exception:
+            # On error, leave browser state unchanged
+            pass
+
+    def _browser_visible_count(self) -> int:
+        """Return how many rows of entries fit inside the preview area.
+
+        Used to compute scrolling behavior.
+        """
+        rects = self._get_music_modal_rects()
+        header_h = self.small_font.get_height() + 8
+        row_h = max(self.small_font.get_height(), 18)
+        avail = rects['preview_area'].height - header_h - 24  # leave room for hints
+        if avail <= 0:
+            return 0
+        return max(1, avail // row_h)
+
+    def _ellipsize_text(self, text: str, font: pygame.font.Font, max_width: int) -> str:
+        """Return a text shortened with ellipsis to fit inside max_width using the provided font."""
+        if font.size(text)[0] <= max_width:
+            return text
+        # Need room for '...'
+        ell = '...'
+        # Trim characters until fits
+        left = 0
+        right = len(text)
+        # Binary search for best fit
+        while left < right:
+            mid = (left + right) // 2
+            candidate = text[:mid].rstrip() + ell
+            if font.size(candidate)[0] <= max_width:
+                left = mid + 1
+            else:
+                right = mid
+
+        candidate = text[:max(0, left-1)].rstrip() + ell
+        return candidate
+
+    def _draw_music_dir_modal(self) -> None:
+        """Draw the in-app music directory selection / preview modal."""
+        rects = self._get_music_modal_rects()
+        # Dark overlay
+        overlay = pygame.Surface((self.width, self.height))
+        overlay.set_alpha(160)
+        overlay.fill((0, 0, 0))
+        self.screen.blit(overlay, (0, 0))
+
+        # Modal background
+        bg = pygame.Surface((rects['bg'].width, rects['bg'].height))
+        bg.fill((40, 40, 40))
+        pygame.draw.rect(bg, Colors.WHITE, bg.get_rect(), 2)
+        self.screen.blit(bg, (rects['bg'].x, rects['bg'].y))
+
+        # Title
+        title = self.medium_font.render('Select Music Library (in-app)', True, Colors.WHITE)
+        self.screen.blit(title, (rects['bg'].x + 20, rects['bg'].y + 8))
+
+        # Input label and box
+        label = self.small_font.render('Path:', True, Colors.LIGHT_GRAY)
+        self.screen.blit(label, (rects['input'].x, rects['input'].y - 18))
+        pygame.draw.rect(self.screen, Colors.BLACK, rects['input'])
+        pygame.draw.rect(self.screen, Colors.WHITE, rects['input'], 2)
+        # Render the current input text (truncate if too long)
+        display_text = self.config_music_input
+        # Trim to fit
+        max_chars = 120
+        if len(display_text) > max_chars:
+            display_text = '...' + display_text[-max_chars:]
+        txt_surf = self.small_font.render(display_text, True, Colors.WHITE)
+        self.screen.blit(txt_surf, (rects['input'].x + 6, rects['input'].y + 6))
+
+        # Draw buttons (highlight hovered button)
+        hover = getattr(self, 'config_music_hover', None)
+        for name, r in [('Browse', rects['browse']), ('Preview', rects['preview']), ('Apply', rects['apply']), ('Cancel', rects['cancel'])]:
+            btn_key = name.lower()
+            color = Colors.YELLOW if hover == btn_key else Colors.GRAY
+            pygame.draw.rect(self.screen, color, r)
+            pygame.draw.rect(self.screen, Colors.WHITE, r, 2)
+            t = self.small_font.render(name, True, Colors.BLACK if hover == btn_key else Colors.WHITE)
+            tpos = t.get_rect(center=r.center)
+            self.screen.blit(t, tpos)
+
+        # Draw preview area (if present)
+        pygame.draw.rect(self.screen, (18, 18, 18), rects['preview_area'])
+        pygame.draw.rect(self.screen, Colors.WHITE, rects['preview_area'], 1)
+        pa_x = rects['preview_area'].x + 8
+        pa_y = rects['preview_area'].y + 8
+
+        if self.config_browser_open:
+            # Render the folder browser view inside the preview area
+            browser = {'path': self.config_browser_path, 'entries': self.config_browser_entries}
+            header = self.small_font.render(f"{browser['path']}", True, Colors.YELLOW)
+            self.screen.blit(header, (pa_x, pa_y))
+
+            # Compute visible rows inside preview area
+            row_y = pa_y + header.get_height() + 8
+            row_height = max(self.small_font.get_height(), 18)
+            visible = self._browser_visible_count()
+            start = self.config_browser_scroll
+            end = min(len(browser['entries']), start + visible)
+
+            # Draw each visible entry
+            for idx in range(start, end):
+                ent = browser['entries'][idx]
+                sel = (idx == self.config_browser_selected)
+                bg_rect = pygame.Rect(pa_x, row_y + (idx - start) * row_height, rects['preview_area'].width - 12, row_height)
+                # Alternate row stripe for readability
+                if not sel and ((idx - start) % 2) == 0:
+                    pygame.draw.rect(self.screen, (28, 28, 28), bg_rect)
+                if sel:
+                    pygame.draw.rect(self.screen, (64, 64, 96), bg_rect)
+
+                # icon
+                icon_x = pa_x + 4
+                icon_y = bg_rect.y + 2
+                if ent['is_dir']:
+                    pygame.draw.polygon(self.screen, Colors.LIGHT_GRAY, [(icon_x, icon_y + 8), (icon_x + 10, icon_y + 4), (icon_x + 10, icon_y + 12)])
+                else:
+                    pygame.draw.rect(self.screen, Colors.LIGHT_GRAY, (icon_x, icon_y + 3, 10, 10))
+
+                # name and meta
+                name_x = icon_x + 16
+                meta = f"{ent['size']} bytes"
+                meta_s = self.tiny_font.render(meta, True, Colors.LIGHT_GRAY)
+                # Compute max width for name text so it doesn't overlap meta
+                max_name_w = rects['preview_area'].width - 12 - (name_x - rects['preview_area'].x) - meta_s.get_width() - 16
+                name_text = self._ellipsize_text(ent['name'], self.small_font, max_name_w)
+                name_s = self.small_font.render(name_text, True, Colors.WHITE if not sel else Colors.YELLOW)
+                self.screen.blit(name_s, (name_x, bg_rect.y + 1))
+                # size/time right-justified
+                meta_pos = (rects['preview_area'].right - 8 - meta_s.get_width(), bg_rect.y + 1)
+                self.screen.blit(meta_s, meta_pos)
+
+            # Scrollbar if needed
+            total = len(browser['entries'])
+            if total > visible and visible > 0:
+                bar_h = rects['preview_area'].height - 12 - header.get_height() - 8
+                sb_h = max(20, int((visible / total) * bar_h))
+                sb_range = bar_h - sb_h
+                if sb_range > 0:
+                    sb_pos = int((self.config_browser_scroll / max(1, total - visible)) * sb_range)
+                else:
+                    sb_pos = 0
+                sb_x = rects['preview_area'].right - 8
+                sb_y = row_y + sb_pos
+                pygame.draw.rect(self.screen, Colors.GRAY, (sb_x, row_y, 8, bar_h))
+                pygame.draw.rect(self.screen, Colors.LIGHT_GRAY, (sb_x, sb_y, 8, sb_h))
+
+            # Instruction hint
+            hint = self.tiny_font.render('Use ↑↓ keys to navigate, → or double-click to open, Enter to apply selected path', True, Colors.LIGHT_GRAY)
+            self.screen.blit(hint, (pa_x, rects['preview_area'].bottom - 18))
+
+        elif self.config_music_preview is None:
+            hint = self.small_font.render('Preview will show a small summary of files and sample audio files in the selected folder.', True, Colors.LIGHT_GRAY)
+            self.screen.blit(hint, (pa_x, pa_y))
+        else:
+            res = self.config_music_preview
+            lines = [f"Total files (top-level & first few subfolders): {res.get('total_files',0)}",
+                     f"Audio files found (top-level & previews): {res.get('audio_files',0)}",
+                     f"Total size: {res.get('total_size_bytes',0)} bytes"]
+            for i, ln in enumerate(lines):
+                s = self.small_font.render(ln, True, Colors.LIGHT_GRAY)
+                self.screen.blit(s, (pa_x, pa_y + i * 20))
+            # Sample files list
+            sample_y = pa_y + len(lines) * 20 + 8
+            header = self.small_font.render('Sample files:', True, Colors.YELLOW)
+            self.screen.blit(header, (pa_x, sample_y))
+            for i, fn in enumerate(res.get('sample_files', [])[:10]):
+                s = self.small_font.render(f"  - {fn}", True, Colors.LIGHT_GRAY)
+                self.screen.blit(s, (pa_x + 8, sample_y + 18 + i * 18))
+
     
     def draw(self) -> None:
         """Draw the UI"""
@@ -1738,16 +2334,51 @@ class UI:
         theme_title_rect = theme_title.get_rect(center=(self.width // 2, theme_section_y - 30))
         self.screen.blit(theme_title, theme_title_rect)
         
-        # Draw theme buttons
-        for theme_name, btn in self.theme_buttons:
-            btn.draw(self.screen, self.small_font)
+        # Position theme buttons centered under the title and draw them
+        btn_count = len(self.theme_buttons)
+        if btn_count:
+            spacing = 15
+            # Use the actual widths of the buttons (assume uniform width) for total width calc
+            btn_width = self.theme_buttons[0][1].rect.width
+            total_width = btn_count * btn_width + (btn_count - 1) * spacing
+            start_x = (self.width - total_width) // 2
+            btn_y = theme_section_y
+
+            for i, (theme_name, btn) in enumerate(self.theme_buttons):
+                btn.rect.x = start_x + i * (btn_width + spacing)
+                btn.rect.y = btn_y
+                btn.draw(self.screen, self.small_font)
         
         # Draw theme preview if hovering
         for theme_name, btn in self.theme_buttons:
             if btn.is_hovered:
-                # Position preview above theme buttons
-                self.draw_theme_preview(theme_name, self.width // 2 - 100, theme_section_y - 130)
+                # Position preview differently for fullscreen vs windowed:
+                # - windowed: keep previous behavior (above buttons)
+                # - fullscreen: place preview above the 'Theme Selection' title
+                px, py = self._get_theme_preview_pos(theme_section_y)
+                self.draw_theme_preview(theme_name, px, py)
                 break
+
+    def _get_theme_preview_pos(self, theme_section_y: int) -> tuple:
+        """Return (x,y) the position for the theme preview box.
+
+        When fullscreen, we place the preview above the title area, otherwise
+        above the theme buttons area (previous behavior).
+        """
+        preview_width = 200
+        # default windowed placement above buttons (previous behavior)
+        default_x = self.width // 2 - preview_width // 2
+        default_y = theme_section_y - 130
+
+        if self.fullscreen:
+            # place above the title which sits at theme_section_y - 30
+            title_y = theme_section_y - 30
+            # Move preview above the title with a small gap
+            py = title_y - 10 - 120  # 120 is preview height
+            px = self.width // 2 - preview_width // 2
+            return px, py
+
+        return default_x, default_y
     
     def draw_theme_preview(self, theme_name: str, x: int, y: int) -> None:
         """Draw a preview of the selected theme"""
@@ -1907,30 +2538,25 @@ class UI:
             y = info_y + 40 + i * 25
             info_text = self.small_font.render(info, True, Colors.LIGHT_GRAY)
             self.screen.blit(info_text, (left_x + 20, y))
+
+        # Show configured music directory (or default)
+        music_dir = self.config.get('music_dir')
+        if not music_dir:
+            if sys.platform.startswith('linux') or sys.platform == 'darwin':
+                music_dir = os.path.expanduser(os.path.join('~', 'Music', 'JukeBox'))
+            else:
+                music_dir = os.path.join(os.path.dirname(__file__), '..', 'music')
+
+        y = info_y + 40 + len(info_lines) * 25
+        md_text = self.small_font.render(f"Music folder: {music_dir}", True, Colors.LIGHT_GRAY)
+        self.screen.blit(md_text, (left_x + 20, y))
         
-        # Right Column - Actions
+        # Right Column - Actions (audio / visual kept on the right)
         right_x = self.width // 2 + 50
         
-        # Library actions section
-        actions_header = self.medium_font.render("Library Actions", True, Colors.YELLOW)
-        self.screen.blit(actions_header, (right_x, settings_y))
-        
-        # Reposition library action buttons vertically
-        action_y = settings_y + 50
-        self.config_rescan_button.rect.x = right_x + 20
-        self.config_rescan_button.rect.y = action_y
-        self.config_rescan_button.draw(self.screen, self.small_font)
-        
-        self.config_extract_art_button.rect.x = right_x + 20
-        self.config_extract_art_button.rect.y = action_y + 50
-        self.config_extract_art_button.draw(self.screen, self.small_font)
-        
-        self.config_reset_button.rect.x = right_x + 20
-        self.config_reset_button.rect.y = action_y + 100
-        self.config_reset_button.draw(self.screen, self.small_font)
-        
-        # Audio effects section
-        effects_y = action_y + 170
+        # Audio effects section (kept to the right column)
+        # align vertically roughly to the settings area
+        effects_y = settings_y + 220
         effects_header = self.medium_font.render("Audio Effects", True, Colors.YELLOW)
         self.screen.blit(effects_header, (right_x, effects_y))
         
@@ -1947,9 +2573,50 @@ class UI:
         self.config_fullscreen_button.rect.x = right_x + 20
         self.config_fullscreen_button.rect.y = visual_effects_y + 40
         self.config_fullscreen_button.draw(self.screen, self.small_font)
-        
-        # Theme selection section (bottom center)
+
+        # Draw choose music directory button (moved to left of Library Actions for convenience)
+        # Position next to the Library Info section on the left column
+        md_button_x = left_x + 20
+        # Push the choose button down by ~20px to avoid clipping with the text above
+        md_button_y = info_y + 40 + len(info_lines) * 25 + 30
+        self.config_choose_music_button.rect.x = md_button_x
+        self.config_choose_music_button.rect.y = md_button_y
+        self.config_choose_music_button.draw(self.screen, self.small_font)
+
+        # Consolidated Library Actions: place action buttons in two columns under the Music folder area
+        actions_header = self.medium_font.render("Library Actions", True, Colors.YELLOW)
+        # Move the library actions header down ~25px to avoid clipping (further nudge)
+        # This ensures the heading and subsequent action rows are comfortably below the button
+        actions_header_y = md_button_y + 55
+        self.screen.blit(actions_header, (md_button_x, actions_header_y))
+
+        # Two-column layout
+        # Start rows slightly below the header
+        action_row_y = actions_header_y + 24 + 20
+        col_spacing = self.config_rescan_button.rect.width + 12
+        col1_x = md_button_x
+        col2_x = md_button_x + col_spacing
+
+        # First row: Rescan | Extract Art
+        self.config_rescan_button.rect.x = col1_x
+        self.config_rescan_button.rect.y = action_row_y
+        self.config_rescan_button.draw(self.screen, self.small_font)
+
+        self.config_extract_art_button.rect.x = col2_x
+        self.config_extract_art_button.rect.y = action_row_y
+        self.config_extract_art_button.draw(self.screen, self.small_font)
+
+        # Second row: Reset (left column)
+        self.config_reset_button.rect.x = col1_x
+        self.config_reset_button.rect.y = action_row_y + 46
+        self.config_reset_button.draw(self.screen, self.small_font)
+
+        # Theme selection section (bottom center) - draw first so modal overlays it
         self.draw_theme_selector()
+
+        # If the user is editing the music directory (in-app modal), draw it on top
+        if self.config_music_editing:
+            self._draw_music_dir_modal()
         
         # Close button (top right)
         self.config_close_button.rect.x = self.width - 140

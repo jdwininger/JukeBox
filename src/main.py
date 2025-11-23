@@ -138,7 +138,17 @@ def main():
             print("Warning: No themes available")
     
     # Setup library
-    music_dir = os.path.join(os.path.dirname(__file__), '..', 'music')
+    # User-configurable music directory (config 'music_dir') takes precedence.
+    # If not set, default to ~/Music/JukeBox on macOS/Linux, or project-local
+    # 'music' directory elsewhere.
+    cfg_music_dir = config.get('music_dir')
+    if cfg_music_dir:
+        music_dir = os.path.expanduser(cfg_music_dir)
+    else:
+        if sys.platform.startswith('linux') or sys.platform == 'darwin':
+            music_dir = os.path.expanduser(os.path.join('~', 'Music', 'JukeBox'))
+        else:
+            music_dir = os.path.join(os.path.dirname(__file__), '..', 'music')
     library = AlbumLibrary(music_dir)
     library.scan_library()
     
