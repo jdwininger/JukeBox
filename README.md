@@ -135,6 +135,39 @@ Notes:
 source .venv/bin/activate && python src/main.py & disown
 ```
 
+Quickstart convenience (bootstrap venv & install)
+------------------------------------------------
+
+`quickstart.py` now provides simple bootstrapping helpers to create a virtual environment and install dependencies from `requirements.txt`.
+
+Examples:
+
+- Create a venv and install requirements into `.venv` (default):
+
+```bash
+bash quickstart.py --bootstrap
+```
+
+- Create a venv at a custom location and install deps:
+
+```bash
+bash quickstart.py --bootstrap --venv .myenv
+```
+
+- Only install dependencies into an existing venv (no creation):
+
+```bash
+bash quickstart.py --install-deps --venv .venv
+```
+
+- Create the virtualenv but skip installing dependencies (useful if you plan to install manually or prepare offline):
+
+```bash
+bash quickstart.py --bootstrap --venv .venv --no-install
+```
+
+These helpers are useful when distributing a minimal release tar — run them inside the extracted folder to prepare a runtime environment using the included `requirements.txt`.
+
 ### macOS App Bundle
 
 If you prefer a clickable application on macOS, a minimal `.app` wrapper is included at the project root as `JukeBox.app`. It expects the repository layout and dependencies to be present.
@@ -164,6 +197,21 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 .venv/bin/python src/main.py
+
+Packaging & releases (AppImage, tar, CI)
+--------------------------------------
+
+This project now includes improved packaging and CI release automation to make building and publishing easier.
+
+- AppImage (standalone Linux executable): use `./scripts/build-appimage.sh` (requires Linux). The builder supports an embedded Python virtualenv and a `--slim` mode to reduce size.
+
+- Minimal release tar: `./scripts/create-release-tar.sh` produces a compact `build/release/JukeBox-<version>.tar.gz` containing runtime files (src, assets, themes) and a helper `setup_and_run.sh` to create a venv, install `requirements.txt`, and run `run.sh`. There's a `make release-tar` convenience target in the Makefile that calls the script.
+
+- Repository safety & pre-commit: a `scripts/check-for-bloat.sh` safety checker prevents committing large artifacts (AppImages, extracted squashfs, repo venvs). A local pre-commit hook is available via `.githooks/pre-commit` and you can install it with `./scripts/install-git-hooks.sh`. Pre-commit configuration includes formatting and linting hooks (Black, isort, flake8) and the repo safety checks.
+
+- CI & release workflow: GitHub Actions will run tests, safety checks, build full & slim AppImages, create checksums, (optionally) create .zsync metadata, produce a combined release manifest, and upload artifacts on release. The release workflow also uploads the minimal release tar and its checksum. Optional signing and AppImageHub listing automation are supported if repository secrets are configured.
+
+See `RELEASE_NOTES.md` for a short summary of the changes to packaging, CI, and developer tooling.
 ```
 
 Running diagnostics
@@ -316,6 +364,38 @@ If you still see audio issues, check that your system audio stack (PulseAudio or
 3. Run the application - it automatically scans and indexes all albums
 
 ## Professional Theming System
+
+Release tar (minimal runtime tar.gz)
+----------------------------------
+
+If you'd like a minimal, portable source archive for distribution (contains only the runtime files needed to run JukeBox), use the provided helper which produces a compressed tarball in `build/release/`.
+
+From the repository root you can build it manually:
+
+```bash
+bash scripts/create-release-tar.sh
+```
+
+Or use the convenience Makefile target:
+
+```bash
+make release-tar
+```
+
+What the tar contains:
+- Selected runtime files: `src/`, `assets/`, `themes/`, plus `run.sh`, `requirements.txt`, `setup.py`, `README.md` and `LICENSE`.
+- A tiny helper `setup_and_run.sh` is included in the archive — it will create a `venv` in the extracted folder, install dependencies from `requirements.txt` and launch `run.sh` for you.
+
+Notes:
+- The tarball intentionally excludes tests, `.git`, `__pycache__`, and other development-only files to keep the archive small.
+- The archive does not include a pre-built virtualenv or Python binary. If you want a completely standalone release (with embedded venv), tell me and I can add an option to include it — note this substantially increases the archive size.
+
+To clean generated release artifacts (tar files, checksums):
+
+```bash
+make clean-release
+```
+
 
 JukeBox features a comprehensive theming system with complete PNG/SVG button support, automatic fallbacks, and real-time theme switching.
 

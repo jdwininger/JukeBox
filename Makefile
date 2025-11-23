@@ -37,6 +37,16 @@ package-appimage:
 	fi
 	./scripts/build-appimage.sh
 
+# Create a minimal release tar (source + runtime files)
+.PHONY: release-tar clean-release
+release-tar:
+	@echo "Creating minimal release tar..."
+	@bash scripts/create-release-tar.sh
+
+clean-release:
+	@echo "Cleaning build/release artifacts..."
+	@rm -rf build/release || true
+
 standalone-macos:
 	@if [ "$$(uname)" != "Darwin" ]; then \
 		echo "Error: macOS app bundles can only be created on macOS systems."; \

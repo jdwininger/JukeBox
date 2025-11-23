@@ -61,6 +61,11 @@ jobs:
             mv JukeBox-x86_64.AppImage JukeBox-x86_64-slim.AppImage
           fi
 
+      - name: Create minimal release tar (source + runtime files)
+        run: |
+          chmod +x scripts/create-release-tar.sh
+          bash scripts/create-release-tar.sh
+
       - name: Create SHA256 checksums and zsync metadata
         run: |
           set -e
@@ -93,6 +98,17 @@ jobs:
           done
           echo "Manifest created:" && cat "$manifest_file"
 
+      - name: Create checksum for release tar
+        run: |
+          set -e
+          # tar created in build/release by scripts/create-release-tar.sh
+          for t in build/release/*.tar.gz; do
+            if [ -f "$t" ]; then
+              sha256sum "$t" > "$t.sha256"
+              echo "Created checksum for $t"
+            fi
+          done
+
       - name: Optional sign AppImages (GPG)
         if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
         env:
@@ -119,7 +135,7 @@ jobs:
           set -e
           # strip template suffix like '{?name,label}'
           UPLOAD_URL_STRIPPED="${UPLOAD_URL%\{*}"
-          for f in JukeBox-x86_64-full.AppImage JukeBox-x86_64-slim.AppImage JukeBox-x86_64-full.AppImage.sha256 JukeBox-x86_64-slim.AppImage.sha256 JukeBox-x86_64-full.AppImage.zsync JukeBox-x86_64-slim.AppImage.zsync JukeBox-x86_64.release-manifest.txt JukeBox-x86_64-full.AppImage.asc JukeBox-x86_64-slim.AppImage.asc JukeBox-x86_64-full.AppImage.sha256.asc JukeBox-x86_64-slim.AppImage.sha256.asc JukeBox-x86_64.release-manifest.txt.asc; do
+          for f in JukeBox-x86_64-full.AppImage JukeBox-x86_64-slim.AppImage JukeBox-x86_64-full.AppImage.sha256 JukeBox-x86_64-slim.AppImage.sha256 JukeBox-x86_64-full.AppImage.zsync JukeBox-x86_64-slim.AppImage.zsync JukeBox-x86_64.release-manifest.txt JukeBox-x86_64-full.AppImage.asc JukeBox-x86_64-slim.AppImage.asc JukeBox-x86_64-full.AppImage.sha256.asc JukeBox-x86_64-slim.AppImage.sha256.asc JukeBox-x86_64.release-manifest.txt.asc build/release/*.tar.gz build/release/*.tar.gz.sha256; do
             if [ -f "$f" ]; then
               echo "Uploading $f to release..."
               curl -s -X POST \

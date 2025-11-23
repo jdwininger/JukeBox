@@ -103,6 +103,54 @@ pre-commit install --install-hooks
 
 After enabling these hooks, commits will run the safety check and standard formatting checks automatically.
 
+More details on the pre-commit configuration & packaging helpers
+--------------------------------------------------------------
+
+The repository ships `.pre-commit-config.yaml` which includes:
+
+- A local safety hook (`scripts/check-for-bloat.sh`) to detect and prevent accidental large artifacts (AppImages, embedded venvs, `squashfs-root`, etc.).
+- Black (code formatting)
+- isort (import sorting)
+- flake8 (static checks) with `flake8-bugbear` for extra checks
+
+Install and run all hooks locally to auto-fix and lint the repository:
+
+```bash
+python -m pip install --user pre-commit black isort flake8 flake8-bugbear
+pre-commit install --install-hooks
+pre-commit run --all-files
+```
+
+Packaging helper commands
+-------------------------
+
+Create or test release artifacts locally:
+
+- Create a minimal release tar (source + runtime files):
+
+```bash
+make release-tar
+# or
+bash scripts/create-release-tar.sh
+```
+
+- Build a full AppImage (Linux only):
+
+```bash
+./scripts/build-appimage.sh
+```
+
+- Build a slim AppImage to reduce size:
+
+```bash
+./scripts/build-appimage.sh --slim
+```
+
+CI & Release Automation
+-----------------------
+
+GitHub Actions are configured to run safety checks, tests, and package builds. On a release event the workflow builds full + slim AppImages, produces checksums and optional .zsync metadata, creates a combined manifest, and uploads artifacts to the release. It also includes the `build/release/*.tar.gz` minimal release tar and its checksum. Optional GPG signing and AppImageHub listing helpers are supported when secrets are configured.
+
 ## Adding Music to Your Library
 
 JukeBox organizes music into numbered albums (01-52):

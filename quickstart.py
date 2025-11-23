@@ -7,14 +7,8 @@ Demonstrates the complete JukeBox application with all features
 import os
 import sys
 
-import pygame
-
 from src.album_library import AlbumLibrary
-from src.audio_effects import Equalizer
 from src.config import Config
-from src.player import MusicPlayer
-from src.theme import ThemeManager
-from src.ui import UI
 
 
 def display_banner():
@@ -165,6 +159,9 @@ def display_equalizer_info():
     print(f"🎛️  Professional Equalizer Features")
     print(f"{'='*70}")
 
+    # Import the Equalizer lazily so quickstart can run in bootstrap mode
+    from src.audio_effects import Equalizer
+
     equalizer = Equalizer()
     presets = equalizer.get_presets()
 
@@ -196,6 +193,10 @@ def launch_application():
     print(f"{'='*70}\n")
 
     try:
+        # Defer importing pygame until we're ready to launch so quickstart
+        # can still create virtualenvs and install dependencies when they
+        # are missing.
+        import pygame
         # Initialize pygame
         pygame.init()
 
@@ -215,6 +216,10 @@ def launch_application():
         config = Config()
 
         # Initialize theme system
+        from src.theme import ThemeManager
+        from src.ui import UI
+        from src.player import MusicPlayer
+
         theme_dir = os.path.join(os.path.dirname(__file__), "themes")
         theme_manager = ThemeManager(theme_dir)
         theme_manager.discover_themes()
@@ -308,7 +313,82 @@ def main():
         action="store_true",
         help="Run diagnostics and only show commands that would be executed (preview only)",
     )
+    # Additional convenience options for bootstrapping an environment
+    parser.add_argument(
+        "--bootstrap",
+        action="store_true",
+        help="Create a virtualenv and install dependencies from requirements.txt",
+    )
+    parser.add_argument(
+        "--venv",
+        default=".venv",
+        help="Path to virtualenv to create/use (default: .venv)",
+    )
+    parser.add_argument(
+        "--install-deps",
+        action="store_true",
+        help="Install dependencies into the specified virtualenv (without creating a new one)",
+    )
+    parser.add_argument(
+        "--no-install",
+        action="store_true",
+        help="When bootstrapping, create the virtualenv but do NOT install Python packages",
+    )
     args, _ = parser.parse_known_args()
+
+    # (parser options already configured above)
+
+    if args.bootstrap or args.install_deps:
+        # Allow bootstrapping before trying to import modules that may be missing
+        venv_path = os.path.abspath(args.venv)
+        req_path = os.path.join(os.path.dirname(__file__), "requirements.txt")
+
+        def create_venv(path):
+            import subprocess
+
+            if os.path.exists(path):
+                print(f"Virtualenv already exists at {path}")
+                return
+            print(f"Creating virtualenv at {path}...")
+            subprocess.check_call([sys.executable, "-m", "venv", path])
+            print("Virtualenv created.")
+
+        def pip_install(path, reqfile):
+            import subprocess
+
+            pybin = os.path.join(path, "bin", "python")
+            if not os.path.exists(pybin):
+                raise SystemExit(f"Python not found in virtualenv: {pybin}")
+            print(f"Upgrading pip and installing requirements into {path}...")
+            subprocess.check_call([pybin, "-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel"])
+            if os.path.exists(reqfile):
+                subprocess.check_call([pybin, "-m", "pip", "install", "-r", reqfile])
+            else:
+                print(f"No requirements.txt at {reqfile} — nothing to install.")
+
+        # Create venv first if requested
+        if args.bootstrap:
+            create_venv(venv_path)
+            if args.no_install:
+                print("Skipping installation of requirements (--no-install requested).")
+            else:
+                try:
+                    pip_install(venv_path, req_path)
+                except Exception as e:
+                    print("Error installing requirements:", e)
+                    print("You can retry using --install-deps or check your environment.")
+            # If bootstrapping only, exit afterwards
+            # (user can pass other flags later to launch app)
+            if not (args.diagnose or args.fix or args.autofix):
+                print("Bootstrap complete — exiting. Use the venv python to run the app: ./venv/bin/python -m src.main")
+                return
+
+        if args.install_deps:
+            try:
+                pip_install(venv_path, req_path)
+            except Exception as e:
+                print("Error installing requirements:", e)
+                raise
 
     if args.diagnose or args.fix or args.autofix:
         # Run interactive diagnostics and exit

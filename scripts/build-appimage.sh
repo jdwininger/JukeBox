@@ -8,6 +8,9 @@
 
 set -euo pipefail
 
+# Root of the repository (needed early because we reference it below)
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 # Basic arg parsing: support '--slim' to build a smaller AppImage (omit heavy optional packages like numpy/scipy)
 SLIM=0
 if [ "${1:-}" = "--slim" ]; then
