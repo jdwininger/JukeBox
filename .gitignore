@@ -36,6 +36,9 @@ env/
 *.swo
 *~
 
+# Pytest cache
+.pytest_cache/
+
 # OS
 .DS_Store
 Thumbs.db
