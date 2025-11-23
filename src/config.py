@@ -18,6 +18,10 @@ class Config:
         'show_album_art': True,
         'export_format': 'csv',
         'theme': 'dark',
+        # If set, this path will be used as the music library root
+        # (e.g. '/home/user/Music/JukeBox'). If None the app falls back
+        # to platform defaults (~/Music/JukeBox on macOS/Linux).
+        'music_dir': None,
         'keyboard_shortcut_enabled': True,
     }
     

@@ -235,6 +235,31 @@ Additional diagnostics & improvements:
 
 - If you don't see your music, verify the repo's music directory (project-root/music) or set up your own by putting audio files into `music/01/`, `music/02/`, etc. Supported formats: mp3, wav, ogg, flac.
 
+Default music location on macOS / Linux
+--------------------------------------
+
+On macOS and Linux the application now defaults the music library to the user's Music folder at:
+
+```
+~/Music/JukeBox
+```
+
+If this directory doesn't exist the app will create it and ensure the expected numbered album slots (01–52) are present so you can drop files directly into the numbered folders. This keeps your music in a conventional, user-visible location instead of buried inside the project directory.
+
+If you prefer the repo-local `music/` folder, start the program from the repo root or update config to point elsewhere (future enhancement: configurable via CLI/config file).
+
+Configuring library from the app (GUI)
+------------------------------------
+
+You can now change the music library location from inside the application:
+
+1. Open the Configuration screen (press `C` or click the gear icon).
+2. Click the `Choose Library` button in the Library Actions column.
+3. A native folder selection dialog will appear (via tkinter) — pick a folder or create a new one.
+
+If you pick a folder, the app will persist your choice to `~/.jukebox_config.json` as `music_dir`, create the numbered album slots (01–52) if they don't exist, and update the library immediately.
+If you cancel the dialog, the app will keep using the current library location (which defaults to `~/Music/JukeBox` on macOS/Linux).
+
 #### Common Linux troubleshooting: missing audio / mixer
 
 If the app starts but later fails with errors about `pygame.mixer` or audio missing ("mixer module not available" or "No module named 'pygame.mixer'"), it usually means system audio libraries (SDL_mixer / libsndfile) were not present when pygame was installed.

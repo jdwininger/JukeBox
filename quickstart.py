@@ -78,7 +78,22 @@ def check_dependencies():
 
 def setup_library():
     """Setup and scan the music library"""
-    music_dir = os.path.join(os.path.dirname(__file__), 'music')
+    # Default music library location: on macOS and Linux use ~/Music/JukeBox
+    # to follow common user expectations; fall back to a project-local
+    # `music/` folder on other platforms or when a different layout is desired.
+    program_dir = os.path.dirname(__file__)
+    if sys.platform.startswith('linux') or sys.platform == 'darwin':
+            # Check for user-configured music_dir in config (if quickstart is being used
+            # outside of the full UI the user can still benefit from previously saved
+            # settings). If the setting exists use it, otherwise use the platform default.
+            cfg = Config()
+            cfg_music_dir = cfg.get('music_dir')
+            if cfg_music_dir:
+                music_dir = os.path.expanduser(cfg_music_dir)
+            else:
+                music_dir = os.path.expanduser(os.path.join('~', 'Music', 'JukeBox'))
+    else:
+        music_dir = os.path.join(program_dir, 'music')
     
     print(f"Setting up music library...")
     print(f"Library directory: {music_dir}")
