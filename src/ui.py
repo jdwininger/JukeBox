@@ -2328,6 +2328,10 @@ class UI:
         """Draw theme preview and selection interface"""
         # Position themes at bottom center
         theme_section_y = self.height - 180
+        # In windowed mode make room: move the theme title and buttons down so they
+        # don't overlap other UI elements (e.g., when windowed, bump down ~50px).
+        if not self.fullscreen:
+            theme_section_y += 50
         
         # Draw section title
         theme_title = self.medium_font.render("Theme Selection", True, Colors.YELLOW)
@@ -2368,13 +2372,15 @@ class UI:
         preview_width = 200
         # default windowed placement above buttons (previous behavior)
         default_x = self.width // 2 - preview_width // 2
-        default_y = theme_section_y - 130
+        # move preview up by 20px to give it more breathing room
+        default_y = theme_section_y - 130 - 20
 
         if self.fullscreen:
             # place above the title which sits at theme_section_y - 30
             title_y = theme_section_y - 30
             # Move preview above the title with a small gap
-            py = title_y - 10 - 120  # 120 is preview height
+            # Move fullscreen preview up by 20px as well
+            py = title_y - 10 - 120 - 20  # 120 is preview height
             px = self.width // 2 - preview_width // 2
             return px, py
 
@@ -2555,23 +2561,27 @@ class UI:
         right_x = self.width // 2 + 50
         
         # Audio effects section (kept to the right column)
-        # align vertically roughly to the settings area
-        effects_y = settings_y + 220
+        # Align vertically with the top Settings header so controls are parallel
+        # with the left-hand settings area and avoid overlap.
+        effects_y = settings_y
         effects_header = self.medium_font.render("Audio Effects", True, Colors.YELLOW)
         self.screen.blit(effects_header, (right_x, effects_y))
         
         self.config_equalizer_button.rect.x = right_x + 20
-        self.config_equalizer_button.rect.y = effects_y + 40
+        # move equalizer button 10px higher
+        self.config_equalizer_button.rect.y = effects_y + 30
         self.config_equalizer_button.draw(self.screen, self.small_font)
         
-        # Visual effects section
-        visual_effects_y = effects_y + 100
+        # Visual effects section (below audio effects, still aligned with right column)
+        # move visual effects a bit lower to provide separation from audio effects
+        visual_effects_y = effects_y + 85
         visual_effects_header = self.medium_font.render("Visual Effects", True, Colors.YELLOW)
         self.screen.blit(visual_effects_header, (right_x, visual_effects_y))
         
         # Fullscreen button in Visual Effects section
         self.config_fullscreen_button.rect.x = right_x + 20
-        self.config_fullscreen_button.rect.y = visual_effects_y + 40
+        # move fullscreen button 10px higher
+        self.config_fullscreen_button.rect.y = visual_effects_y + 30
         self.config_fullscreen_button.draw(self.screen, self.small_font)
 
         # Draw choose music directory button (moved to left of Library Actions for convenience)

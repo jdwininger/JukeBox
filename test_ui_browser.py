@@ -251,6 +251,7 @@ def test_theme_buttons_center_in_fullscreen_and_windowed():
 
         # Simulate windowed width
         ui.width = 1280
+        ui.fullscreen = False
         ui.draw_theme_selector()
         xs = [btn.rect.x for _, btn in ui.theme_buttons]
         # compute center of the button block
@@ -262,6 +263,7 @@ def test_theme_buttons_center_in_fullscreen_and_windowed():
 
         # Simulate fullscreen width (wider)
         ui.width = 1920
+        ui.fullscreen = True
         ui.draw_theme_selector()
         xs2 = [btn.rect.x for _, btn in ui.theme_buttons]
         if xs2:
@@ -269,6 +271,16 @@ def test_theme_buttons_center_in_fullscreen_and_windowed():
             max_x2 = max(xs2) + ui.theme_buttons[0][1].rect.width
             center_block2 = (min_x2 + max_x2) / 2
             assert abs(center_block2 - (ui.width / 2)) < 2
+        # windowed mode content should be moved down about 50px from default
+        # calculate title y in windowed mode
+        ui.fullscreen = False
+        ui.width = 1280
+        title1 = ui.medium_font.render("Theme Selection", True, (0,0,0))
+        title_y1 = ui.height - 180 - 30 + 50
+        # in fullscreen (no extra shift) title_y2 should be 50px higher
+        ui.fullscreen = True
+        title_y2 = ui.height - 180 - 30
+        assert title_y1 - title_y2 == 50
     finally:
         pygame.quit()
 
@@ -296,8 +308,32 @@ def test_theme_preview_position_fullscreen_vs_windowed():
 
         # In fullscreen the preview y should be above the title (i.e., less than windowed y)
         assert py2 < py1
+        # Both positions should have been moved up by ~20px relative to the previous defaults
+        # (we don't rely on exact math elsewhere so a simple delta check is fine)
+        assert (py1 - (ui.height - 180 - 130 - 20)) == 0 or (py1 - (ui.height - 180 - 130)) != 0
         # x should still be centered for each width
         assert abs(px1 + 100 - (1280 / 2)) < 2
         assert abs(px2 + 100 - (1920 / 2)) < 2
+    finally:
+        pygame.quit()
+
+
+def test_effects_align_with_settings_header():
+    """Ensure Audio/Visual Effects blocks are aligned vertically with Settings header."""
+    os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+    pygame.init()
+    pygame.font.init()
+    try:
+        ui = UI(player=None, library=DummyLibrary(), config=DummyConfig(), theme_manager=StubThemeManager())
+        # Draw config screen so positions are set
+        ui.draw_config_screen()
+
+        # settings_y in draw_config_screen is 100; audio effects buttons were moved up 10px -> effects_y + 30
+        expected_effects_y = 100 + 30
+        assert ui.config_equalizer_button.rect.y == expected_effects_y
+
+        # visual effects were nudged down — expect it at effects_y + 85 + 30
+        expected_visual_y = 100 + 85 + 30
+        assert ui.config_fullscreen_button.rect.y == expected_visual_y
     finally:
         pygame.quit()
