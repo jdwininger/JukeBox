@@ -1,22 +1,43 @@
 #!/usr/bin/env python3
 """Tests for the in-modal pure-pygame browser helper methods in UI."""
 import os
-import tempfile
 import shutil
+import sys
+import tempfile
+import types
 
 import pygame
-import sys
-import types
 
 # Provide lightweight stubs for mutagen submodules so UI/album_library imports don't fail
 for mod_name, attrs in (
-    ('mutagen.easyid3', {'EasyID3': lambda *a, **k: {}}),
-    ('mutagen.flac', {'FLAC': lambda *a, **k: types.SimpleNamespace(pictures=[]) }),
-    ('mutagen.oggvorbis', {'OggVorbis': lambda *a, **k: types.SimpleNamespace(info=types.SimpleNamespace(length=0))}),
-    ('mutagen.wave', {'WAVE': lambda *a, **k: types.SimpleNamespace(info=types.SimpleNamespace(length=0), tags={})}),
-    ('mutagen.mp3', {'MP3': lambda *a, **k: types.SimpleNamespace(info=types.SimpleNamespace(length=0), tags={})}),
-    ('mutagen.id3', {'ID3': object, 'APIC': object}),
-    ('mutagen', {}),
+    ("mutagen.easyid3", {"EasyID3": lambda *a, **k: {}}),
+    ("mutagen.flac", {"FLAC": lambda *a, **k: types.SimpleNamespace(pictures=[])}),
+    (
+        "mutagen.oggvorbis",
+        {
+            "OggVorbis": lambda *a, **k: types.SimpleNamespace(
+                info=types.SimpleNamespace(length=0)
+            )
+        },
+    ),
+    (
+        "mutagen.wave",
+        {
+            "WAVE": lambda *a, **k: types.SimpleNamespace(
+                info=types.SimpleNamespace(length=0), tags={}
+            )
+        },
+    ),
+    (
+        "mutagen.mp3",
+        {
+            "MP3": lambda *a, **k: types.SimpleNamespace(
+                info=types.SimpleNamespace(length=0), tags={}
+            )
+        },
+    ),
+    ("mutagen.id3", {"ID3": object, "APIC": object}),
+    ("mutagen", {}),
 ):
     if mod_name not in sys.modules:
         m = types.ModuleType(mod_name)
@@ -25,50 +46,65 @@ for mod_name, attrs in (
         sys.modules[mod_name] = m
 
 # Stub some local src.* modules so UI imports succeed without external deps
-if 'src.player' not in sys.modules:
-    m = types.ModuleType('src.player')
+if "src.player" not in sys.modules:
+    m = types.ModuleType("src.player")
+
     class MusicPlayer:
         def __init__(self):
             self.volume = 0.7
             self.is_playing = False
             self.is_paused = False
+
         def get_volume(self):
             return self.volume
+
         def get_current_track_info(self):
             return None
+
         def is_music_playing(self):
             return self.is_playing
-    m.MusicPlayer = MusicPlayer
-    sys.modules['src.player'] = m
 
-if 'src.album_library' not in sys.modules:
-    m = types.ModuleType('src.album_library')
+    m.MusicPlayer = MusicPlayer
+    sys.modules["src.player"] = m
+
+if "src.album_library" not in sys.modules:
+    m = types.ModuleType("src.album_library")
+
     class AlbumLibrary:
         def __init__(self, path=None):
             self.path = path
+
         def get_albums(self):
             return []
+
         def scan_library(self):
             return
-        def extract_all_cover_art(self):
-            return {'extracted':0,'existing':0,'failed':0}
-    m.AlbumLibrary = AlbumLibrary
-    sys.modules['src.album_library'] = m
 
-if 'src.audio_effects' not in sys.modules:
-    m = types.ModuleType('src.audio_effects')
+        def extract_all_cover_art(self):
+            return {"extracted": 0, "existing": 0, "failed": 0}
+
+    m.AlbumLibrary = AlbumLibrary
+    sys.modules["src.album_library"] = m
+
+if "src.audio_effects" not in sys.modules:
+    m = types.ModuleType("src.audio_effects")
+
     class Equalizer:
         def __init__(self):
             pass
+
         def get_presets(self):
             return {}
-        def get_all_bands(self):
-            return [0,0,0,0,0]
-    m.Equalizer = Equalizer
-    sys.modules['src.audio_effects'] = m
 
-if 'src.widgets' not in sys.modules:
-    m = types.ModuleType('src.widgets')
+        def get_all_bands(self):
+            return [0, 0, 0, 0, 0]
+
+    m.Equalizer = Equalizer
+    sys.modules["src.audio_effects"] = m
+
+if "src.widgets" not in sys.modules:
+    m = types.ModuleType("src.widgets")
+
     class Slider:
         def __init__(self, *a, **k):
             self.x = 0
@@ -76,15 +112,19 @@ if 'src.widgets' not in sys.modules:
             self.width = 100
             self.height = 20
             self._value = 50
+
         def get_value(self):
             return self._value
+
         def draw(self, *a, **k):
             pass
+
     class VerticalSlider(Slider):
         pass
+
     m.Slider = Slider
     m.VerticalSlider = VerticalSlider
-    sys.modules['src.widgets'] = m
+    sys.modules["src.widgets"] = m
 
 from src.ui import UI
 
@@ -92,8 +132,14 @@ from src.ui import UI
 class DummyLibrary:
     def get_albums(self):
         return []
+
     def get_library_stats(self):
-        return {'total_albums': 0, 'max_albums': 52, 'total_tracks': 0, 'total_duration_formatted': '0:00'}
+        return {
+            "total_albums": 0,
+            "max_albums": 52,
+            "total_tracks": 0,
+            "total_duration_formatted": "0:00",
+        }
 
 
 class DummyConfig:
@@ -116,8 +162,10 @@ class DummyConfig:
 class StubTheme:
     def get_background(self, w, h):
         return None
+
     def get_button_image(self, key):
         return None
+
     def get_media_button_image(self, key):
         return None
 
@@ -125,25 +173,31 @@ class StubTheme:
 class StubThemeManager:
     def get_current_theme(self):
         return StubTheme()
+
     # Make themes mapping available for setup_theme_buttons
-    themes = {'dark': StubTheme(), 'light': StubTheme()}
+    themes = {"dark": StubTheme(), "light": StubTheme()}
 
 
 def test_open_browser_sets_state():
     # Use dummy video driver for headless test environments
-    os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     pygame.init()
     pygame.font.init()
 
-    tmp = tempfile.mkdtemp(prefix='jukebox_test_browser_')
+    tmp = tempfile.mkdtemp(prefix="jukebox_test_browser_")
     try:
         # Create a few directories and files
-        os.makedirs(os.path.join(tmp, '01'), exist_ok=True)
-        os.makedirs(os.path.join(tmp, '02'), exist_ok=True)
-        with open(os.path.join(tmp, 'readme.txt'), 'w') as f:
-            f.write('hello')
+        os.makedirs(os.path.join(tmp, "01"), exist_ok=True)
+        os.makedirs(os.path.join(tmp, "02"), exist_ok=True)
+        with open(os.path.join(tmp, "readme.txt"), "w") as f:
+            f.write("hello")
 
-        ui = UI(player=None, library=DummyLibrary(), config=DummyConfig(), theme_manager=StubThemeManager())
+        ui = UI(
+            player=None,
+            library=DummyLibrary(),
+            config=DummyConfig(),
+            theme_manager=StubThemeManager(),
+        )
 
         # open browser and check state
         ui._open_browser(tmp)
@@ -151,16 +205,16 @@ def test_open_browser_sets_state():
         assert ui.config_browser_path == os.path.expanduser(tmp)
         assert isinstance(ui.config_browser_entries, list)
         # should contain the directories '01' and '02' and a file 'readme.txt'
-        names = [e['name'] for e in ui.config_browser_entries]
-        assert '01' in names
-        assert '02' in names
-        assert 'readme.txt' in names
+        names = [e["name"] for e in ui.config_browser_entries]
+        assert "01" in names
+        assert "02" in names
+        assert "readme.txt" in names
 
         # visible count should be >= 1 (room for rows)
         vc = ui._browser_visible_count()
         assert vc >= 1
 
-        print('test_ui_browser.py: OK')
+        print("test_ui_browser.py: OK")
     finally:
         shutil.rmtree(tmp)
         pygame.quit()
@@ -168,11 +222,16 @@ def test_open_browser_sets_state():
 
 def test_choose_library_button_lowered():
     # Make sure the UI positions Choose Library button lower to avoid clipping
-    os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     pygame.init()
     pygame.font.init()
     try:
-        ui = UI(player=None, library=DummyLibrary(), config=DummyConfig(), theme_manager=StubThemeManager())
+        ui = UI(
+            player=None,
+            library=DummyLibrary(),
+            config=DummyConfig(),
+            theme_manager=StubThemeManager(),
+        )
         # config_y in UI.setup_config_buttons is 300, the button should be lowered 20 -> 320
         expected_y = 320
         assert ui.config_choose_music_button.rect.y == expected_y
@@ -183,7 +242,9 @@ def test_choose_library_button_lowered():
         assert ui.config_rescan_button.rect.y == ui.config_extract_art_button.rect.y
         assert ui.config_extract_art_button.rect.x > ui.config_rescan_button.rect.x
         # And they should be at least 45px below the Choose button (no clipping after header shift)
-        assert ui.config_rescan_button.rect.y >= ui.config_choose_music_button.rect.y + 45
+        assert (
+            ui.config_rescan_button.rect.y >= ui.config_choose_music_button.rect.y + 45
+        )
         # Reset moves to next row
         assert ui.config_reset_button.rect.y > ui.config_rescan_button.rect.y
 
@@ -194,39 +255,46 @@ def test_choose_library_button_lowered():
         pygame.quit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_open_browser_sets_state()
 
 
 def test_click_and_double_click_opens_directory():
-    os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     pygame.init()
     pygame.font.init()
 
-    tmp = tempfile.mkdtemp(prefix='jukebox_test_browser_')
+    tmp = tempfile.mkdtemp(prefix="jukebox_test_browser_")
     try:
         # directory and a file
-        os.makedirs(os.path.join(tmp, '01'), exist_ok=True)
-        with open(os.path.join(tmp, 'note.txt'), 'w') as f:
-            f.write('x')
+        os.makedirs(os.path.join(tmp, "01"), exist_ok=True)
+        with open(os.path.join(tmp, "note.txt"), "w") as f:
+            f.write("x")
 
-        ui = UI(player=None, library=DummyLibrary(), config=DummyConfig(), theme_manager=StubThemeManager())
+        ui = UI(
+            player=None,
+            library=DummyLibrary(),
+            config=DummyConfig(),
+            theme_manager=StubThemeManager(),
+        )
         # Open the browser in modal
         ui.config_music_editing = True
         ui.config_browser_open = True
         ui._open_browser(tmp)
 
         rects = ui._get_music_modal_rects()
-        pa = rects['preview_area']
+        pa = rects["preview_area"]
         header_ht = ui.small_font.get_height()
         row_h = max(ui.small_font.get_height(), 18)
 
         # Click the first visible entry (should be '01')
-        assert ui.config_browser_entries[0]['name'] == '01'
-        assert ui.config_browser_entries[0]['is_dir'] is True
+        assert ui.config_browser_entries[0]["name"] == "01"
+        assert ui.config_browser_entries[0]["is_dir"] is True
         x = pa.x + 16
         y = pa.y + header_ht + 8 + row_h // 2
-        pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONDOWN, {'pos': (x, y), 'button': 1}))
+        pygame.event.post(
+            pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (x, y), "button": 1})
+        )
         ui.handle_events()
 
         assert ui.config_browser_selected == 0
@@ -234,8 +302,8 @@ def test_click_and_double_click_opens_directory():
         assert ui.config_browser_selected == 0
 
         # Simulate opening selected folder (double-click behavior) by calling helper
-        ui._open_browser(os.path.join(tmp, '01'))
-        assert ui.config_browser_path.endswith(os.path.join('', '01'))
+        ui._open_browser(os.path.join(tmp, "01"))
+        assert ui.config_browser_path.endswith(os.path.join("", "01"))
 
     finally:
         shutil.rmtree(tmp)
@@ -243,11 +311,16 @@ def test_click_and_double_click_opens_directory():
 
 
 def test_theme_buttons_center_in_fullscreen_and_windowed():
-    os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     pygame.init()
     pygame.font.init()
     try:
-        ui = UI(player=None, library=DummyLibrary(), config=DummyConfig(), theme_manager=StubThemeManager())
+        ui = UI(
+            player=None,
+            library=DummyLibrary(),
+            config=DummyConfig(),
+            theme_manager=StubThemeManager(),
+        )
 
         # Simulate windowed width
         ui.width = 1280
@@ -275,7 +348,7 @@ def test_theme_buttons_center_in_fullscreen_and_windowed():
         # calculate title y in windowed mode
         ui.fullscreen = False
         ui.width = 1280
-        title1 = ui.medium_font.render("Theme Selection", True, (0,0,0))
+        title1 = ui.medium_font.render("Theme Selection", True, (0, 0, 0))
         title_y1 = ui.height - 180 - 30 + 50
         # in fullscreen (no extra shift) title_y2 should be 50px higher
         ui.fullscreen = True
@@ -286,11 +359,16 @@ def test_theme_buttons_center_in_fullscreen_and_windowed():
 
 
 def test_theme_preview_position_fullscreen_vs_windowed():
-    os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     pygame.init()
     pygame.font.init()
     try:
-        ui = UI(player=None, library=DummyLibrary(), config=DummyConfig(), theme_manager=StubThemeManager())
+        ui = UI(
+            player=None,
+            library=DummyLibrary(),
+            config=DummyConfig(),
+            theme_manager=StubThemeManager(),
+        )
         # simulate a theme button being hovered
         if not ui.theme_buttons:
             return
@@ -325,11 +403,16 @@ def test_theme_preview_position_fullscreen_vs_windowed():
 
 def test_effects_align_with_settings_header():
     """Ensure Audio/Visual Effects blocks are aligned vertically with Settings header."""
-    os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     pygame.init()
     pygame.font.init()
     try:
-        ui = UI(player=None, library=DummyLibrary(), config=DummyConfig(), theme_manager=StubThemeManager())
+        ui = UI(
+            player=None,
+            library=DummyLibrary(),
+            config=DummyConfig(),
+            theme_manager=StubThemeManager(),
+        )
         # Draw config screen so positions are set
         ui.draw_config_screen()
 

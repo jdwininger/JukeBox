@@ -2,17 +2,19 @@
 """
 Create sample media control button images for themes
 """
-import pygame
+import math
 import os
 from pathlib import Path
-import math
+
+import pygame
+
 
 def create_media_button_images():
     """Create sample media control button images"""
     pygame.init()
 
     # Create button image directories
-    for theme_name in ['dark', 'light', 'Jeremy']:
+    for theme_name in ["dark", "light", "Jeremy"]:
         theme_dir = Path(f"themes/{theme_name}")
         theme_dir.mkdir(parents=True, exist_ok=True)
 
@@ -21,16 +23,17 @@ def create_media_button_images():
     pygame.quit()
     print("✓ Media control button images created for all themes")
 
+
 def create_theme_media_buttons(theme_dir: Path, theme_name: str):
     """Create media control buttons for a specific theme"""
     button_size = (64, 64)
 
     # Theme-specific colors
-    if theme_name == 'dark':
+    if theme_name == "dark":
         bg_color = (40, 40, 40)
         icon_color = (220, 220, 220)
         border_color = (100, 100, 100)
-    elif theme_name == 'light':
+    elif theme_name == "light":
         bg_color = (240, 240, 240)
         icon_color = (60, 60, 60)
         border_color = (160, 160, 160)
@@ -116,11 +119,14 @@ def create_theme_media_buttons(theme_dir: Path, theme_name: str):
     # Draw inner circle
     inner_radius = radius // 2
     pygame.draw.circle(config_surface, bg_color, (center_x, center_y), inner_radius)
-    pygame.draw.circle(config_surface, icon_color, (center_x, center_y), inner_radius, 2)
+    pygame.draw.circle(
+        config_surface, icon_color, (center_x, center_y), inner_radius, 2
+    )
 
     pygame.image.save(config_surface, str(theme_dir / "config_button.png"))
 
     print(f"✓ Created media buttons for {theme_name} theme")
+
 
 if __name__ == "__main__":
     create_media_button_images()

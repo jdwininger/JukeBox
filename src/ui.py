@@ -1,20 +1,23 @@
 """
 UI Module - Handles the graphical user interface
 """
-import pygame
 import os
 import sys
-from src.player import MusicPlayer
+from typing import List, Optional, Tuple
+
+import pygame
+
 from src.album_library import AlbumLibrary
-from src.config import Config
 from src.audio_effects import Equalizer
-from src.widgets import Slider, VerticalSlider
-from typing import Tuple, List, Optional
+from src.config import Config
 from src.fs_utils import list_directory
+from src.player import MusicPlayer
+from src.widgets import Slider, VerticalSlider
 
 
 class Colors:
     """Color constants for the UI"""
+
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
     GRAY = (64, 64, 64)
@@ -29,7 +32,18 @@ class Colors:
 class Button:
     """Simple button class for UI controls"""
 
-    def __init__(self, x: int, y: int, width: int, height: int, text: str, color: Tuple[int, int, int] = Colors.GRAY, theme=None, is_gear_icon: bool = False, icon_type: str = None):
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        text: str,
+        color: Tuple[int, int, int] = Colors.GRAY,
+        theme=None,
+        is_gear_icon: bool = False,
+        icon_type: str = None,
+    ):
         """
         Initialize a button
 
@@ -61,7 +75,7 @@ class Button:
         if self.theme:
             if self.is_gear_icon:
                 # Check if config button has themed image
-                config_img = self.theme.get_media_button_image('config')
+                config_img = self.theme.get_media_button_image("config")
                 has_themed_image = config_img is not None
             elif self.icon_type:
                 # Check if media/navigation button has themed image
@@ -75,10 +89,14 @@ class Button:
         if not has_themed_image:
             if self.theme:
                 # Use theme background if available for regular buttons
-                button_img = self.theme.get_button_image('hover' if self.is_hovered else 'normal')
+                button_img = self.theme.get_button_image(
+                    "hover" if self.is_hovered else "normal"
+                )
                 if button_img and not (self.is_gear_icon or self.icon_type):
                     # Only use theme background for regular text buttons
-                    scaled_img = pygame.transform.scale(button_img, (self.rect.width, self.rect.height))
+                    scaled_img = pygame.transform.scale(
+                        button_img, (self.rect.width, self.rect.height)
+                    )
                     surface.blit(scaled_img, self.rect)
                 else:
                     # Text-based button: draw background and border
@@ -94,10 +112,12 @@ class Button:
         if self.is_gear_icon:
             # Try to use themed config button image first
             if self.theme:
-                config_img = self.theme.get_media_button_image('config')
+                config_img = self.theme.get_media_button_image("config")
                 if config_img:
                     # Scale image to button size
-                    scaled_img = pygame.transform.scale(config_img, (self.rect.width, self.rect.height))
+                    scaled_img = pygame.transform.scale(
+                        config_img, (self.rect.width, self.rect.height)
+                    )
                     # Apply brightness effect on hover
                     if self.is_hovered:
                         scaled_img = self.apply_brightness_filter(scaled_img, 1.3)
@@ -114,7 +134,9 @@ class Button:
                 media_img = self.theme.get_media_button_image(self.icon_type)
                 if media_img:
                     # Scale image to button size
-                    scaled_img = pygame.transform.scale(media_img, (self.rect.width, self.rect.height))
+                    scaled_img = pygame.transform.scale(
+                        media_img, (self.rect.width, self.rect.height)
+                    )
                     # Apply brightness effect on hover
                     if self.is_hovered:
                         scaled_img = self.apply_brightness_filter(scaled_img, 1.3)
@@ -138,6 +160,7 @@ class Button:
 
         # Draw outer gear teeth (8 teeth)
         import math
+
         teeth_points = []
         for i in range(16):  # 8 teeth, 2 points each
             angle = i * math.pi / 8
@@ -174,27 +197,42 @@ class Button:
         icon_size = min(self.rect.width, self.rect.height) // 3
         color = Colors.WHITE if self.is_hovered else Colors.LIGHT_GRAY
 
-        if self.icon_type == 'play':
+        if self.icon_type == "play":
             # Draw play triangle (pointing right)
             triangle_points = [
-                (center_x - icon_size//2, center_y - icon_size//2),
-                (center_x - icon_size//2, center_y + icon_size//2),
-                (center_x + icon_size//2, center_y)
+                (center_x - icon_size // 2, center_y - icon_size // 2),
+                (center_x - icon_size // 2, center_y + icon_size // 2),
+                (center_x + icon_size // 2, center_y),
             ]
             pygame.draw.polygon(surface, color, triangle_points)
 
-        elif self.icon_type == 'pause':
+        elif self.icon_type == "pause":
             # Draw pause (two vertical bars)
             bar_width = icon_size // 4
             bar_height = icon_size
-            left_bar = pygame.Rect(center_x - icon_size//3, center_y - bar_height//2, bar_width, bar_height)
-            right_bar = pygame.Rect(center_x + icon_size//6, center_y - bar_height//2, bar_width, bar_height)
+            left_bar = pygame.Rect(
+                center_x - icon_size // 3,
+                center_y - bar_height // 2,
+                bar_width,
+                bar_height,
+            )
+            right_bar = pygame.Rect(
+                center_x + icon_size // 6,
+                center_y - bar_height // 2,
+                bar_width,
+                bar_height,
+            )
             pygame.draw.rect(surface, color, left_bar)
             pygame.draw.rect(surface, color, right_bar)
 
-        elif self.icon_type == 'stop':
+        elif self.icon_type == "stop":
             # Draw stop (square)
-            stop_rect = pygame.Rect(center_x - icon_size//2, center_y - icon_size//2, icon_size, icon_size)
+            stop_rect = pygame.Rect(
+                center_x - icon_size // 2,
+                center_y - icon_size // 2,
+                icon_size,
+                icon_size,
+            )
             pygame.draw.rect(surface, color, stop_rect)
 
     def update(self, pos: Tuple[int, int]) -> None:
@@ -205,7 +243,9 @@ class Button:
         """Check if button is clicked"""
         return self.rect.collidepoint(pos)
 
-    def apply_brightness_filter(self, image: pygame.Surface, brightness: float) -> pygame.Surface:
+    def apply_brightness_filter(
+        self, image: pygame.Surface, brightness: float
+    ) -> pygame.Surface:
         """Apply brightness filter to an image for hover effects
 
         Args:
@@ -250,13 +290,13 @@ class NumberPadButton(Button):
         self.digit = digit
 
         # Special colors for special buttons
-        if digit == 'CLR':
+        if digit == "CLR":
             self.color = Colors.RED
             self.hover_color = (255, 100, 100)
-        elif digit == 'ENT':
+        elif digit == "ENT":
             self.color = Colors.GREEN
             self.hover_color = (100, 255, 100)
-        elif digit == '<':
+        elif digit == "<":
             self.color = Colors.BLUE
             self.hover_color = (100, 150, 255)
 
@@ -264,7 +304,13 @@ class NumberPadButton(Button):
 class UI:
     """Main UI class for the JukeBox application"""
 
-    def __init__(self, player: Optional[MusicPlayer], library: AlbumLibrary, config: Config, theme_manager):
+    def __init__(
+        self,
+        player: Optional[MusicPlayer],
+        library: AlbumLibrary,
+        config: Config,
+        theme_manager,
+    ):
         """
         Initialize the UI
 
@@ -281,9 +327,9 @@ class UI:
         self.current_theme = theme_manager.get_current_theme()
 
         # Window setup (dynamic resolution via config; defaults 1280x800)
-        self.width = int(self.config.get('window_width', 1280))
-        self.height = int(self.config.get('window_height', 800))
-        self.fullscreen = self.config.get('fullscreen', False)
+        self.width = int(self.config.get("window_width", 1280))
+        self.height = int(self.config.get("window_height", 800))
+        self.fullscreen = self.config.get("fullscreen", False)
 
         # Set display mode based on fullscreen setting
         if self.fullscreen:
@@ -292,7 +338,9 @@ class UI:
             self.width = self.screen.get_width()
             self.height = self.screen.get_height()
         else:
-            self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+            self.screen = pygame.display.set_mode(
+                (self.width, self.height), pygame.RESIZABLE
+            )
         pygame.display.set_caption("JukeBox - Album Library")
         self.clock = pygame.time.Clock()
         self.running = True
@@ -307,11 +355,11 @@ class UI:
         self.bottom_area_height = 230
 
         # Fonts
-        self.large_font = pygame.font.SysFont('Arial', 36)
-        self.medium_font = pygame.font.SysFont('Arial', 20)
-        self.small_medium_font = pygame.font.SysFont('Arial', 20)
-        self.small_font = pygame.font.SysFont('Arial', 14)
-        self.tiny_font = pygame.font.SysFont('Arial', 10)
+        self.large_font = pygame.font.SysFont("Arial", 36)
+        self.medium_font = pygame.font.SysFont("Arial", 20)
+        self.small_medium_font = pygame.font.SysFont("Arial", 20)
+        self.small_font = pygame.font.SysFont("Arial", 14)
+        self.tiny_font = pygame.font.SysFont("Arial", 10)
 
         # Performance optimizations
         self._cached_background = None
@@ -352,17 +400,18 @@ class UI:
         # Audio effects
         self.equalizer = Equalizer()
 
-
         # UI state for effects
         self.show_equalizer = False
         # Persistent now playing track info; retains last track details between stops
         self.last_track_info = None
 
         # Album view offset for side navigation
-        self.browse_position = 0  # Absolute position when browsing, starts showing albums 1-4
+        self.browse_position = (
+            0  # Absolute position when browsing, starts showing albums 1-4
+        )
 
         # Screen mode: 'main', 'equalizer', 'config'
-        self.screen_mode = 'main'
+        self.screen_mode = "main"
         # Album art cache
         self.album_art_cache = {}
 
@@ -392,25 +441,79 @@ class UI:
         x = self.margin
 
         # Playback controls (left only) - now square
-        self.play_button = Button(x, controls_y, media_button_size, media_button_size, "Play", Colors.GREEN, theme=self.current_theme, icon_type='play')
+        self.play_button = Button(
+            x,
+            controls_y,
+            media_button_size,
+            media_button_size,
+            "Play",
+            Colors.GREEN,
+            theme=self.current_theme,
+            icon_type="play",
+        )
         x += media_button_size + spacing
-        self.pause_button = Button(x, controls_y, media_button_size, media_button_size, "Pause", Colors.BLUE, theme=self.current_theme, icon_type='pause')
+        self.pause_button = Button(
+            x,
+            controls_y,
+            media_button_size,
+            media_button_size,
+            "Pause",
+            Colors.BLUE,
+            theme=self.current_theme,
+            icon_type="pause",
+        )
         x += media_button_size + spacing
-        self.stop_button = Button(x, controls_y, media_button_size, media_button_size, "Stop", Colors.RED, theme=self.current_theme, icon_type='stop')
+        self.stop_button = Button(
+            x,
+            controls_y,
+            media_button_size,
+            media_button_size,
+            "Stop",
+            Colors.RED,
+            theme=self.current_theme,
+            icon_type="stop",
+        )
 
         # Export and Config + Album nav (right side anchored) - config button also square
         right_spacing = spacing
         right_x = self.width - self.margin
         # Place from right to left
-        self.config_button = Button(right_x - media_button_size, controls_y, media_button_size, media_button_size, "Config", Colors.YELLOW, theme=self.current_theme, is_gear_icon=True)
+        self.config_button = Button(
+            right_x - media_button_size,
+            controls_y,
+            media_button_size,
+            media_button_size,
+            "Config",
+            Colors.YELLOW,
+            theme=self.current_theme,
+            is_gear_icon=True,
+        )
 
         # Side navigation buttons for main screen album browsing (beside keypad)
         # These will be positioned dynamically in draw_number_pad_centered()
         # Make them taller than wide and scale based on screen mode
         nav_width = int(60 * (1.0 if self.fullscreen else 0.75))
         nav_height = int(80 * (1.0 if self.fullscreen else 0.75))
-        self.left_nav_button = Button(0, 0, nav_width, nav_height, "<", Colors.BLUE, theme=self.current_theme, icon_type='left')
-        self.right_nav_button = Button(0, 0, nav_width, nav_height, ">", Colors.BLUE, theme=self.current_theme, icon_type='right')
+        self.left_nav_button = Button(
+            0,
+            0,
+            nav_width,
+            nav_height,
+            "<",
+            Colors.BLUE,
+            theme=self.current_theme,
+            icon_type="left",
+        )
+        self.right_nav_button = Button(
+            0,
+            0,
+            nav_width,
+            nav_height,
+            ">",
+            Colors.BLUE,
+            theme=self.current_theme,
+            icon_type="right",
+        )
         # Number pad (bottom right) — initialized inline below
 
         # Audio controls
@@ -430,38 +533,72 @@ class UI:
 
         # Create 0-9 buttons in calculator layout
         # Row 1: 7 8 9
-        for i, digit in enumerate(['7', '8', '9']):
+        for i, digit in enumerate(["7", "8", "9"]):
             x = pad_x + i * (button_w + spacing)
             y = pad_y
-            btn = NumberPadButton(x, y, button_w, button_h, digit, theme=self.current_theme)
+            btn = NumberPadButton(
+                x, y, button_w, button_h, digit, theme=self.current_theme
+            )
             self.number_pad_buttons.append(btn)
 
         # Row 2: 4 5 6
-        for i, digit in enumerate(['4', '5', '6']):
+        for i, digit in enumerate(["4", "5", "6"]):
             x = pad_x + i * (button_w + spacing)
             y = pad_y + (button_h + spacing)
-            btn = NumberPadButton(x, y, button_w, button_h, digit, theme=self.current_theme)
+            btn = NumberPadButton(
+                x, y, button_w, button_h, digit, theme=self.current_theme
+            )
             self.number_pad_buttons.append(btn)
 
         # Row 3: 1 2 3
-        for i, digit in enumerate(['1', '2', '3']):
+        for i, digit in enumerate(["1", "2", "3"]):
             x = pad_x + i * (button_w + spacing)
             y = pad_y + 2 * (button_h + spacing)
-            btn = NumberPadButton(x, y, button_w, button_h, digit, theme=self.current_theme)
+            btn = NumberPadButton(
+                x, y, button_w, button_h, digit, theme=self.current_theme
+            )
             self.number_pad_buttons.append(btn)
 
         # Row 4: 0 < (backspace)
-        btn_0 = NumberPadButton(pad_x, pad_y + 3 * (button_h + spacing), button_w, button_h, '0', theme=self.current_theme)
+        btn_0 = NumberPadButton(
+            pad_x,
+            pad_y + 3 * (button_h + spacing),
+            button_w,
+            button_h,
+            "0",
+            theme=self.current_theme,
+        )
         self.number_pad_buttons.append(btn_0)
 
-        btn_backspace = NumberPadButton(pad_x + (button_w + spacing), pad_y + 3 * (button_h + spacing), button_w, button_h, '<', theme=self.current_theme)
+        btn_backspace = NumberPadButton(
+            pad_x + (button_w + spacing),
+            pad_y + 3 * (button_h + spacing),
+            button_w,
+            button_h,
+            "<",
+            theme=self.current_theme,
+        )
         self.number_pad_buttons.append(btn_backspace)
 
         # Row 5: CLR ENT (clear and enter)
-        btn_clr = NumberPadButton(pad_x, pad_y + 4 * (button_h + spacing), int(button_w * 1.5 + spacing), button_h, 'CLR', theme=self.current_theme)
+        btn_clr = NumberPadButton(
+            pad_x,
+            pad_y + 4 * (button_h + spacing),
+            int(button_w * 1.5 + spacing),
+            button_h,
+            "CLR",
+            theme=self.current_theme,
+        )
         self.number_pad_buttons.append(btn_clr)
 
-        btn_ent = NumberPadButton(pad_x + int(button_w * 1.5 + spacing * 2), pad_y + 4 * (button_h + spacing), int(button_w * 1.5), button_h, 'ENT', theme=self.current_theme)
+        btn_ent = NumberPadButton(
+            pad_x + int(button_w * 1.5 + spacing * 2),
+            pad_y + 4 * (button_h + spacing),
+            int(button_w * 1.5),
+            button_h,
+            "ENT",
+            theme=self.current_theme,
+        )
         self.number_pad_buttons.append(btn_ent)
         # Store original pad origin and per-button base rects for re-centering AFTER all buttons added
         self.number_pad_origin = (pad_x, pad_y)
@@ -477,9 +614,9 @@ class UI:
             height=30,
             min_val=0.0,
             max_val=100.0,
-            initial_val=self.config.get('volume', 0.7) * 100,
-                label="",  # Hide label on main screen (slider only)
-            theme=self.current_theme
+            initial_val=self.config.get("volume", 0.7) * 100,
+            label="",  # Hide label on main screen (slider only)
+            theme=self.current_theme,
         )
 
         # Equalizer vertical sliders (5 bands)
@@ -492,15 +629,20 @@ class UI:
         for i in range(5):
             x = eq_start_x + i * eq_spacing
             slider = VerticalSlider(
-                x=x, y=eq_start_y, width=30, height=eq_slider_height,
-                min_val=-12.0, max_val=12.0, initial_val=0.0,
+                x=x,
+                y=eq_start_y,
+                width=30,
+                height=eq_slider_height,
+                min_val=-12.0,
+                max_val=12.0,
+                initial_val=0.0,
                 label="",  # Remove band number labels
-                theme=self.current_theme
+                theme=self.current_theme,
             )
             self.eq_sliders.append(slider)
 
         # Load equalizer values from config if present
-        eq_vals = self.config.get('equalizer_values')
+        eq_vals = self.config.get("equalizer_values")
         if isinstance(eq_vals, list) and len(eq_vals) == 5:
             for i, v in enumerate(eq_vals):
                 try:
@@ -509,16 +651,26 @@ class UI:
                     pass
 
         # Equalizer screen buttons
-        self.eq_back_button = Button(self.width - 140, 30, 110, 36, "Back", Colors.RED, theme=self.current_theme)
-        self.eq_save_button = Button(self.width - 260, 30, 110, 36, "Save", Colors.GREEN, theme=self.current_theme)
+        self.eq_back_button = Button(
+            self.width - 140, 30, 110, 36, "Back", Colors.RED, theme=self.current_theme
+        )
+        self.eq_save_button = Button(
+            self.width - 260,
+            30,
+            110,
+            36,
+            "Save",
+            Colors.GREEN,
+            theme=self.current_theme,
+        )
         self.eq_preset_buttons = []
         preset_names = list(self.equalizer.get_presets().keys())
         # Preset buttons lowered to avoid slider value text overlap
         for i, name in enumerate(preset_names):
-            btn = Button(80 + i * 140, 520, 130, 40, name, Colors.BLUE, theme=self.current_theme)
+            btn = Button(
+                80 + i * 140, 520, 130, 40, name, Colors.BLUE, theme=self.current_theme
+            )
             self.eq_preset_buttons.append((name, btn))
-
-
 
     def setup_config_buttons(self) -> None:
         """Setup configuration screen buttons"""
@@ -529,17 +681,73 @@ class UI:
         center_x = self.width // 2
 
         # Config screen buttons
-        self.config_rescan_button = Button(center_x - 260, config_y, button_width, button_height, "Rescan", Colors.GREEN, theme=self.current_theme)
-        self.config_reset_button = Button(center_x - 120, config_y, button_width, button_height, "Reset", Colors.YELLOW, theme=self.current_theme)
-        self.config_close_button = Button(center_x + 20, config_y, button_width, button_height, "Close", Colors.RED, theme=self.current_theme)
-        self.config_extract_art_button = Button(center_x + 160, config_y, button_width, button_height, "Extract Art", (128, 0, 128), theme=self.current_theme)  # Purple color
+        self.config_rescan_button = Button(
+            center_x - 260,
+            config_y,
+            button_width,
+            button_height,
+            "Rescan",
+            Colors.GREEN,
+            theme=self.current_theme,
+        )
+        self.config_reset_button = Button(
+            center_x - 120,
+            config_y,
+            button_width,
+            button_height,
+            "Reset",
+            Colors.YELLOW,
+            theme=self.current_theme,
+        )
+        self.config_close_button = Button(
+            center_x + 20,
+            config_y,
+            button_width,
+            button_height,
+            "Close",
+            Colors.RED,
+            theme=self.current_theme,
+        )
+        self.config_extract_art_button = Button(
+            center_x + 160,
+            config_y,
+            button_width,
+            button_height,
+            "Extract Art",
+            (128, 0, 128),
+            theme=self.current_theme,
+        )  # Purple color
         # Music library chooser button (opens a system folder dialog)
         # Lowered 20px to avoid clipping into the text above
-        self.config_choose_music_button = Button(center_x + 300, config_y + 20, button_width + 80, button_height, "Choose Library", (40, 120, 200), theme=self.current_theme)
+        self.config_choose_music_button = Button(
+            center_x + 300,
+            config_y + 20,
+            button_width + 80,
+            button_height,
+            "Choose Library",
+            (40, 120, 200),
+            theme=self.current_theme,
+        )
         # Audio effects access button
         effects_y = config_y + 60
-        self.config_equalizer_button = Button(center_x - 120, effects_y, button_width, button_height, "Equalizer", Colors.BLUE, theme=self.current_theme)
-        self.config_fullscreen_button = Button(center_x + 20, effects_y, button_width, button_height, "Fullscreen", Colors.GRAY, theme=self.current_theme)
+        self.config_equalizer_button = Button(
+            center_x - 120,
+            effects_y,
+            button_width,
+            button_height,
+            "Equalizer",
+            Colors.BLUE,
+            theme=self.current_theme,
+        )
+        self.config_fullscreen_button = Button(
+            center_x + 20,
+            effects_y,
+            button_width,
+            button_height,
+            "Fullscreen",
+            Colors.GRAY,
+            theme=self.current_theme,
+        )
 
         # Theme selection buttons
         self.theme_buttons: List[tuple] = []
@@ -563,9 +771,17 @@ class UI:
         for i, theme_name in enumerate(sorted(themes)):
             x = start_x + i * (button_width + spacing)
             # Highlight current theme
-            is_selected = theme_name == self.config.get('theme', 'dark')
+            is_selected = theme_name == self.config.get("theme", "dark")
             color = Colors.GREEN if is_selected else Colors.GRAY
-            btn = Button(x, start_y, button_width, button_height, theme_name.capitalize(), color, theme=self.current_theme)
+            btn = Button(
+                x,
+                start_y,
+                button_width,
+                button_height,
+                theme_name.capitalize(),
+                color,
+                theme=self.current_theme,
+            )
             self.theme_buttons.append((theme_name, btn))
 
     def handle_number_input(self, event: pygame.event.EventType) -> None:
@@ -579,9 +795,16 @@ class UI:
         """
         # Convert key event to digit
         key_map = {
-            pygame.K_0: '0', pygame.K_1: '1', pygame.K_2: '2', pygame.K_3: '3',
-            pygame.K_4: '4', pygame.K_5: '5', pygame.K_6: '6', pygame.K_7: '7',
-            pygame.K_8: '8', pygame.K_9: '9'
+            pygame.K_0: "0",
+            pygame.K_1: "1",
+            pygame.K_2: "2",
+            pygame.K_3: "3",
+            pygame.K_4: "4",
+            pygame.K_5: "5",
+            pygame.K_6: "6",
+            pygame.K_7: "7",
+            pygame.K_8: "8",
+            pygame.K_9: "9",
         }
 
         if event.key in key_map:
@@ -596,7 +819,9 @@ class UI:
     def execute_selection(self) -> None:
         """Execute 4-digit song selection"""
         if len(self.selection_buffer) != 4:
-            print(f"Invalid selection: {self.selection_buffer if self.selection_buffer else 'empty'} (need 4 digits)")
+            print(
+                f"Invalid selection: {self.selection_buffer if self.selection_buffer else 'empty'} (need 4 digits)"
+            )
             self.selection_buffer = ""
             self.selection_mode = False
             return
@@ -638,7 +863,7 @@ class UI:
 
             # Play the selected track
             print(f"Selection: Album {album_id:02d}, Track {track_num:02d}")
-            self._player_safe_call('play', album_id=album_id, track_index=track_index)
+            self._player_safe_call("play", album_id=album_id, track_index=track_index)
             self.selection_buffer = ""
             self.selection_mode = False
 
@@ -661,12 +886,16 @@ class UI:
                 if not self.fullscreen:  # Only handle resize if not in fullscreen
                     # Update internal dimensions and recreate screen surface
                     self.width, self.height = event.w, event.h
-                    self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+                    self.screen = pygame.display.set_mode(
+                        (self.width, self.height), pygame.RESIZABLE
+                    )
                     # Optionally clamp minimum size for layout integrity
                     if self.width < 800 or self.height < 600:
                         self.width = max(800, self.width)
                         self.height = max(600, self.height)
-                        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+                        self.screen = pygame.display.set_mode(
+                            (self.width, self.height), pygame.RESIZABLE
+                        )
 
                 # Invalidate cached background on resize
                 self._cached_background = None
@@ -683,22 +912,22 @@ class UI:
                         # Update hover state only (actual actions happen on click)
                         rects = self._get_music_modal_rects()
                         hover = None
-                        if rects['browse'].collidepoint(event.pos):
-                            hover = 'browse'
-                        elif rects['preview'].collidepoint(event.pos):
-                            hover = 'preview'
-                        elif rects['apply'].collidepoint(event.pos):
-                            hover = 'apply'
-                        elif rects['cancel'].collidepoint(event.pos):
-                            hover = 'cancel'
+                        if rects["browse"].collidepoint(event.pos):
+                            hover = "browse"
+                        elif rects["preview"].collidepoint(event.pos):
+                            hover = "preview"
+                        elif rects["apply"].collidepoint(event.pos):
+                            hover = "apply"
+                        elif rects["cancel"].collidepoint(event.pos):
+                            hover = "cancel"
                         self.config_music_hover = hover
                         # If the user hovers away from buttons, close browser hover
-                        if hover != 'browse' and self.config_browser_open:
+                        if hover != "browse" and self.config_browser_open:
                             # do not close browser on hover changes, only on explicit actions
                             pass
                         # If the browser is open, allow clicks inside the preview area
                         if self.config_browser_open:
-                            pa = rects['preview_area']
+                            pa = rects["preview_area"]
                             if pa.collidepoint(event.pos):
                                 # compute index relative to visible entries
                                 x, y = event.pos
@@ -710,25 +939,35 @@ class UI:
                                     if 0 <= idx < len(self.config_browser_entries):
                                         self.config_browser_selected = int(idx)
                                         # Update text input to selected path so apply will work
-                                        ent = self.config_browser_entries[self.config_browser_selected]
-                                        full = os.path.join(self.config_browser_path, ent['name'])
+                                        ent = self.config_browser_entries[
+                                            self.config_browser_selected
+                                        ]
+                                        full = os.path.join(
+                                            self.config_browser_path, ent["name"]
+                                        )
                                         self.config_music_input = full
                                         # Double-click detection (more robust than relying on event.clicks)
                                         now = pygame.time.get_ticks()
                                         last_idx = self._browser_last_click_idx
                                         last_time = self._browser_last_click_time
-                                        self._browser_last_click_idx = int(self.config_browser_selected)
+                                        self._browser_last_click_idx = int(
+                                            self.config_browser_selected
+                                        )
                                         self._browser_last_click_time = now
                                         # If same index clicked within threshold -> open directory
-                                        if last_idx == self.config_browser_selected and (now - last_time) <= self._double_click_threshold_ms:
-                                            if ent['is_dir']:
+                                        if (
+                                            last_idx == self.config_browser_selected
+                                            and (now - last_time)
+                                            <= self._double_click_threshold_ms
+                                        ):
+                                            if ent["is_dir"]:
                                                 self._open_browser(full)
                                 # ignore other click areas
                                 continue
 
                         # If browser is open, allow clicks inside the large preview area as selection/open actions
                         if self.config_browser_open:
-                            pa2 = rects['preview_area']
+                            pa2 = rects["preview_area"]
                             if pa2.collidepoint(event.pos):
                                 x, y = event.pos
                                 header_h = self.small_font.get_height()
@@ -738,23 +977,33 @@ class UI:
                                     idx = self.config_browser_scroll + (rel_y // row_h)
                                     if 0 <= idx < len(self.config_browser_entries):
                                         self.config_browser_selected = int(idx)
-                                        ent = self.config_browser_entries[self.config_browser_selected]
-                                        full = os.path.join(self.config_browser_path, ent['name'])
+                                        ent = self.config_browser_entries[
+                                            self.config_browser_selected
+                                        ]
+                                        full = os.path.join(
+                                            self.config_browser_path, ent["name"]
+                                        )
                                         self.config_music_input = full
                                         # double-click detection
                                         now = pygame.time.get_ticks()
                                         last_idx = self._browser_last_click_idx
                                         last_time = self._browser_last_click_time
-                                        self._browser_last_click_idx = int(self.config_browser_selected)
+                                        self._browser_last_click_idx = int(
+                                            self.config_browser_selected
+                                        )
                                         self._browser_last_click_time = now
-                                        if last_idx == self.config_browser_selected and (now - last_time) <= self._double_click_threshold_ms:
-                                            if ent['is_dir']:
+                                        if (
+                                            last_idx == self.config_browser_selected
+                                            and (now - last_time)
+                                            <= self._double_click_threshold_ms
+                                        ):
+                                            if ent["is_dir"]:
                                                 self._open_browser(full)
                                 continue
 
                         # If the browser is open, handle clicks inside the preview area (selection/open)
                         if self.config_browser_open:
-                            pa2 = rects['preview_area']
+                            pa2 = rects["preview_area"]
                             if pa2.collidepoint(event.pos):
                                 x, y = event.pos
                                 header_h = self.small_font.get_height()
@@ -764,17 +1013,27 @@ class UI:
                                     idx = self.config_browser_scroll + (rel_y // row_h)
                                     if 0 <= idx < len(self.config_browser_entries):
                                         self.config_browser_selected = int(idx)
-                                        ent = self.config_browser_entries[self.config_browser_selected]
-                                        full = os.path.join(self.config_browser_path, ent['name'])
+                                        ent = self.config_browser_entries[
+                                            self.config_browser_selected
+                                        ]
+                                        full = os.path.join(
+                                            self.config_browser_path, ent["name"]
+                                        )
                                         self.config_music_input = full
                                         # double-click detection
                                         now = pygame.time.get_ticks()
                                         last_idx = self._browser_last_click_idx
                                         last_time = self._browser_last_click_time
-                                        self._browser_last_click_idx = int(self.config_browser_selected)
+                                        self._browser_last_click_idx = int(
+                                            self.config_browser_selected
+                                        )
                                         self._browser_last_click_time = now
-                                        if last_idx == self.config_browser_selected and (now - last_time) <= self._double_click_threshold_ms:
-                                            if ent['is_dir']:
+                                        if (
+                                            last_idx == self.config_browser_selected
+                                            and (now - last_time)
+                                            <= self._double_click_threshold_ms
+                                        ):
+                                            if ent["is_dir"]:
                                                 self._open_browser(full)
                                 continue
 
@@ -790,7 +1049,7 @@ class UI:
 
                     for theme_name, btn in self.theme_buttons:
                         btn.update(event.pos)
-                elif self.screen_mode == 'equalizer':
+                elif self.screen_mode == "equalizer":
                     mouse_pressed = pygame.mouse.get_pressed()[0]
                     for slider in self.eq_sliders:
                         slider.update(event.pos, mouse_pressed)
@@ -798,7 +1057,7 @@ class UI:
                     self.eq_save_button.update(event.pos)
                     for _, btn in self.eq_preset_buttons:
                         btn.update(event.pos)
-                elif self.screen_mode == 'fader':
+                elif self.screen_mode == "fader":
                     mouse_pressed = pygame.mouse.get_pressed()[0]
                     self.fader_target_slider.update(event.pos, mouse_pressed)
                     self.fader_speed_slider.update(event.pos, mouse_pressed)
@@ -824,16 +1083,29 @@ class UI:
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # If browser open and using older SDL, button 4/5 indicate wheel scroll
-                if self.config_music_editing and self.config_browser_open and hasattr(event, 'button') and event.button in (4, 5):
+                if (
+                    self.config_music_editing
+                    and self.config_browser_open
+                    and hasattr(event, "button")
+                    and event.button in (4, 5)
+                ):
                     rects_local = self._get_music_modal_rects()
-                    pa = rects_local['preview_area']
+                    pa = rects_local["preview_area"]
                     # Only scroll when mouse is inside preview area
                     if pa.collidepoint(pygame.mouse.get_pos()):
                         if event.button == 4:
-                            self.config_browser_scroll = max(0, self.config_browser_scroll - 1)
+                            self.config_browser_scroll = max(
+                                0, self.config_browser_scroll - 1
+                            )
                         else:
-                            max_scroll = max(0, len(self.config_browser_entries) - self._browser_visible_count())
-                            self.config_browser_scroll = min(max_scroll, self.config_browser_scroll + 1)
+                            max_scroll = max(
+                                0,
+                                len(self.config_browser_entries)
+                                - self._browser_visible_count(),
+                            )
+                            self.config_browser_scroll = min(
+                                max_scroll, self.config_browser_scroll + 1
+                            )
                         continue
                 if self.config_screen_open:
                     # Config screen button clicks
@@ -847,7 +1119,7 @@ class UI:
                     elif self.config_extract_art_button.is_clicked(event.pos):
                         self.handle_extract_art()
                     elif self.config_equalizer_button.is_clicked(event.pos):
-                        self.screen_mode = 'equalizer'
+                        self.screen_mode = "equalizer"
                         self.config_screen_open = False
                         self.clear_caches()  # Clear caches when opening equalizer
                     elif self.config_fullscreen_button.is_clicked(event.pos):
@@ -857,12 +1129,19 @@ class UI:
                         # Open in-app modal editor for choosing/previewing the music directory
                         self.config_music_editing = True
                         self.config_music_hover = None
-                        cur = self.config.get('music_dir')
+                        cur = self.config.get("music_dir")
                         if not cur:
-                            if sys.platform.startswith('linux') or sys.platform == 'darwin':
-                                cur = os.path.expanduser(os.path.join('~', 'Music', 'JukeBox'))
+                            if (
+                                sys.platform.startswith("linux")
+                                or sys.platform == "darwin"
+                            ):
+                                cur = os.path.expanduser(
+                                    os.path.join("~", "Music", "JukeBox")
+                                )
                             else:
-                                cur = os.path.join(os.path.dirname(__file__), '..', 'music')
+                                cur = os.path.join(
+                                    os.path.dirname(__file__), "..", "music"
+                                )
                         self.config_music_input = cur
                         self.config_music_preview = None
                         # don't process other clicks
@@ -871,15 +1150,22 @@ class UI:
                     # If modal is active, handle clicks on modal buttons
                     if self.config_music_editing:
                         rects = self._get_music_modal_rects()
-                        if rects['browse'].collidepoint(event.pos):
+                        if rects["browse"].collidepoint(event.pos):
                             # Open the pure-pygame browser (modal preview area becomes folder browser)
                             self.config_browser_open = True
-                            start_path = os.path.expanduser(self.config_music_input or os.path.expanduser(os.path.join('~', 'Music', 'JukeBox')))
+                            start_path = os.path.expanduser(
+                                self.config_music_input
+                                or os.path.expanduser(
+                                    os.path.join("~", "Music", "JukeBox")
+                                )
+                            )
                             self._open_browser(start_path)
-                        elif rects['preview'].collidepoint(event.pos):
+                        elif rects["preview"].collidepoint(event.pos):
                             path = os.path.expanduser(self.config_music_input)
-                            self.config_music_preview = self._compute_music_preview(path)
-                        elif rects['apply'].collidepoint(event.pos):
+                            self.config_music_preview = self._compute_music_preview(
+                                path
+                            )
+                        elif rects["apply"].collidepoint(event.pos):
                             path = os.path.expanduser(self.config_music_input)
                             try:
                                 new_lib = AlbumLibrary(path)
@@ -890,17 +1176,17 @@ class UI:
                                         self.player.library = new_lib
                                     except Exception:
                                         pass
-                                self.config.set('music_dir', path)
+                                self.config.set("music_dir", path)
                                 self.config.save()
-                                self.config_message = f'Music directory set to: {path}'
+                                self.config_message = f"Music directory set to: {path}"
                                 self.config_message_timer = 200
                                 self.config_music_editing = False
                                 self.config_music_preview = None
                                 self.clear_caches()
                             except Exception as e:
-                                self.config_message = f'Failed to set music dir: {e}'
+                                self.config_message = f"Failed to set music dir: {e}"
                                 self.config_message_timer = 200
-                        elif rects['cancel'].collidepoint(event.pos):
+                        elif rects["cancel"].collidepoint(event.pos):
                             self.config_music_editing = False
                             self.config_music_preview = None
                             self.config_browser_open = False
@@ -912,17 +1198,21 @@ class UI:
                     else:
                         # Check theme button clicks
                         self.handle_theme_selection(event.pos)
-                elif self.screen_mode == 'equalizer':
+                elif self.screen_mode == "equalizer":
                     # Equalizer screen interactions
                     if self.eq_back_button.is_clicked(event.pos):
                         # Save before leaving
-                        self.config.set('equalizer_values', [s.get_value() for s in self.eq_sliders])
+                        self.config.set(
+                            "equalizer_values", [s.get_value() for s in self.eq_sliders]
+                        )
                         self.config.save()
                         # Apply equalizer changes
                         self.update_audio_controls()
-                        self.screen_mode = 'main'
+                        self.screen_mode = "main"
                     elif self.eq_save_button.is_clicked(event.pos):
-                        self.config.set('equalizer_values', [s.get_value() for s in self.eq_sliders])
+                        self.config.set(
+                            "equalizer_values", [s.get_value() for s in self.eq_sliders]
+                        )
                         self.config.save()
                         # Apply equalizer changes
                         self.update_audio_controls()
@@ -934,21 +1224,31 @@ class UI:
                                 if preset_func:
                                     preset_func()
                                     # Update sliders to equalizer model
-                                    for i, gain in enumerate(self.equalizer.get_all_bands()):
+                                    for i, gain in enumerate(
+                                        self.equalizer.get_all_bands()
+                                    ):
                                         self.eq_sliders[i].set_value(gain)
                                     # Update volume to apply equalizer changes
                                     self.update_audio_controls()
                                 break
-                elif self.screen_mode == 'fader':
+                elif self.screen_mode == "fader":
                     if self.fader_back_button.is_clicked(event.pos):
                         # Save current fader settings
-                        self.config.set('fader_volume', self.audio_fader.get_volume() * 100)
-                        self.config.set('fade_speed', self.audio_fader.fade_speed * 1000)
+                        self.config.set(
+                            "fader_volume", self.audio_fader.get_volume() * 100
+                        )
+                        self.config.set(
+                            "fade_speed", self.audio_fader.fade_speed * 1000
+                        )
                         self.config.save()
-                        self.screen_mode = 'main'
+                        self.screen_mode = "main"
                     elif self.fader_save_button.is_clicked(event.pos):
-                        self.config.set('fader_volume', self.audio_fader.get_volume() * 100)
-                        self.config.set('fade_speed', self.audio_fader.fade_speed * 1000)
+                        self.config.set(
+                            "fader_volume", self.audio_fader.get_volume() * 100
+                        )
+                        self.config.set(
+                            "fade_speed", self.audio_fader.fade_speed * 1000
+                        )
                         self.config.save()
                     elif self.fade_in_button.is_clicked(event.pos):
                         speed = max(0.01, self.fader_speed_slider.get_value() / 1000.0)
@@ -965,14 +1265,14 @@ class UI:
                 else:
                     # Main screen button clicks
                     if self.play_button.is_clicked(event.pos):
-                        self._player_safe_call('play')
+                        self._player_safe_call("play")
                     elif self.pause_button.is_clicked(event.pos):
                         if self.player and self.player.is_paused:
-                            self._player_safe_call('resume')
+                            self._player_safe_call("resume")
                         elif self.player:
-                            self._player_safe_call('pause')
+                            self._player_safe_call("pause")
                     elif self.stop_button.is_clicked(event.pos):
-                        self._player_safe_call('stop')
+                        self._player_safe_call("stop")
                     elif self.config_button.is_clicked(event.pos):
                         self.config_screen_open = True
                         self.config_message = ""
@@ -995,13 +1295,19 @@ class UI:
                 # Scroll browser when wheel used
                 if self.config_music_editing and self.config_browser_open:
                     rects_local = self._get_music_modal_rects()
-                    pa = rects_local['preview_area']
+                    pa = rects_local["preview_area"]
                     # Only scroll when mouse inside preview area
                     if pa.collidepoint(pygame.mouse.get_pos()):
                         # event.y: positive up, negative down
                         delta = -int(event.y)
-                        max_scroll = max(0, len(self.config_browser_entries) - self._browser_visible_count())
-                        self.config_browser_scroll = max(0, min(max_scroll, self.config_browser_scroll + delta))
+                        max_scroll = max(
+                            0,
+                            len(self.config_browser_entries)
+                            - self._browser_visible_count(),
+                        )
+                        self.config_browser_scroll = max(
+                            0, min(max_scroll, self.config_browser_scroll + delta)
+                        )
                         continue
 
             elif event.type == pygame.KEYDOWN:
@@ -1022,15 +1328,15 @@ class UI:
                                     self.player.library = new_lib
                                 except Exception:
                                     pass
-                            self.config.set('music_dir', path)
+                            self.config.set("music_dir", path)
                             self.config.save()
-                            self.config_message = f'Music directory set to: {path}'
+                            self.config_message = f"Music directory set to: {path}"
                             self.config_message_timer = 200
                             self.config_music_editing = False
                             self.config_music_preview = None
                             self.clear_caches()
                         except Exception as e:
-                            self.config_message = f'Failed to set music dir: {e}'
+                            self.config_message = f"Failed to set music dir: {e}"
                             self.config_message_timer = 200
                     elif event.key == pygame.K_BACKSPACE:
                         self.config_music_input = self.config_music_input[:-1]
@@ -1045,27 +1351,56 @@ class UI:
                     # If the in-modal pure-pygame browser is open handle navigation keys
                     if self.config_browser_open:
                         if event.key == pygame.K_UP:
-                            self.config_browser_selected = max(0, self.config_browser_selected - 1)
-                            if self.config_browser_selected < self.config_browser_scroll:
-                                self.config_browser_scroll = self.config_browser_selected
+                            self.config_browser_selected = max(
+                                0, self.config_browser_selected - 1
+                            )
+                            if (
+                                self.config_browser_selected
+                                < self.config_browser_scroll
+                            ):
+                                self.config_browser_scroll = (
+                                    self.config_browser_selected
+                                )
                         elif event.key == pygame.K_DOWN:
-                            self.config_browser_selected = min(len(self.config_browser_entries) - 1, self.config_browser_selected + 1)
+                            self.config_browser_selected = min(
+                                len(self.config_browser_entries) - 1,
+                                self.config_browser_selected + 1,
+                            )
                             h = self._browser_visible_count()
-                            if self.config_browser_selected >= self.config_browser_scroll + h:
-                                self.config_browser_scroll = max(0, self.config_browser_selected - h + 1)
-                        elif event.key == pygame.K_RIGHT or event.key == pygame.K_RETURN:
+                            if (
+                                self.config_browser_selected
+                                >= self.config_browser_scroll + h
+                            ):
+                                self.config_browser_scroll = max(
+                                    0, self.config_browser_selected - h + 1
+                                )
+                        elif (
+                            event.key == pygame.K_RIGHT or event.key == pygame.K_RETURN
+                        ):
                             # Enter directory or select
-                            if 0 <= self.config_browser_selected < len(self.config_browser_entries):
-                                ent = self.config_browser_entries[self.config_browser_selected]
-                                if ent['is_dir']:
-                                    newpath = os.path.join(self.config_browser_path, ent['name'])
+                            if (
+                                0
+                                <= self.config_browser_selected
+                                < len(self.config_browser_entries)
+                            ):
+                                ent = self.config_browser_entries[
+                                    self.config_browser_selected
+                                ]
+                                if ent["is_dir"]:
+                                    newpath = os.path.join(
+                                        self.config_browser_path, ent["name"]
+                                    )
                                     self._open_browser(newpath)
                                 else:
                                     # for files do nothing, require apply
                                     pass
                         elif event.key == pygame.K_LEFT:
                             parent = os.path.dirname(self.config_browser_path)
-                            if parent and os.path.isdir(parent) and parent != self.config_browser_path:
+                            if (
+                                parent
+                                and os.path.isdir(parent)
+                                and parent != self.config_browser_path
+                            ):
                                 self._open_browser(parent)
                     # Don't process global shortcuts while editing
                     continue
@@ -1079,15 +1414,28 @@ class UI:
                         self.selection_mode = False
 
                 # Number keys for 4-digit song selection
-                elif event.key in [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
-                                pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9]:
+                elif event.key in [
+                    pygame.K_0,
+                    pygame.K_1,
+                    pygame.K_2,
+                    pygame.K_3,
+                    pygame.K_4,
+                    pygame.K_5,
+                    pygame.K_6,
+                    pygame.K_7,
+                    pygame.K_8,
+                    pygame.K_9,
+                ]:
                     if not self.config_screen_open:
                         self.handle_number_input(event)
 
                 # Enter to execute selection
                 elif event.key == pygame.K_RETURN:
                     # Check for Alt+Enter for fullscreen toggle
-                    if pygame.key.get_pressed()[pygame.K_LALT] or pygame.key.get_pressed()[pygame.K_RALT]:
+                    if (
+                        pygame.key.get_pressed()[pygame.K_LALT]
+                        or pygame.key.get_pressed()[pygame.K_RALT]
+                    ):
                         self.toggle_fullscreen()
                     elif not self.config_screen_open:
                         self.execute_selection()
@@ -1110,13 +1458,17 @@ class UI:
                         # Increase volume and update slider
                         new_volume = min(1.0, self.player.volume + 0.1)
                         self.player.set_volume(new_volume)
-                        self.volume_slider.value = new_volume * 100  # Convert to 0-100 range
+                        self.volume_slider.value = (
+                            new_volume * 100
+                        )  # Convert to 0-100 range
                 elif event.key == pygame.K_DOWN:
                     if not self.config_screen_open:
                         # Decrease volume and update slider
                         new_volume = max(0.0, self.player.volume - 0.1)
                         self.player.set_volume(new_volume)
-                        self.volume_slider.value = new_volume * 100  # Convert to 0-100 range
+                        self.volume_slider.value = (
+                            new_volume * 100
+                        )  # Convert to 0-100 range
                 elif event.key == pygame.K_n:
                     if not self.config_screen_open:
                         self.player.next_album()
@@ -1131,12 +1483,12 @@ class UI:
         """Handle number pad button clicks"""
         for btn in self.number_pad_buttons:
             if btn.is_clicked(pos):
-                if btn.digit == 'CLR':
+                if btn.digit == "CLR":
                     self.selection_buffer = ""
                     self.selection_mode = False
-                elif btn.digit == 'ENT':
+                elif btn.digit == "ENT":
                     self.execute_selection()
-                elif btn.digit == '<':
+                elif btn.digit == "<":
                     # Backspace
                     self.selection_buffer = self.selection_buffer[:-1]
                     self.selection_mode = len(self.selection_buffer) > 0
@@ -1155,10 +1507,11 @@ class UI:
         self.config_message = "Rescanning albums..."
         self.config_message_timer = 60
         self.library.scan_library()
-        self.config_message = f"Rescan complete! Found {len(self.library.get_albums())} albums"
+        self.config_message = (
+            f"Rescan complete! Found {len(self.library.get_albums())} albums"
+        )
         self.config_message_timer = 180
         print("Album library rescanned")
-
 
     def handle_reset_config(self) -> None:
         """Reset configuration to defaults"""
@@ -1179,10 +1532,12 @@ class UI:
         self.album_art_cache.clear()
 
         # Update the message with results
-        extracted = stats['extracted']
-        existing = stats['existing']
-        failed = stats['failed']
-        self.config_message = f"Art: {extracted} extracted, {existing} existing, {failed} failed"
+        extracted = stats["extracted"]
+        existing = stats["existing"]
+        failed = stats["failed"]
+        self.config_message = (
+            f"Art: {extracted} extracted, {existing} existing, {failed} failed"
+        )
         self.config_message_timer = 240  # Display results for 4 seconds
 
     def handle_theme_selection(self, pos: Tuple[int, int]) -> None:
@@ -1191,7 +1546,7 @@ class UI:
             if btn.is_clicked(pos):
                 # Switch to the selected theme
                 self.theme_manager.set_current_theme(theme_name)
-                self.config.set('theme', theme_name)
+                self.config.set("theme", theme_name)
                 self.config.save()  # Save the configuration to persist the theme choice
                 self.current_theme = self.theme_manager.get_current_theme()
 
@@ -1248,9 +1603,11 @@ class UI:
             self.equalizer.set_band(i, gain)
 
         # Set volume after equalizer update (so EQ adjustments are applied)
-        self._player_safe_call('set_volume', slider_volume)
+        self._player_safe_call("set_volume", slider_volume)
 
-    def get_cached_text(self, text: str, font: pygame.font.Font, color: Tuple[int, int, int]) -> pygame.Surface:
+    def get_cached_text(
+        self, text: str, font: pygame.font.Font, color: Tuple[int, int, int]
+    ) -> pygame.Surface:
         """Get cached text surface or create new one"""
         cache_key = (text, id(font), color)
         if cache_key in self._text_cache:
@@ -1275,7 +1632,9 @@ class UI:
                 if background.get_size() == current_size:
                     self._cached_background = background
                 else:
-                    self._cached_background = pygame.transform.scale(background, current_size)
+                    self._cached_background = pygame.transform.scale(
+                        background, current_size
+                    )
             else:
                 self._cached_background = pygame.Surface(current_size)
                 self._cached_background.fill(Colors.DARK_GRAY)
@@ -1296,12 +1655,12 @@ class UI:
         to a simple console prompt if tkinter is unavailable or fails.
         """
         # Determine an initial directory for the dialog
-        initial = self.config.get('music_dir')
+        initial = self.config.get("music_dir")
         if not initial:
-            if sys.platform.startswith('linux') or sys.platform == 'darwin':
-                initial = os.path.expanduser(os.path.join('~', 'Music', 'JukeBox'))
+            if sys.platform.startswith("linux") or sys.platform == "darwin":
+                initial = os.path.expanduser(os.path.join("~", "Music", "JukeBox"))
             else:
-                initial = os.path.join(os.path.dirname(__file__), '..', 'music')
+                initial = os.path.join(os.path.dirname(__file__), "..", "music")
 
         selected = None
         # Try to use tkinter for a GUI folder chooser
@@ -1311,15 +1670,17 @@ class UI:
 
             root = tk.Tk()
             root.withdraw()
-            selected = filedialog.askdirectory(title='Select JukeBox Music Directory', initialdir=initial)
+            selected = filedialog.askdirectory(
+                title="Select JukeBox Music Directory", initialdir=initial
+            )
             root.destroy()
         except Exception:
             # Fallback to console input
-            print('Tkinter folder dialog not available. Enter path to music directory:')
-            selected = input('> ').strip()
+            print("Tkinter folder dialog not available. Enter path to music directory:")
+            selected = input("> ").strip()
 
         if not selected:
-            self.config_message = 'No directory selected'
+            self.config_message = "No directory selected"
             self.config_message_timer = 120
             return
 
@@ -1338,11 +1699,11 @@ class UI:
                 pass
 
         # Persist selection to config
-        self.config.set('music_dir', selected)
+        self.config.set("music_dir", selected)
         self.config.save()
 
         # Give user visual feedback and refresh caches
-        self.config_message = f'Music directory set to: {selected}'
+        self.config_message = f"Music directory set to: {selected}"
         self.config_message_timer = 240
         self.clear_caches()
 
@@ -1351,13 +1712,18 @@ class UI:
 
         Returns a dict containing: total_files, audio_files, sample_files (list), total_size_bytes
         """
-        result = {'total_files': 0, 'audio_files': 0, 'sample_files': [], 'total_size_bytes': 0}
+        result = {
+            "total_files": 0,
+            "audio_files": 0,
+            "sample_files": [],
+            "total_size_bytes": 0,
+        }
         try:
             if not os.path.exists(path):
                 return result
 
-            supported = getattr(AlbumLibrary, 'MAX_ALBUMS', None)  # not used here
-            audio_exts = ('.mp3', '.wav', '.ogg', '.flac')
+            supported = getattr(AlbumLibrary, "MAX_ALBUMS", None)  # not used here
+            audio_exts = (".mp3", ".wav", ".ogg", ".flac")
             total = 0
             audio_count = 0
             samples = []
@@ -1390,10 +1756,10 @@ class UI:
                     except Exception:
                         pass
 
-            result['total_files'] = total
-            result['audio_files'] = audio_count
-            result['sample_files'] = samples
-            result['total_size_bytes'] = total_size
+            result["total_files"] = total
+            result["audio_files"] = audio_count
+            result["sample_files"] = samples
+            result["total_size_bytes"] = total_size
         except Exception:
             pass
 
@@ -1418,16 +1784,18 @@ class UI:
         apply_rect = pygame.Rect(btn_x + 2 * (btn_w + spacing), btn_y, btn_w, btn_h)
         cancel_rect = pygame.Rect(btn_x + 3 * (btn_w + spacing), btn_y, btn_w, btn_h)
 
-        preview_area = pygame.Rect(x + 20, btn_y + btn_h + 20, w - 40, h - (btn_y - y) - btn_h - 40)
+        preview_area = pygame.Rect(
+            x + 20, btn_y + btn_h + 20, w - 40, h - (btn_y - y) - btn_h - 40
+        )
 
         return {
-            'bg': pygame.Rect(x, y, w, h),
-            'input': input_rect,
-            'browse': browse_rect,
-            'preview': preview_rect,
-            'apply': apply_rect,
-            'cancel': cancel_rect,
-            'preview_area': preview_area,
+            "bg": pygame.Rect(x, y, w, h),
+            "input": input_rect,
+            "browse": browse_rect,
+            "preview": preview_rect,
+            "apply": apply_rect,
+            "cancel": cancel_rect,
+            "preview_area": preview_area,
         }
 
     def _open_browser(self, path: str) -> None:
@@ -1437,8 +1805,8 @@ class UI:
         """
         try:
             info = list_directory(path)
-            self.config_browser_path = info.get('path')
-            self.config_browser_entries = info.get('entries', [])
+            self.config_browser_path = info.get("path")
+            self.config_browser_entries = info.get("entries", [])
             # reset selection/scroll
             self.config_browser_selected = 0
             self.config_browser_scroll = 0
@@ -1456,7 +1824,7 @@ class UI:
         rects = self._get_music_modal_rects()
         header_h = self.small_font.get_height() + 8
         row_h = max(self.small_font.get_height(), 18)
-        avail = rects['preview_area'].height - header_h - 24  # leave room for hints
+        avail = rects["preview_area"].height - header_h - 24  # leave room for hints
         if avail <= 0:
             return 0
         return max(1, avail // row_h)
@@ -1466,7 +1834,7 @@ class UI:
         if font.size(text)[0] <= max_width:
             return text
         # Need room for '...'
-        ell = '...'
+        ell = "..."
         # Trim characters until fits
         left = 0
         right = len(text)
@@ -1479,7 +1847,7 @@ class UI:
             else:
                 right = mid
 
-        candidate = text[:max(0, left-1)].rstrip() + ell
+        candidate = text[: max(0, left - 1)].rstrip() + ell
         return candidate
 
     def _draw_music_dir_modal(self) -> None:
@@ -1492,49 +1860,61 @@ class UI:
         self.screen.blit(overlay, (0, 0))
 
         # Modal background
-        bg = pygame.Surface((rects['bg'].width, rects['bg'].height))
+        bg = pygame.Surface((rects["bg"].width, rects["bg"].height))
         bg.fill((40, 40, 40))
         pygame.draw.rect(bg, Colors.WHITE, bg.get_rect(), 2)
-        self.screen.blit(bg, (rects['bg'].x, rects['bg'].y))
+        self.screen.blit(bg, (rects["bg"].x, rects["bg"].y))
 
         # Title
-        title = self.medium_font.render('Select Music Library (in-app)', True, Colors.WHITE)
-        self.screen.blit(title, (rects['bg'].x + 20, rects['bg'].y + 8))
+        title = self.medium_font.render(
+            "Select Music Library (in-app)", True, Colors.WHITE
+        )
+        self.screen.blit(title, (rects["bg"].x + 20, rects["bg"].y + 8))
 
         # Input label and box
-        label = self.small_font.render('Path:', True, Colors.LIGHT_GRAY)
-        self.screen.blit(label, (rects['input'].x, rects['input'].y - 18))
-        pygame.draw.rect(self.screen, Colors.BLACK, rects['input'])
-        pygame.draw.rect(self.screen, Colors.WHITE, rects['input'], 2)
+        label = self.small_font.render("Path:", True, Colors.LIGHT_GRAY)
+        self.screen.blit(label, (rects["input"].x, rects["input"].y - 18))
+        pygame.draw.rect(self.screen, Colors.BLACK, rects["input"])
+        pygame.draw.rect(self.screen, Colors.WHITE, rects["input"], 2)
         # Render the current input text (truncate if too long)
         display_text = self.config_music_input
         # Trim to fit
         max_chars = 120
         if len(display_text) > max_chars:
-            display_text = '...' + display_text[-max_chars:]
+            display_text = "..." + display_text[-max_chars:]
         txt_surf = self.small_font.render(display_text, True, Colors.WHITE)
-        self.screen.blit(txt_surf, (rects['input'].x + 6, rects['input'].y + 6))
+        self.screen.blit(txt_surf, (rects["input"].x + 6, rects["input"].y + 6))
 
         # Draw buttons (highlight hovered button)
-        hover = getattr(self, 'config_music_hover', None)
-        for name, r in [('Browse', rects['browse']), ('Preview', rects['preview']), ('Apply', rects['apply']), ('Cancel', rects['cancel'])]:
+        hover = getattr(self, "config_music_hover", None)
+        for name, r in [
+            ("Browse", rects["browse"]),
+            ("Preview", rects["preview"]),
+            ("Apply", rects["apply"]),
+            ("Cancel", rects["cancel"]),
+        ]:
             btn_key = name.lower()
             color = Colors.YELLOW if hover == btn_key else Colors.GRAY
             pygame.draw.rect(self.screen, color, r)
             pygame.draw.rect(self.screen, Colors.WHITE, r, 2)
-            t = self.small_font.render(name, True, Colors.BLACK if hover == btn_key else Colors.WHITE)
+            t = self.small_font.render(
+                name, True, Colors.BLACK if hover == btn_key else Colors.WHITE
+            )
             tpos = t.get_rect(center=r.center)
             self.screen.blit(t, tpos)
 
         # Draw preview area (if present)
-        pygame.draw.rect(self.screen, (18, 18, 18), rects['preview_area'])
-        pygame.draw.rect(self.screen, Colors.WHITE, rects['preview_area'], 1)
-        pa_x = rects['preview_area'].x + 8
-        pa_y = rects['preview_area'].y + 8
+        pygame.draw.rect(self.screen, (18, 18, 18), rects["preview_area"])
+        pygame.draw.rect(self.screen, Colors.WHITE, rects["preview_area"], 1)
+        pa_x = rects["preview_area"].x + 8
+        pa_y = rects["preview_area"].y + 8
 
         if self.config_browser_open:
             # Render the folder browser view inside the preview area
-            browser = {'path': self.config_browser_path, 'entries': self.config_browser_entries}
+            browser = {
+                "path": self.config_browser_path,
+                "entries": self.config_browser_entries,
+            }
             header = self.small_font.render(f"{browser['path']}", True, Colors.YELLOW)
             self.screen.blit(header, (pa_x, pa_y))
 
@@ -1543,13 +1923,18 @@ class UI:
             row_height = max(self.small_font.get_height(), 18)
             visible = self._browser_visible_count()
             start = self.config_browser_scroll
-            end = min(len(browser['entries']), start + visible)
+            end = min(len(browser["entries"]), start + visible)
 
             # Draw each visible entry
             for idx in range(start, end):
-                ent = browser['entries'][idx]
-                sel = (idx == self.config_browser_selected)
-                bg_rect = pygame.Rect(pa_x, row_y + (idx - start) * row_height, rects['preview_area'].width - 12, row_height)
+                ent = browser["entries"][idx]
+                sel = idx == self.config_browser_selected
+                bg_rect = pygame.Rect(
+                    pa_x,
+                    row_y + (idx - start) * row_height,
+                    rects["preview_area"].width - 12,
+                    row_height,
+                )
                 # Alternate row stripe for readability
                 if not sel and ((idx - start) % 2) == 0:
                     pygame.draw.rect(self.screen, (28, 28, 28), bg_rect)
@@ -1559,68 +1944,103 @@ class UI:
                 # icon
                 icon_x = pa_x + 4
                 icon_y = bg_rect.y + 2
-                if ent['is_dir']:
-                    pygame.draw.polygon(self.screen, Colors.LIGHT_GRAY, [(icon_x, icon_y + 8), (icon_x + 10, icon_y + 4), (icon_x + 10, icon_y + 12)])
+                if ent["is_dir"]:
+                    pygame.draw.polygon(
+                        self.screen,
+                        Colors.LIGHT_GRAY,
+                        [
+                            (icon_x, icon_y + 8),
+                            (icon_x + 10, icon_y + 4),
+                            (icon_x + 10, icon_y + 12),
+                        ],
+                    )
                 else:
-                    pygame.draw.rect(self.screen, Colors.LIGHT_GRAY, (icon_x, icon_y + 3, 10, 10))
+                    pygame.draw.rect(
+                        self.screen, Colors.LIGHT_GRAY, (icon_x, icon_y + 3, 10, 10)
+                    )
 
                 # name and meta
                 name_x = icon_x + 16
                 meta = f"{ent['size']} bytes"
                 meta_s = self.tiny_font.render(meta, True, Colors.LIGHT_GRAY)
                 # Compute max width for name text so it doesn't overlap meta
-                max_name_w = rects['preview_area'].width - 12 - (name_x - rects['preview_area'].x) - meta_s.get_width() - 16
-                name_text = self._ellipsize_text(ent['name'], self.small_font, max_name_w)
-                name_s = self.small_font.render(name_text, True, Colors.WHITE if not sel else Colors.YELLOW)
+                max_name_w = (
+                    rects["preview_area"].width
+                    - 12
+                    - (name_x - rects["preview_area"].x)
+                    - meta_s.get_width()
+                    - 16
+                )
+                name_text = self._ellipsize_text(
+                    ent["name"], self.small_font, max_name_w
+                )
+                name_s = self.small_font.render(
+                    name_text, True, Colors.WHITE if not sel else Colors.YELLOW
+                )
                 self.screen.blit(name_s, (name_x, bg_rect.y + 1))
                 # size/time right-justified
-                meta_pos = (rects['preview_area'].right - 8 - meta_s.get_width(), bg_rect.y + 1)
+                meta_pos = (
+                    rects["preview_area"].right - 8 - meta_s.get_width(),
+                    bg_rect.y + 1,
+                )
                 self.screen.blit(meta_s, meta_pos)
 
             # Scrollbar if needed
-            total = len(browser['entries'])
+            total = len(browser["entries"])
             if total > visible and visible > 0:
-                bar_h = rects['preview_area'].height - 12 - header.get_height() - 8
+                bar_h = rects["preview_area"].height - 12 - header.get_height() - 8
                 sb_h = max(20, int((visible / total) * bar_h))
                 sb_range = bar_h - sb_h
                 if sb_range > 0:
-                    sb_pos = int((self.config_browser_scroll / max(1, total - visible)) * sb_range)
+                    sb_pos = int(
+                        (self.config_browser_scroll / max(1, total - visible))
+                        * sb_range
+                    )
                 else:
                     sb_pos = 0
-                sb_x = rects['preview_area'].right - 8
+                sb_x = rects["preview_area"].right - 8
                 sb_y = row_y + sb_pos
                 pygame.draw.rect(self.screen, Colors.GRAY, (sb_x, row_y, 8, bar_h))
                 pygame.draw.rect(self.screen, Colors.LIGHT_GRAY, (sb_x, sb_y, 8, sb_h))
 
             # Instruction hint
-            hint = self.tiny_font.render('Use ↑↓ keys to navigate, → or double-click to open, Enter to apply selected path', True, Colors.LIGHT_GRAY)
-            self.screen.blit(hint, (pa_x, rects['preview_area'].bottom - 18))
+            hint = self.tiny_font.render(
+                "Use ↑↓ keys to navigate, → or double-click to open, Enter to apply selected path",
+                True,
+                Colors.LIGHT_GRAY,
+            )
+            self.screen.blit(hint, (pa_x, rects["preview_area"].bottom - 18))
 
         elif self.config_music_preview is None:
-            hint = self.small_font.render('Preview will show a small summary of files and sample audio files in the selected folder.', True, Colors.LIGHT_GRAY)
+            hint = self.small_font.render(
+                "Preview will show a small summary of files and sample audio files in the selected folder.",
+                True,
+                Colors.LIGHT_GRAY,
+            )
             self.screen.blit(hint, (pa_x, pa_y))
         else:
             res = self.config_music_preview
-            lines = [f"Total files (top-level & first few subfolders): {res.get('total_files',0)}",
-                     f"Audio files found (top-level & previews): {res.get('audio_files',0)}",
-                     f"Total size: {res.get('total_size_bytes',0)} bytes"]
+            lines = [
+                f"Total files (top-level & first few subfolders): {res.get('total_files',0)}",
+                f"Audio files found (top-level & previews): {res.get('audio_files',0)}",
+                f"Total size: {res.get('total_size_bytes',0)} bytes",
+            ]
             for i, ln in enumerate(lines):
                 s = self.small_font.render(ln, True, Colors.LIGHT_GRAY)
                 self.screen.blit(s, (pa_x, pa_y + i * 20))
             # Sample files list
             sample_y = pa_y + len(lines) * 20 + 8
-            header = self.small_font.render('Sample files:', True, Colors.YELLOW)
+            header = self.small_font.render("Sample files:", True, Colors.YELLOW)
             self.screen.blit(header, (pa_x, sample_y))
-            for i, fn in enumerate(res.get('sample_files', [])[:10]):
+            for i, fn in enumerate(res.get("sample_files", [])[:10]):
                 s = self.small_font.render(f"  - {fn}", True, Colors.LIGHT_GRAY)
                 self.screen.blit(s, (pa_x + 8, sample_y + 18 + i * 18))
-
 
     def draw(self) -> None:
         """Draw the UI"""
         if self.config_screen_open:
             self.draw_config_screen()
-        elif self.screen_mode == 'equalizer':
+        elif self.screen_mode == "equalizer":
             self.draw_equalizer_screen()
         else:
             self.draw_main_screen()
@@ -1643,7 +2063,9 @@ class UI:
         # Calculate equalizer box dimensions
         eq_box_padding = 40
         eq_box_width = total_slider_width + (eq_box_padding * 2)
-        eq_box_height = 520  # Reduced height to minimize dead space below preset buttons
+        eq_box_height = (
+            520  # Reduced height to minimize dead space below preset buttons
+        )
 
         # Center the equalizer box on screen
         eq_box_x = (self.width - eq_box_width) // 2
@@ -1668,8 +2090,12 @@ class UI:
         self.screen.blit(title, title_rect)
 
         # Instructions centered in the box
-        instructions = self.small_font.render("Adjust gains, apply preset, then Save or Back", True, Colors.LIGHT_GRAY)
-        instructions_rect = instructions.get_rect(center=(eq_box_x + eq_box_width // 2, instructions_y))
+        instructions = self.small_font.render(
+            "Adjust gains, apply preset, then Save or Back", True, Colors.LIGHT_GRAY
+        )
+        instructions_rect = instructions.get_rect(
+            center=(eq_box_x + eq_box_width // 2, instructions_y)
+        )
         self.screen.blit(instructions, instructions_rect)
 
         # Draw each vertical slider with label & value
@@ -1677,22 +2103,38 @@ class UI:
             slider.x = start_x + i * spacing
             slider.y = slider_top
             slider.height = slider_height
-            slider.draw(self.screen, self.small_font, track_color=Colors.GRAY, knob_color=Colors.BLUE, fill_color=Colors.BLUE)
+            slider.draw(
+                self.screen,
+                self.small_font,
+                track_color=Colors.GRAY,
+                knob_color=Colors.BLUE,
+                fill_color=Colors.BLUE,
+            )
 
             # Frequency label (keep these - 60 Hz, 250 Hz, etc.)
             label = self.small_font.render(name, True, Colors.WHITE)
-            label_rect = label.get_rect(center=(slider.x + slider.width // 2, slider_top - 25))
+            label_rect = label.get_rect(
+                center=(slider.x + slider.width // 2, slider_top - 25)
+            )
             self.screen.blit(label, label_rect)
 
             # Value
             gain = slider.get_value()
-            val_color = Colors.GREEN if gain > 0 else (Colors.RED if gain < 0 else Colors.YELLOW)
+            val_color = (
+                Colors.GREEN
+                if gain > 0
+                else (Colors.RED if gain < 0 else Colors.YELLOW)
+            )
             val_text = self.small_font.render(f"{gain:.1f} dB", True, val_color)
-            val_rect = val_text.get_rect(center=(slider.x + slider.width // 2, slider_top + slider_height + 15))
+            val_rect = val_text.get_rect(
+                center=(slider.x + slider.width // 2, slider_top + slider_height + 15)
+            )
             self.screen.blit(val_text, val_rect)
 
         # Update and draw preset buttons - center them in the box
-        preset_start_x = eq_box_x + (eq_box_width - (len(self.eq_preset_buttons) * 140 - 10)) // 2
+        preset_start_x = (
+            eq_box_x + (eq_box_width - (len(self.eq_preset_buttons) * 140 - 10)) // 2
+        )
         for i, (name, btn) in enumerate(self.eq_preset_buttons):
             btn.rect.x = preset_start_x + i * 140
             btn.rect.y = preset_y
@@ -1714,7 +2156,11 @@ class UI:
 
         # Track changes for potential future optimizations
         current_volume = self.player.get_volume()
-        current_track = self.player.get_current_track_info() if self.player.is_music_playing() else None
+        current_track = (
+            self.player.get_current_track_info()
+            if self.player.is_music_playing()
+            else None
+        )
         self._last_volume = current_volume
         self._last_track_info = current_track
 
@@ -1726,7 +2172,9 @@ class UI:
         self.screen.blit(title, title_rect)
 
         # Top controls layout (volume slider left, playback buttons centered, config button right)
-        controls_margin_top = self.header_height + 20  # Increased margin to avoid title bar overlap
+        controls_margin_top = (
+            self.header_height + 20
+        )  # Increased margin to avoid title bar overlap
         button_height = 50  # Match square button size
         media_button_size = 50  # Square buttons
         spacing = 12
@@ -1738,10 +2186,13 @@ class UI:
         self.volume_slider.y = controls_margin_top + 25  # Adjusted for increased margin
         self.volume_slider.width = 220
         self.volume_slider.height = 20
-        self.volume_slider.draw(self.screen, self.small_font,
-                                track_color=Colors.GRAY,
-                                knob_color=Colors.GREEN,
-                                fill_color=Colors.GREEN)
+        self.volume_slider.draw(
+            self.screen,
+            self.small_font,
+            track_color=Colors.GRAY,
+            knob_color=Colors.GREEN,
+            fill_color=Colors.GREEN,
+        )
         # Playback buttons centering
         col_width = (self.width - self.margin * 4) // 3
         col2_x = self.margin * 2 + col_width
@@ -1764,7 +2215,9 @@ class UI:
         self.stop_button.draw(self.screen, self.small_font)
         # Config button at top-right
         self.config_button.rect.x = self.width - self.margin - media_button_size
-        self.config_button.rect.y = controls_margin_top + 15  # Adjusted for increased margin
+        self.config_button.rect.y = (
+            controls_margin_top + 15
+        )  # Adjusted for increased margin
         self.config_button.draw(self.screen, self.small_font)
 
         # Determine start of album content area below controls
@@ -1777,14 +2230,19 @@ class UI:
         if len(albums) == 0:
             # Draw empty library message
             empty_msg = self.medium_font.render("No albums found", True, Colors.YELLOW)
-            empty_msg_rect = empty_msg.get_rect(center=(self.width // 2, self.height // 2 - 60))
+            empty_msg_rect = empty_msg.get_rect(
+                center=(self.width // 2, self.height // 2 - 60)
+            )
             self.screen.blit(empty_msg, empty_msg_rect)
 
             hint_msg = self.small_font.render(
                 "Add music files to the 'music' directory and use Config > Rescan",
-                True, Colors.LIGHT_GRAY
+                True,
+                Colors.LIGHT_GRAY,
             )
-            hint_msg_rect = hint_msg.get_rect(center=(self.width // 2, self.height // 2))
+            hint_msg_rect = hint_msg.get_rect(
+                center=(self.width // 2, self.height // 2)
+            )
             self.screen.blit(hint_msg, hint_msg_rect)
 
             # Top controls already drawn above; avoid duplicate buttons
@@ -1797,8 +2255,7 @@ class UI:
             text_y = self.height - 20  # 20 pixels from bottom
             self.draw_bottom_text_overlay(text_y)
             instructions = self.small_font.render(
-                "C: Config | Space: Play/Pause | ↑↓: Volume",
-                True, Colors.WHITE
+                "C: Config | Space: Play/Pause | ↑↓: Volume", True, Colors.WHITE
             )
             self.screen.blit(instructions, (20, text_y))
 
@@ -1842,8 +2299,8 @@ class UI:
         # Determine which albums to show in left and right columns
         # Left column: albums 1,2 | Right column: albums 3,4 (as requested)
         # Browse position shows 4 albums: position, position+1, position+2, position+3
-        left_album_1 = self.browse_position       # Top left: album 1
-        left_album_2 = self.browse_position + 1   # Bottom left: album 2
+        left_album_1 = self.browse_position  # Top left: album 1
+        left_album_2 = self.browse_position + 1  # Bottom left: album 2
         right_album_1 = self.browse_position + 2  # Top right: album 3
         right_album_2 = self.browse_position + 3  # Bottom right: album 4
 
@@ -1852,31 +2309,45 @@ class UI:
             card_h = (content_height // 2) + 15  # Half height plus extra space
             # Only draw if indices are valid
             if left_album_1 >= 0 and left_album_1 < len(albums):
-                self.draw_album_card(albums[left_album_1], col1_x, row1_y, col1_width - 10, card_h)
+                self.draw_album_card(
+                    albums[left_album_1], col1_x, row1_y, col1_width - 10, card_h
+                )
             if left_album_2 >= 0 and left_album_2 < len(albums):
-                self.draw_album_card(albums[left_album_2], col1_x, row2_y, col1_width - 10, card_h)
+                self.draw_album_card(
+                    albums[left_album_2], col1_x, row2_y, col1_width - 10, card_h
+                )
 
         # CENTER COLUMN - Always show Now Playing, never browsed albums (smaller now)
         current_album_obj = self.player.get_current_album()
 
         # Make now playing window taller in windowed mode to push down keypad
-        now_playing_height_factor = 0.85 if self.fullscreen else 0.95  # Taller in windowed mode
+        now_playing_height_factor = (
+            0.85 if self.fullscreen else 0.95
+        )  # Taller in windowed mode
         now_playing_height = int(content_height * now_playing_height_factor) - 10
 
         if current_album_obj and self.player.is_music_playing():
-            self.draw_current_album_display(current_album_obj, col2_x, row1_y, col2_width - 10, now_playing_height)
+            self.draw_current_album_display(
+                current_album_obj, col2_x, row1_y, col2_width - 10, now_playing_height
+            )
         else:
             # Show empty Now Playing box when nothing is playing
-            self.draw_empty_now_playing(col2_x, row1_y, col2_width - 10, now_playing_height)
+            self.draw_empty_now_playing(
+                col2_x, row1_y, col2_width - 10, now_playing_height
+            )
 
         # RIGHT COLUMN - Two albums (each taking half height)
         if len(albums) > 0:
             card_h = (content_height // 2) + 15  # Half height plus extra space
             # Only draw if indices are valid
             if right_album_1 >= 0 and right_album_1 < len(albums):
-                self.draw_album_card(albums[right_album_1], col3_x, row1_y, col3_width - 10, card_h)
+                self.draw_album_card(
+                    albums[right_album_1], col3_x, row1_y, col3_width - 10, card_h
+                )
             if right_album_2 >= 0 and right_album_2 < len(albums):
-                self.draw_album_card(albums[right_album_2], col3_x, row2_y, col3_width - 10, card_h)
+                self.draw_album_card(
+                    albums[right_album_2], col3_x, row2_y, col3_width - 10, card_h
+                )
 
         # Draw side navigation buttons
         self.left_nav_button.draw(self.screen, self.small_font)
@@ -1895,7 +2366,8 @@ class UI:
         self.draw_bottom_text_overlay(text_y)
         instructions = self.small_font.render(
             "4-digit: Album(2) + Track(2) | C: Config | Space: Play/Pause | Alt+Enter: Fullscreen | ↑↓: Volume",
-            True, Colors.WHITE
+            True,
+            Colors.WHITE,
         )
         self.screen.blit(instructions, (20, text_y))
 
@@ -1928,7 +2400,9 @@ class UI:
         content_height = card_height - padding * 2
 
         # Calculate square album art size (right side) - larger size
-        art_size = min(content_height - 10, content_width // 2.2)  # About half width, square aspect
+        art_size = min(
+            content_height - 10, content_width // 2.2
+        )  # About half width, square aspect
         art_x = x + width - padding - art_size
         art_y = content_y
         art_rect = pygame.Rect(art_x, art_y, art_size, art_size)
@@ -1945,26 +2419,37 @@ class UI:
             scaled = pygame.transform.smoothscale(art_img, (art_size, art_size))
             self.screen.blit(scaled, art_rect)
             # Overlay album id tag with white border
-            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.BLACK)
+            album_num_text = self.large_font.render(
+                f"{album.album_id:02d}", True, Colors.BLACK
+            )
             text_rect = album_num_text.get_rect()
             # Create white border background
             border_padding = 4
-            border_rect = pygame.Rect(art_rect.x + 3 - border_padding, art_rect.y + 3 - border_padding,
-                                    text_rect.width + border_padding * 2, text_rect.height + border_padding * 2)
+            border_rect = pygame.Rect(
+                art_rect.x + 3 - border_padding,
+                art_rect.y + 3 - border_padding,
+                text_rect.width + border_padding * 2,
+                text_rect.height + border_padding * 2,
+            )
             pygame.draw.rect(self.screen, Colors.WHITE, border_rect)
             pygame.draw.rect(self.screen, Colors.BLACK, border_rect, 2)
             self.screen.blit(album_num_text, (art_rect.x + 3, art_rect.y + 3))
         else:
             pygame.draw.rect(self.screen, Colors.GRAY, art_rect)
-            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.BLACK)
+            album_num_text = self.large_font.render(
+                f"{album.album_id:02d}", True, Colors.BLACK
+            )
             # Position consistently with album art overlay (top-left corner)
             text_x = art_rect.x + 3
             text_y = art_rect.y + 3
             # Add white border around the number
             border_padding = 4  # Match the padding used for album art overlay
-            border_rect = pygame.Rect(text_x - border_padding, text_y - border_padding,
-                                    album_num_text.get_width() + border_padding * 2,
-                                    album_num_text.get_height() + border_padding * 2)
+            border_rect = pygame.Rect(
+                text_x - border_padding,
+                text_y - border_padding,
+                album_num_text.get_width() + border_padding * 2,
+                album_num_text.get_height() + border_padding * 2,
+            )
             pygame.draw.rect(self.screen, Colors.WHITE, border_rect)
             pygame.draw.rect(self.screen, Colors.BLACK, border_rect, 2)
             self.screen.blit(album_num_text, (text_x, text_y))
@@ -1982,10 +2467,12 @@ class UI:
             # Find the best place to wrap at or before 16 characters
             wrap_point = 16
             # Look for the last space at or before position 16
-            last_space = artist_text.rfind(' ', 0, wrap_point + 1)
+            last_space = artist_text.rfind(" ", 0, wrap_point + 1)
             if last_space > 0:
                 artist_line1 = artist_text[:last_space]
-                artist_line2 = artist_text[last_space + 1:last_space + 17]  # Up to 16 more chars after the space
+                artist_line2 = artist_text[
+                    last_space + 1 : last_space + 17
+                ]  # Up to 16 more chars after the space
             else:
                 # No space found, fall back to character-based wrapping
                 artist_line1 = artist_text[:16]
@@ -1997,9 +2484,13 @@ class UI:
         # Draw first line of artist
         artist_text1 = artist_font.render(artist_line1, True, Colors.BLACK)
         artist_rect = artist_text1.get_rect()
-        artist_bg_rect = pygame.Rect(text_x - 2, current_y - 2, artist_rect.width + 4, artist_rect.height + 4)
+        artist_bg_rect = pygame.Rect(
+            text_x - 2, current_y - 2, artist_rect.width + 4, artist_rect.height + 4
+        )
         # Create transparent surface for padding
-        padding_surface = pygame.Surface((artist_rect.width + 4, artist_rect.height + 4), pygame.SRCALPHA)
+        padding_surface = pygame.Surface(
+            (artist_rect.width + 4, artist_rect.height + 4), pygame.SRCALPHA
+        )
         padding_surface.fill((0, 0, 0, 0))  # Fully transparent
         self.screen.blit(padding_surface, (text_x - 2, current_y - 2))
         self.screen.blit(artist_text1, (text_x, current_y))
@@ -2013,7 +2504,9 @@ class UI:
             current_y += line_height
 
         spacing_after_artist = 6 if self.fullscreen else 4
-        current_y += spacing_after_artist + 4  # Add extra space after artist name + 4px between artist and album
+        current_y += (
+            spacing_after_artist + 4
+        )  # Add extra space after artist name + 4px between artist and album
 
         # Album title - use larger font in fullscreen with text wrapping (only wrap if not fullscreen)
         album_font = self.medium_font if self.fullscreen else self.small_medium_font
@@ -2024,7 +2517,7 @@ class UI:
             # In fullscreen, cut off at first space after 28 characters
             if len(album_title) > 28:
                 # Find the first space at or after position 28
-                first_space = album_title.find(' ', 28)
+                first_space = album_title.find(" ", 28)
                 if first_space > 0:
                     album_line1 = album_title[:first_space]
                 else:
@@ -2058,20 +2551,25 @@ class UI:
 
         # Track count - use larger font in fullscreen
         count_font = self.small_medium_font if self.fullscreen else self.tiny_font
-        track_count_text = count_font.render(f"{len(album.tracks)} tracks", True, Colors.BLUE)
+        track_count_text = count_font.render(
+            f"{len(album.tracks)} tracks", True, Colors.BLUE
+        )
         self.screen.blit(track_count_text, (text_x, current_y))
         spacing_after_count = 5 if self.fullscreen else 3
         current_y += line_height + spacing_after_count
 
         # Show all tracks that fit - adjust track line height for fullscreen
         track_line_height = 18 if self.fullscreen else 12
-        max_tracks = min(len(album.tracks), (content_height - (current_y - text_y) - 10) // track_line_height)
+        max_tracks = min(
+            len(album.tracks),
+            (content_height - (current_y - text_y) - 10) // track_line_height,
+        )
         for i, track in enumerate(album.tracks[:max_tracks]):
             if current_y + track_line_height < y + card_height - padding:
                 # Truncate track title to fit
                 max_chars = max(15, int(text_width // 7))  # Ensure integer
-                title = track['title'][:max_chars]
-                if len(track['title']) > max_chars:
+                title = track["title"][:max_chars]
+                if len(track["title"]) > max_chars:
                     title += "..."
                 # Use larger font for track listing in fullscreen
                 track_font = self.small_font if self.fullscreen else self.tiny_font
@@ -2098,11 +2596,15 @@ class UI:
 
         # Draw centered "Choose an album and song." message
         center_y = y + display_height // 2
-        no_music_text = self.medium_font.render("Choose an album and song.", True, Colors.LIGHT_GRAY)
+        no_music_text = self.medium_font.render(
+            "Choose an album and song.", True, Colors.LIGHT_GRAY
+        )
         text_rect = no_music_text.get_rect(center=(x + width // 2, center_y))
         self.screen.blit(no_music_text, text_rect)
 
-    def draw_current_album_display(self, album, x: int, y: int, width: int, height: int) -> None:
+    def draw_current_album_display(
+        self, album, x: int, y: int, width: int, height: int
+    ) -> None:
         """Draw persistent 'Now Playing' box with only current track details.
         Does not clear when playback stops; only updates upon new playing track."""
         display_height = max(200, height)
@@ -2130,12 +2632,18 @@ class UI:
             self.screen.blit(scaled, art_rect)
         else:
             pygame.draw.rect(self.screen, Colors.GRAY, art_rect)
-            album_num_text = self.large_font.render(f"{album.album_id:02d}", True, Colors.BLACK)
+            album_num_text = self.large_font.render(
+                f"{album.album_id:02d}", True, Colors.BLACK
+            )
             album_num_rect = album_num_text.get_rect(center=art_rect.center)
             # Add white border around the number
             border_padding = 6
-            border_rect = pygame.Rect(album_num_rect.x - border_padding, album_num_rect.y - border_padding,
-                                    album_num_rect.width + border_padding * 2, album_num_rect.height + border_padding * 2)
+            border_rect = pygame.Rect(
+                album_num_rect.x - border_padding,
+                album_num_rect.y - border_padding,
+                album_num_rect.width + border_padding * 2,
+                album_num_rect.height + border_padding * 2,
+            )
             pygame.draw.rect(self.screen, Colors.WHITE, border_rect)
             pygame.draw.rect(self.screen, Colors.BLACK, border_rect, 2)
             self.screen.blit(album_num_text, album_num_rect)
@@ -2143,12 +2651,17 @@ class UI:
         # Update persistent info if a track is actively playing from this album
         track = self.player.get_current_track()
         current_album = self.player.get_current_album()
-        if track and current_album and self.player.is_playing and current_album.album_id == album.album_id:
+        if (
+            track
+            and current_album
+            and self.player.is_playing
+            and current_album.album_id == album.album_id
+        ):
             self.last_track_info = {
-                'album_id': current_album.album_id,
-                'track_index': self.player.current_track_index,
-                'title': track['title'],
-                'duration': track['duration_formatted']
+                "album_id": current_album.album_id,
+                "track_index": self.player.current_track_index,
+                "title": track["title"],
+                "duration": track["duration_formatted"],
             }
 
         # Text area (below album art)
@@ -2161,21 +2674,29 @@ class UI:
 
         if self.last_track_info:
             # Song title (large, centered at top)
-            title_text = self.large_font.render(self.last_track_info['title'], True, Colors.WHITE)
+            title_text = self.large_font.render(
+                self.last_track_info["title"], True, Colors.WHITE
+            )
             title_rect = title_text.get_rect(center=(x + width // 2, text_y + 35))
             self.screen.blit(title_text, title_rect)
 
             # Selection info (centered, below title) - medium font, smaller than title
             selection_text = self.medium_font.render(
                 f"Selection {self.last_track_info['album_id']:02d} {self.last_track_info['track_index'] + 1:02d}",
-                True, Colors.LIGHT_GRAY
+                True,
+                Colors.LIGHT_GRAY,
             )
-            selection_rect = selection_text.get_rect(center=(x + width // 2, text_y + 85))
+            selection_rect = selection_text.get_rect(
+                center=(x + width // 2, text_y + 85)
+            )
             self.screen.blit(selection_text, selection_rect)
         else:
             placeholder = self.medium_font.render("--", True, Colors.LIGHT_GRAY)
-            placeholder_rect = placeholder.get_rect(center=(x + width // 2, text_y + 35))
+            placeholder_rect = placeholder.get_rect(
+                center=(x + width // 2, text_y + 35)
+            )
             self.screen.blit(placeholder, placeholder_rect)
+
     def draw_number_pad_centered(self) -> None:
         """Draw number pad centered at bottom without overlapping audio controls"""
         # Scale keypad based on screen mode to maintain proportions
@@ -2189,7 +2710,7 @@ class UI:
         # Compute scaled dimensions
         base_button_w = 60  # Base button width
         base_button_h = 40  # Base button height
-        base_spacing = 8   # Base spacing
+        base_spacing = 8  # Base spacing
 
         pad_button_w = int(base_button_w * scale_factor)
         pad_button_h = int(base_button_h * scale_factor)
@@ -2211,10 +2732,12 @@ class UI:
             pad_x - border_padding,
             pad_y - border_padding - int(40 * scale_factor),
             total_width + border_padding * 2,
-            pad_button_h * 4 + spacing * 3 + int(60 * scale_factor)
+            pad_button_h * 4 + spacing * 3 + int(60 * scale_factor),
         )
         # Create semi-transparent surface
-        border_surface = pygame.Surface((border_rect.width, border_rect.height), pygame.SRCALPHA)
+        border_surface = pygame.Surface(
+            (border_rect.width, border_rect.height), pygame.SRCALPHA
+        )
         border_surface.fill((0, 0, 0, int(255 * 0.15)))  # Black at 15% opacity
         self.screen.blit(border_surface, border_rect.topleft)
 
@@ -2247,7 +2770,9 @@ class UI:
         # Draw label
         label_font = self.small_font
         pad_label = label_font.render("4-Digit Selection Pad:", True, Colors.WHITE)
-        label_rect = pad_label.get_rect(center=(self.width // 2, pad_y - int(25 * scale_factor)))
+        label_rect = pad_label.get_rect(
+            center=(self.width // 2, pad_y - int(25 * scale_factor))
+        )
         self.screen.blit(pad_label, label_rect)
 
         # Choose appropriate font for buttons based on scale
@@ -2311,8 +2836,12 @@ class UI:
         if self.selection_mode:
             selection_display = f"Selection: {self.selection_buffer:<4}"
             selection_color = Colors.YELLOW
-            selection_text = self.medium_font.render(selection_display, True, selection_color)
-            selection_rect = selection_text.get_rect(center=(self.width // 2, pad_y - 40))  # Adjusted position
+            selection_text = self.medium_font.render(
+                selection_display, True, selection_color
+            )
+            selection_rect = selection_text.get_rect(
+                center=(self.width // 2, pad_y - 40)
+            )  # Adjusted position
             self.screen.blit(selection_text, selection_rect)
 
     def draw_audio_controls(self) -> None:
@@ -2335,7 +2864,9 @@ class UI:
 
         # Draw section title
         theme_title = self.medium_font.render("Theme Selection", True, Colors.YELLOW)
-        theme_title_rect = theme_title.get_rect(center=(self.width // 2, theme_section_y - 30))
+        theme_title_rect = theme_title.get_rect(
+            center=(self.width // 2, theme_section_y - 30)
+        )
         self.screen.blit(theme_title, theme_title_rect)
 
         # Position theme buttons centered under the title and draw them
@@ -2409,8 +2940,11 @@ class UI:
             scaled_bg = pygame.transform.scale(bg, (preview_width - 4, 60))
             self.screen.blit(scaled_bg, (x + 2, y + 2))
         else:
-            pygame.draw.rect(self.screen, Colors.DARK_GRAY,
-                            pygame.Rect(x + 2, y + 2, preview_width - 4, 60))
+            pygame.draw.rect(
+                self.screen,
+                Colors.DARK_GRAY,
+                pygame.Rect(x + 2, y + 2, preview_width - 4, 60),
+            )
 
         # Draw sample button preview
         btn_preview_x = x + 20
@@ -2418,18 +2952,31 @@ class UI:
         btn_preview_width = 60
         btn_preview_height = 35
 
-        btn_color = theme.get_color('button', Colors.GRAY)
-        pygame.draw.rect(self.screen, btn_color,
-                        pygame.Rect(btn_preview_x, btn_preview_y, btn_preview_width, btn_preview_height))
-        pygame.draw.rect(self.screen, Colors.WHITE,
-                        pygame.Rect(btn_preview_x, btn_preview_y, btn_preview_width, btn_preview_height), 1)
+        btn_color = theme.get_color("button", Colors.GRAY)
+        pygame.draw.rect(
+            self.screen,
+            btn_color,
+            pygame.Rect(
+                btn_preview_x, btn_preview_y, btn_preview_width, btn_preview_height
+            ),
+        )
+        pygame.draw.rect(
+            self.screen,
+            Colors.WHITE,
+            pygame.Rect(
+                btn_preview_x, btn_preview_y, btn_preview_width, btn_preview_height
+            ),
+            1,
+        )
 
         # Draw sample slider preview
         slider_x = x + 90
         slider_y = y + 80
-        track_color = theme.get_color('slider_track', Colors.GRAY)
-        pygame.draw.rect(self.screen, track_color, pygame.Rect(slider_x, slider_y, 90, 4))
-        knob_color = theme.get_color('slider_knob', Colors.LIGHT_GRAY)
+        track_color = theme.get_color("slider_track", Colors.GRAY)
+        pygame.draw.rect(
+            self.screen, track_color, pygame.Rect(slider_x, slider_y, 90, 4)
+        )
+        knob_color = theme.get_color("slider_knob", Colors.LIGHT_GRAY)
         pygame.draw.circle(self.screen, knob_color, (slider_x + 45, slider_y + 2), 6)
 
         # Draw theme name
@@ -2458,7 +3005,16 @@ class UI:
         """Return cached album art surface or attempt to load one"""
         if album.album_id in self.album_art_cache:
             return self.album_art_cache[album.album_id]
-        candidates = ['cover.jpg','cover.png','folder.jpg','folder.png','album.jpg','album.png','art.jpg','art.png']
+        candidates = [
+            "cover.jpg",
+            "cover.png",
+            "folder.jpg",
+            "folder.png",
+            "album.jpg",
+            "album.png",
+            "art.jpg",
+            "art.png",
+        ]
         art_surface = None
         try:
             # Prefer robust loader which can use Pillow if pygame doesn't
@@ -2512,10 +3068,10 @@ class UI:
         line_height = 35
 
         config_items = [
-            ("Auto Play Next Track", self.config.get('auto_play_next')),
-            ("Shuffle Enabled", self.config.get('shuffle_enabled')),
-            ("Show Album Art", self.config.get('show_album_art')),
-            ("Keyboard Shortcuts", self.config.get('keyboard_shortcut_enabled')),
+            ("Auto Play Next Track", self.config.get("auto_play_next")),
+            ("Shuffle Enabled", self.config.get("shuffle_enabled")),
+            ("Show Album Art", self.config.get("show_album_art")),
+            ("Keyboard Shortcuts", self.config.get("keyboard_shortcut_enabled")),
             ("Fullscreen Mode", self.fullscreen),
         ]
 
@@ -2548,15 +3104,17 @@ class UI:
             self.screen.blit(info_text, (left_x + 20, y))
 
         # Show configured music directory (or default)
-        music_dir = self.config.get('music_dir')
+        music_dir = self.config.get("music_dir")
         if not music_dir:
-            if sys.platform.startswith('linux') or sys.platform == 'darwin':
-                music_dir = os.path.expanduser(os.path.join('~', 'Music', 'JukeBox'))
+            if sys.platform.startswith("linux") or sys.platform == "darwin":
+                music_dir = os.path.expanduser(os.path.join("~", "Music", "JukeBox"))
             else:
-                music_dir = os.path.join(os.path.dirname(__file__), '..', 'music')
+                music_dir = os.path.join(os.path.dirname(__file__), "..", "music")
 
         y = info_y + 40 + len(info_lines) * 25
-        md_text = self.small_font.render(f"Music folder: {music_dir}", True, Colors.LIGHT_GRAY)
+        md_text = self.small_font.render(
+            f"Music folder: {music_dir}", True, Colors.LIGHT_GRAY
+        )
         self.screen.blit(md_text, (left_x + 20, y))
 
         # Right Column - Actions (audio / visual kept on the right)
@@ -2577,7 +3135,9 @@ class UI:
         # Visual effects section (below audio effects, still aligned with right column)
         # move visual effects a bit lower to provide separation from audio effects
         visual_effects_y = effects_y + 85
-        visual_effects_header = self.medium_font.render("Visual Effects", True, Colors.YELLOW)
+        visual_effects_header = self.medium_font.render(
+            "Visual Effects", True, Colors.YELLOW
+        )
         self.screen.blit(visual_effects_header, (right_x, visual_effects_y))
 
         # Fullscreen button in Visual Effects section
@@ -2637,17 +3197,27 @@ class UI:
 
         # Draw messages
         if self.config_message and self.config_message_timer > 0:
-            msg_color = Colors.GREEN if "success" in self.config_message.lower() or "complete" in self.config_message.lower() else Colors.YELLOW
+            msg_color = (
+                Colors.GREEN
+                if "success" in self.config_message.lower()
+                or "complete" in self.config_message.lower()
+                else Colors.YELLOW
+            )
             message_text = self.medium_font.render(self.config_message, True, msg_color)
-            message_rect = message_text.get_rect(center=(self.width // 2, self.height - 60))
+            message_rect = message_text.get_rect(
+                center=(self.width // 2, self.height - 60)
+            )
             self.screen.blit(message_text, message_rect)
 
         # Draw instructions
         instructions = self.small_font.render(
             "ESC or Close button to exit | Alt+Enter: Toggle Fullscreen",
-            True, Colors.GRAY
+            True,
+            Colors.GRAY,
         )
-        instructions_rect = instructions.get_rect(center=(self.width // 2, self.height - 30))
+        instructions_rect = instructions.get_rect(
+            center=(self.width // 2, self.height - 30)
+        )
         self.screen.blit(instructions, instructions_rect)
 
         pygame.display.flip()
@@ -2673,9 +3243,9 @@ class UI:
             frame_count += 1
 
         # Persist window size on exit
-        self.config.set('window_width', self.width)
-        self.config.set('window_height', self.height)
-        self.config.set('fullscreen', self.fullscreen)
+        self.config.set("window_width", self.width)
+        self.config.set("window_height", self.height)
+        self.config.set("fullscreen", self.fullscreen)
 
     def toggle_fullscreen(self) -> None:
         """Toggle between fullscreen and windowed mode"""
@@ -2689,12 +3259,14 @@ class UI:
             self.height = self.screen.get_height()
         else:
             # Switch to windowed mode
-            windowed_width = self.config.get('window_width', 1200)
-            windowed_height = self.config.get('window_height', 800)
+            windowed_width = self.config.get("window_width", 1200)
+            windowed_height = self.config.get("window_height", 800)
             self.width = windowed_width
             self.height = windowed_height
-            self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+            self.screen = pygame.display.set_mode(
+                (self.width, self.height), pygame.RESIZABLE
+            )
 
         # Save fullscreen state
-        self.config.set('fullscreen', self.fullscreen)
+        self.config.set("fullscreen", self.fullscreen)
         print(f"Switched to {'fullscreen' if self.fullscreen else 'windowed'} mode")

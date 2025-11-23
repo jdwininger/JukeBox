@@ -6,13 +6,15 @@ Demonstrates the complete JukeBox application with all features
 
 import os
 import sys
+
 import pygame
+
 from src.album_library import AlbumLibrary
-from src.player import MusicPlayer
+from src.audio_effects import Equalizer
 from src.config import Config
+from src.player import MusicPlayer
 from src.theme import ThemeManager
 from src.ui import UI
-from src.audio_effects import Equalizer
 
 
 def display_banner():
@@ -38,6 +40,7 @@ def check_dependencies():
 
     try:
         import numpy
+
         print("  ✓ numpy - for real-time audio processing")
     except ImportError:
         print("  ✗ numpy - REQUIRED for equalizer functionality")
@@ -45,6 +48,7 @@ def check_dependencies():
 
     try:
         import scipy
+
         print("  ✓ scipy - for frequency band filtering")
     except ImportError:
         print("  ✗ scipy - REQUIRED for equalizer functionality")
@@ -52,6 +56,7 @@ def check_dependencies():
 
     try:
         import pygame
+
         print("  ✓ pygame - for audio playback and UI")
     except ImportError:
         print("  ✗ pygame - REQUIRED for music playback")
@@ -59,14 +64,16 @@ def check_dependencies():
 
     try:
         import mutagen
+
         print("  ✓ mutagen - for metadata extraction")
     except ImportError:
         print("  ✗ mutagen - REQUIRED for music file parsing")
         return False
 
     try:
-        import svglib
         import reportlab
+        import svglib
+
         print("  ✓ svglib/reportlab - for theme system")
     except ImportError:
         print("  ✗ svglib/reportlab - REQUIRED for theme backgrounds")
@@ -82,18 +89,18 @@ def setup_library():
     # to follow common user expectations; fall back to a project-local
     # `music/` folder on other platforms or when a different layout is desired.
     program_dir = os.path.dirname(__file__)
-    if sys.platform.startswith('linux') or sys.platform == 'darwin':
-            # Check for user-configured music_dir in config (if quickstart is being used
-            # outside of the full UI the user can still benefit from previously saved
-            # settings). If the setting exists use it, otherwise use the platform default.
-            cfg = Config()
-            cfg_music_dir = cfg.get('music_dir')
-            if cfg_music_dir:
-                music_dir = os.path.expanduser(cfg_music_dir)
-            else:
-                music_dir = os.path.expanduser(os.path.join('~', 'Music', 'JukeBox'))
+    if sys.platform.startswith("linux") or sys.platform == "darwin":
+        # Check for user-configured music_dir in config (if quickstart is being used
+        # outside of the full UI the user can still benefit from previously saved
+        # settings). If the setting exists use it, otherwise use the platform default.
+        cfg = Config()
+        cfg_music_dir = cfg.get("music_dir")
+        if cfg_music_dir:
+            music_dir = os.path.expanduser(cfg_music_dir)
+        else:
+            music_dir = os.path.expanduser(os.path.join("~", "Music", "JukeBox"))
     else:
-        music_dir = os.path.join(program_dir, 'music')
+        music_dir = os.path.join(program_dir, "music")
 
     print(f"Setting up music library...")
     print(f"Library directory: {music_dir}")
@@ -208,10 +215,10 @@ def launch_application():
         config = Config()
 
         # Initialize theme system
-        theme_dir = os.path.join(os.path.dirname(__file__), 'themes')
+        theme_dir = os.path.join(os.path.dirname(__file__), "themes")
         theme_manager = ThemeManager(theme_dir)
         theme_manager.discover_themes()
-        theme_name = config.get('theme', 'dark')
+        theme_name = config.get("theme", "dark")
 
         if not theme_manager.set_current_theme(theme_name):
             available = theme_manager.get_available_themes()
@@ -220,7 +227,7 @@ def launch_application():
                 print(f"   Using theme: {available[0]}")
 
         # Setup library
-        music_dir = os.path.join(os.path.dirname(__file__), 'music')
+        music_dir = os.path.join(os.path.dirname(__file__), "music")
         library = AlbumLibrary(music_dir)
         library.scan_library()
 
@@ -244,15 +251,28 @@ def launch_application():
 
         # Detect common case where pygame was built without audio/mixer support
         err_msg = str(e).lower()
-        if 'mixer module not available' in err_msg or 'no module named \"pygame.mixer\"' in err_msg:
-            print('\n🩺 Diagnostic: The pygame.mixer module was not found. This usually means SDL_mixer or system audio libraries were missing when pygame was installed.')
-            print('\n🔧 Quick fixes (pick one for your distro):')
-            print('\n  Debian/Ubuntu:')
-            print('    sudo apt-get update && sudo apt-get install -y libsdl2-dev libsdl2-mixer-dev libsndfile1-dev')
-            print('\n  Fedora/RPM:')
-            print('    sudo dnf install -y SDL2-devel SDL2_mixer SDL2_mixer-devel libsndfile-devel')
-            print('\n  After installing system packages, reinstall pygame inside your virtualenv:')
-            print(f"    {sys.executable} -m pip install --upgrade --force-reinstall --no-cache-dir pygame")
+        if (
+            "mixer module not available" in err_msg
+            or 'no module named "pygame.mixer"' in err_msg
+        ):
+            print(
+                "\n🩺 Diagnostic: The pygame.mixer module was not found. This usually means SDL_mixer or system audio libraries were missing when pygame was installed."
+            )
+            print("\n🔧 Quick fixes (pick one for your distro):")
+            print("\n  Debian/Ubuntu:")
+            print(
+                "    sudo apt-get update && sudo apt-get install -y libsdl2-dev libsdl2-mixer-dev libsndfile1-dev"
+            )
+            print("\n  Fedora/RPM:")
+            print(
+                "    sudo dnf install -y SDL2-devel SDL2_mixer SDL2_mixer-devel libsndfile-devel"
+            )
+            print(
+                "\n  After installing system packages, reinstall pygame inside your virtualenv:"
+            )
+            print(
+                f"    {sys.executable} -m pip install --upgrade --force-reinstall --no-cache-dir pygame"
+            )
         else:
             print(f"   Try running: make run")
 
@@ -263,20 +283,39 @@ def main():
 
     import argparse
 
-    parser = argparse.ArgumentParser(prog='quickstart', add_help=False)
-    parser.add_argument('--diagnose', action='store_true', help='Run system diagnostics and exit')
-    parser.add_argument('--fix', action='store_true', help='Run diagnostics and interactively attempt suggested fixes')
-    parser.add_argument('--autofix', action='store_true', help='Run diagnostics and automatically attempt suggested fixes (no prompts)')
-    parser.add_argument('--autofix-yes', dest='autofix_yes', action='store_true', help='Skip confirmation when using --autofix')
-    parser.add_argument('--preview-fix', action='store_true', help='Run diagnostics and only show commands that would be executed (preview only)')
+    parser = argparse.ArgumentParser(prog="quickstart", add_help=False)
+    parser.add_argument(
+        "--diagnose", action="store_true", help="Run system diagnostics and exit"
+    )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Run diagnostics and interactively attempt suggested fixes",
+    )
+    parser.add_argument(
+        "--autofix",
+        action="store_true",
+        help="Run diagnostics and automatically attempt suggested fixes (no prompts)",
+    )
+    parser.add_argument(
+        "--autofix-yes",
+        dest="autofix_yes",
+        action="store_true",
+        help="Skip confirmation when using --autofix",
+    )
+    parser.add_argument(
+        "--preview-fix",
+        action="store_true",
+        help="Run diagnostics and only show commands that would be executed (preview only)",
+    )
     args, _ = parser.parse_known_args()
 
     if args.diagnose or args.fix or args.autofix:
         # Run interactive diagnostics and exit
         try:
-            from src.diagnostics import run_diagnostics, print_diagnostics
+            from src.diagnostics import print_diagnostics, run_diagnostics
         except Exception as e:
-            print('Diagnostics unavailable:', e)
+            print("Diagnostics unavailable:", e)
             sys.exit(2)
 
         res = run_diagnostics()
@@ -287,7 +326,7 @@ def main():
             try:
                 from src.diagnostics import interactive_fix_pick
             except Exception as e:
-                print('Fixer helper unavailable:', e)
+                print("Fixer helper unavailable:", e)
                 sys.exit(2)
 
             # Preview-only mode (do not execute)
@@ -295,11 +334,11 @@ def main():
                 try:
                     from src.diagnostics import preview_fix_commands
                 except Exception as e:
-                    print('Preview helper unavailable:', e)
+                    print("Preview helper unavailable:", e)
                     sys.exit(2)
 
                 preview = preview_fix_commands(res)
-                print('\nPreview commands (no actions performed):')
+                print("\nPreview commands (no actions performed):")
                 for area, cmds in preview.items():
                     print(f"\n{area}:")
                     for c in cmds:
@@ -309,17 +348,18 @@ def main():
                 # If automatic mode, ask for a final confirmation unless --autofix-yes
                 if args.autofix:
                     try:
-                        from src.diagnostics import preview_fix_commands, perform_fix
+                        from src.diagnostics import (perform_fix,
+                                                     preview_fix_commands)
                     except Exception as e:
-                        print('Fixer helper unavailable:', e)
+                        print("Fixer helper unavailable:", e)
                         sys.exit(2)
 
                     to_run = preview_fix_commands(res)
                     if not to_run:
-                        print('No suggested commands to run.')
+                        print("No suggested commands to run.")
                         results = {}
                     else:
-                        print('\nCommands that would be executed:')
+                        print("\nCommands that would be executed:")
                         for area, cmds in to_run.items():
                             print(f"\n{area}:")
                             for c in cmds:
@@ -329,9 +369,9 @@ def main():
                         if args.autofix_yes:
                             do_it = True
                         else:
-                            print('\nProceed to run the commands above? (y/N):')
-                            answer = input('> ').strip().lower()
-                            if answer in ('y', 'yes'):
+                            print("\nProceed to run the commands above? (y/N):")
+                            answer = input("> ").strip().lower()
+                            if answer in ("y", "yes"):
                                 do_it = True
 
                         run_results = {}
@@ -341,15 +381,22 @@ def main():
                                 for cmd in cmds:
                                     print(f"Running: {cmd}")
                                     rc, out, err = perform_fix(cmd, capture_output=True)
-                                    area_results.append({'command': cmd, 'rc': rc, 'stdout': out, 'stderr': err})
+                                    area_results.append(
+                                        {
+                                            "command": cmd,
+                                            "rc": rc,
+                                            "stdout": out,
+                                            "stderr": err,
+                                        }
+                                    )
                                 run_results[area] = area_results
                         results = run_results
                 else:
                     results = interactive_fix_pick(res, auto_accept=auto)
-            print('\nFixer results:')
+            print("\nFixer results:")
             for area, runs in results.items():
                 for entry in runs:
-                    status = 'OK' if entry['rc'] == 0 else f'ERR({entry["rc"]})'
+                    status = "OK" if entry["rc"] == 0 else f'ERR({entry["rc"]})'
                     print(f"  {area}: {status} - {entry['command']}")
         sys.exit(0)
 
@@ -367,7 +414,7 @@ def main():
 
     # Export library data
     print(f"\n📄 Exporting library data...")
-    export_path = os.path.join(os.path.dirname(__file__), 'library_export.csv')
+    export_path = os.path.join(os.path.dirname(__file__), "library_export.csv")
     if library.export_to_csv(export_path):
         print(f"  ✓ Library data exported to: {export_path}")
     else:
@@ -376,7 +423,7 @@ def main():
     # Offer to launch full application
     print(f"\n{'='*70}")
     choice = input("🎵 Launch full JukeBox application? (y/N): ").lower().strip()
-    if choice in ['y', 'yes']:
+    if choice in ["y", "yes"]:
         launch_application()
     else:
         print(f"\n💡 To launch JukeBox manually, run:")
@@ -386,5 +433,5 @@ def main():
         print(f"\n👋 Quickstart complete!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

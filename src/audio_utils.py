@@ -25,13 +25,13 @@ def is_mixer_available() -> bool:
         # The mixer submodule may not be present if pygame was built without
         # SDL_mixer or related system libs. Accessing pygame.mixer may raise
         # ModuleNotFoundError on some systems — handle that gracefully.
-        mixer = getattr(pygame, 'mixer', None)
+        mixer = getattr(pygame, "mixer", None)
         if mixer is None:
             return False
 
         # Confirm at least that expected callables are available
-        has_music = hasattr(mixer, 'music')
-        has_get_init = hasattr(mixer, 'get_init')
+        has_music = hasattr(mixer, "music")
+        has_get_init = hasattr(mixer, "get_init")
         return bool(has_music and has_get_init)
     except ModuleNotFoundError:
         return False

@@ -7,8 +7,7 @@ information used by the config preview modal.
 import os
 from typing import Dict, List
 
-
-SUPPORTED = ('.mp3', '.wav', '.ogg', '.flac')
+SUPPORTED = (".mp3", ".wav", ".ogg", ".flac")
 
 
 def preview_music_directory(path: str, max_items: int = 10) -> Dict:
@@ -22,21 +21,21 @@ def preview_music_directory(path: str, max_items: int = 10) -> Dict:
       - audio_files_count: int - total number of audio files in path (recursive)
     """
     result: Dict = {
-        'exists': False,
-        'is_dir': False,
-        'album_slots': [],
-        'sample_files': [],
-        'audio_files_count': 0,
+        "exists": False,
+        "is_dir": False,
+        "album_slots": [],
+        "sample_files": [],
+        "audio_files_count": 0,
     }
 
     if not path:
         return result
 
     path = os.path.expanduser(path)
-    result['exists'] = os.path.exists(path)
-    result['is_dir'] = os.path.isdir(path)
+    result["exists"] = os.path.exists(path)
+    result["is_dir"] = os.path.isdir(path)
 
-    if not result['exists'] or not result['is_dir']:
+    if not result["exists"] or not result["is_dir"]:
         return result
 
     # Check for numbered album slots 01..52
@@ -45,7 +44,7 @@ def preview_music_directory(path: str, max_items: int = 10) -> Dict:
         sub = os.path.join(path, f"{i:02d}")
         if os.path.isdir(sub):
             slots.append(f"{i:02d}")
-    result['album_slots'] = slots
+    result["album_slots"] = slots
 
     # Gather first-level files (non-recursive) and count audio files recursively
     sample = []
@@ -67,8 +66,8 @@ def preview_music_directory(path: str, max_items: int = 10) -> Dict:
             # Stop further deep walking if we've counted far enough
             # (but we still want accurate counts; keep walking)
 
-        result['audio_files_count'] = audio_count
-        result['sample_files'] = sample[:max_items]
+        result["audio_files_count"] = audio_count
+        result["sample_files"] = sample[:max_items]
     except Exception:
         # On any error, return partial results
         pass
@@ -86,14 +85,19 @@ def list_directory(path: str) -> Dict:
       - entries: list of dicts {name, is_dir, size, mtime}
     The entries list sorts directories first (alphabetical) then files.
     """
-    out = {'path': os.path.expanduser(path), 'exists': False, 'is_dir': False, 'entries': []}
+    out = {
+        "path": os.path.expanduser(path),
+        "exists": False,
+        "is_dir": False,
+        "entries": [],
+    }
 
-    p = out['path']
+    p = out["path"]
     if not os.path.exists(p):
         return out
-    out['exists'] = True
-    out['is_dir'] = os.path.isdir(p)
-    if not out['is_dir']:
+    out["exists"] = True
+    out["is_dir"] = os.path.isdir(p)
+    if not out["is_dir"]:
         return out
 
     try:
@@ -104,14 +108,16 @@ def list_directory(path: str) -> Dict:
                 is_dir = os.path.isdir(fp)
                 size = os.path.getsize(fp) if os.path.isfile(fp) else 0
                 mtime = os.path.getmtime(fp)
-                items.append({'name': name, 'is_dir': is_dir, 'size': size, 'mtime': mtime})
+                items.append(
+                    {"name": name, "is_dir": is_dir, "size": size, "mtime": mtime}
+                )
             except Exception:
                 # skip unreadable entries
                 continue
 
         # Sort directories first, then files, both alphabetically
-        items.sort(key=lambda e: (not e['is_dir'], e['name'].lower()))
-        out['entries'] = items
+        items.sort(key=lambda e: (not e["is_dir"], e["name"].lower()))
+        out["entries"] = items
     except Exception:
         # On error, return what we have
         pass

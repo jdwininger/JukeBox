@@ -3,13 +3,14 @@
 Test script to extract album art from all albums
 """
 
-import sys
 import os
+import sys
 
 # Add src to path
-sys.path.append('src')
+sys.path.append("src")
 
 from album_library import AlbumLibrary
+
 
 def main():
     print("Album Art Extraction Test")
@@ -31,6 +32,7 @@ def main():
 
     print(f"\nExtraction complete!")
     print(f"Results: {stats}")
+
 
 if __name__ == "__main__":
     main()

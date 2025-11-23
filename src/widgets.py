@@ -1,15 +1,26 @@
 """
 UI Widgets Module - Reusable UI components for the interface
 """
+from typing import Optional, Tuple
+
 import pygame
-from typing import Tuple, Optional
 
 
 class Slider:
     """Horizontal slider widget for value adjustment"""
 
-    def __init__(self, x: int, y: int, width: int, height: int, min_val: float = 0.0,
-                 max_val: float = 100.0, initial_val: float = 50.0, label: str = "", theme=None):
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        min_val: float = 0.0,
+        max_val: float = 100.0,
+        initial_val: float = 50.0,
+        label: str = "",
+        theme=None,
+    ):
         """
         Initialize slider
 
@@ -87,10 +98,14 @@ class Slider:
             self.value = self._clamp(self._x_to_value(pos[0]))
             self.update_knob_position()
 
-    def draw(self, surface: pygame.Surface, font: pygame.font.Font = None,
-             track_color: Tuple[int, int, int] = (100, 100, 100),
-             knob_color: Tuple[int, int, int] = (200, 200, 200),
-             fill_color: Tuple[int, int, int] = (100, 200, 100)) -> None:
+    def draw(
+        self,
+        surface: pygame.Surface,
+        font: pygame.font.Font = None,
+        track_color: Tuple[int, int, int] = (100, 100, 100),
+        knob_color: Tuple[int, int, int] = (200, 200, 200),
+        fill_color: Tuple[int, int, int] = (100, 200, 100),
+    ) -> None:
         """
         Draw the slider
 
@@ -102,7 +117,9 @@ class Slider:
             fill_color: Color of the filled portion
         """
         # Recompute geometry in case external code changed x/y/width/height before draw
-        self.track_rect = pygame.Rect(self.x, self.y + self.height // 2 - 9, self.width, 18)
+        self.track_rect = pygame.Rect(
+            self.x, self.y + self.height // 2 - 9, self.width, 18
+        )
         # Adjust knob radius based on current height - 32x48 pixel knobs
         self.knob_radius = max(self.height + 6, 16)  # 16 radius = 32px diameter
         # Preserve current value center when resizing
@@ -112,20 +129,28 @@ class Slider:
 
         # Use theme colors if available
         if self.theme:
-            track_color = self.theme.get_color('slider_track', track_color)
-            knob_color = self.theme.get_color('slider_knob', knob_color)
-            fill_color = self.theme.get_color('accent', fill_color)
+            track_color = self.theme.get_color("slider_track", track_color)
+            knob_color = self.theme.get_color("slider_knob", knob_color)
+            fill_color = self.theme.get_color("accent", fill_color)
 
         # Draw fill (value portion)
         fill_width = self.knob_rect.centerx - self.track_rect.x
-        fill_rect = pygame.Rect(self.track_rect.x, self.track_rect.y, fill_width, self.track_rect.height)
+        fill_rect = pygame.Rect(
+            self.track_rect.x, self.track_rect.y, fill_width, self.track_rect.height
+        )
         pygame.draw.rect(surface, fill_color, fill_rect)
 
         # Draw track - use theme image if available, otherwise colored rectangle
-        if self.theme and hasattr(self.theme, 'slider_track') and self.theme.slider_track:
+        if (
+            self.theme
+            and hasattr(self.theme, "slider_track")
+            and self.theme.slider_track
+        ):
             # Use PNG image from theme for horizontal track
             track_image = self.theme.slider_track
-            scaled_track = pygame.transform.scale(track_image, (self.track_rect.width, self.track_rect.height))
+            scaled_track = pygame.transform.scale(
+                track_image, (self.track_rect.width, self.track_rect.height)
+            )
             surface.blit(scaled_track, self.track_rect)
         else:
             # Fall back to colored rectangles
@@ -133,25 +158,33 @@ class Slider:
             pygame.draw.rect(surface, (255, 255, 255), self.track_rect, 1)
 
         # Draw knob - use theme image if available, otherwise colored circle
-        if self.theme and hasattr(self.theme, 'slider_knob') and self.theme.slider_knob:
+        if self.theme and hasattr(self.theme, "slider_knob") and self.theme.slider_knob:
             # Use PNG image from theme - allow up to 64x128 for horizontal sliders
             knob_image = self.theme.slider_knob
             # Scale image to fit knob size, 32x48 for horizontal sliders
             knob_width = 32
             knob_height = 48
-            scaled_knob = pygame.transform.smoothscale(knob_image, (knob_width, knob_height))
+            scaled_knob = pygame.transform.smoothscale(
+                knob_image, (knob_width, knob_height)
+            )
 
             # Center the image on the knob position
             knob_rect = scaled_knob.get_rect(center=self.knob_rect.center)
             surface.blit(scaled_knob, knob_rect)
         else:
             # Fall back to colored circle
-            pygame.draw.circle(surface, knob_color, self.knob_rect.center, self.knob_radius)
-            pygame.draw.circle(surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2)
+            pygame.draw.circle(
+                surface, knob_color, self.knob_rect.center, self.knob_radius
+            )
+            pygame.draw.circle(
+                surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2
+            )
 
         # Draw label and value
         if font and self.label:
-            label_text = font.render(f"{self.label}: {self.value:.1f}", True, (255, 255, 255))
+            label_text = font.render(
+                f"{self.label}: {self.value:.1f}", True, (255, 255, 255)
+            )
             surface.blit(label_text, (self.x, self.y - 25))
 
     def get_value(self) -> float:
@@ -167,10 +200,22 @@ class Slider:
 class VerticalSlider(Slider):
     """Vertical slider widget for value adjustment"""
 
-    def __init__(self, x: int, y: int, width: int, height: int, min_val: float = 0.0,
-                 max_val: float = 100.0, initial_val: float = 50.0, label: str = "", theme=None):
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        min_val: float = 0.0,
+        max_val: float = 100.0,
+        initial_val: float = 50.0,
+        label: str = "",
+        theme=None,
+    ):
         """Initialize vertical slider"""
-        super().__init__(x, y, width, height, min_val, max_val, initial_val, label, theme)
+        super().__init__(
+            x, y, width, height, min_val, max_val, initial_val, label, theme
+        )
         # Override knob sizing for vertical orientation (use width not height) - 32x48 pixel knobs
         self.knob_radius = max(width + 6, 16)  # 16 radius = 32px diameter
         self.knob_rect = pygame.Rect(0, 0, self.knob_radius * 2, self.knob_radius * 2)
@@ -207,13 +252,19 @@ class VerticalSlider(Slider):
             self.value = self._clamp(self._y_to_value(pos[1]))
             self.update_knob_position()
 
-    def draw(self, surface: pygame.Surface, font: pygame.font.Font = None,
-             track_color: Tuple[int, int, int] = (100, 100, 100),
-             knob_color: Tuple[int, int, int] = (200, 200, 200),
-             fill_color: Tuple[int, int, int] = (100, 200, 100)) -> None:
+    def draw(
+        self,
+        surface: pygame.Surface,
+        font: pygame.font.Font = None,
+        track_color: Tuple[int, int, int] = (100, 100, 100),
+        knob_color: Tuple[int, int, int] = (200, 200, 200),
+        fill_color: Tuple[int, int, int] = (100, 200, 100),
+    ) -> None:
         """Draw the vertical slider"""
         # Recompute geometry in case x/y/height/width changed externally
-        self.track_rect = pygame.Rect(self.x + self.width // 2 - 9, self.y, 18, self.height)
+        self.track_rect = pygame.Rect(
+            self.x + self.width // 2 - 9, self.y, 18, self.height
+        )
         # Use same knob radius as horizontal sliders - 32x48 pixel knobs for consistency
         self.knob_radius = max(self.width + 6, 16)  # 16 radius = 32px diameter
         # Preserve current value center when resizing
@@ -223,26 +274,42 @@ class VerticalSlider(Slider):
 
         # Use theme colors if available
         if self.theme:
-            track_color = self.theme.get_color('slider_track', track_color)
-            knob_color = self.theme.get_color('slider_knob', knob_color)
-            fill_color = self.theme.get_color('accent', fill_color)
+            track_color = self.theme.get_color("slider_track", track_color)
+            knob_color = self.theme.get_color("slider_knob", knob_color)
+            fill_color = self.theme.get_color("accent", fill_color)
 
         # Draw fill (value portion)
         fill_height = self.y + self.height - self.knob_rect.centery
-        fill_rect = pygame.Rect(self.track_rect.x, self.knob_rect.centery,
-                               self.track_rect.width, fill_height)
+        fill_rect = pygame.Rect(
+            self.track_rect.x,
+            self.knob_rect.centery,
+            self.track_rect.width,
+            fill_height,
+        )
         pygame.draw.rect(surface, fill_color, fill_rect)
 
         # Draw track - use theme image if available, otherwise colored rectangle
-        if self.theme and hasattr(self.theme, 'slider_track_vertical') and self.theme.slider_track_vertical:
+        if (
+            self.theme
+            and hasattr(self.theme, "slider_track_vertical")
+            and self.theme.slider_track_vertical
+        ):
             # Use PNG image from theme for vertical track
             track_image = self.theme.slider_track_vertical
-            scaled_track = pygame.transform.scale(track_image, (self.track_rect.width, self.track_rect.height))
+            scaled_track = pygame.transform.scale(
+                track_image, (self.track_rect.width, self.track_rect.height)
+            )
             surface.blit(scaled_track, self.track_rect)
-        elif self.theme and hasattr(self.theme, 'slider_track') and self.theme.slider_track:
+        elif (
+            self.theme
+            and hasattr(self.theme, "slider_track")
+            and self.theme.slider_track
+        ):
             # Fall back to horizontal track image if vertical not available
             track_image = self.theme.slider_track
-            scaled_track = pygame.transform.scale(track_image, (self.track_rect.width, self.track_rect.height))
+            scaled_track = pygame.transform.scale(
+                track_image, (self.track_rect.width, self.track_rect.height)
+            )
             surface.blit(scaled_track, self.track_rect)
         else:
             # Fall back to colored rectangles
@@ -250,23 +317,31 @@ class VerticalSlider(Slider):
             pygame.draw.rect(surface, (255, 255, 255), self.track_rect, 1)
 
         # Draw knob - use theme image if available, otherwise colored circle
-        if self.theme and hasattr(self.theme, 'slider_knob') and self.theme.slider_knob:
+        if self.theme and hasattr(self.theme, "slider_knob") and self.theme.slider_knob:
             # Use PNG image from theme - allow up to 64x128 for vertical sliders
             knob_image = self.theme.slider_knob
             # Scale image to fit knob size, 32x48 for vertical sliders
             knob_width = 32
             knob_height = 48
-            scaled_knob = pygame.transform.smoothscale(knob_image, (knob_width, knob_height))
+            scaled_knob = pygame.transform.smoothscale(
+                knob_image, (knob_width, knob_height)
+            )
 
             # Center the image on the knob position
             knob_rect = scaled_knob.get_rect(center=self.knob_rect.center)
             surface.blit(scaled_knob, knob_rect)
         else:
             # Fall back to colored circle
-            pygame.draw.circle(surface, knob_color, self.knob_rect.center, self.knob_radius)
-            pygame.draw.circle(surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2)
+            pygame.draw.circle(
+                surface, knob_color, self.knob_rect.center, self.knob_radius
+            )
+            pygame.draw.circle(
+                surface, (255, 255, 255), self.knob_rect.center, self.knob_radius, 2
+            )
 
         # Draw label and value
         if font and self.label:
-            label_text = font.render(f"{self.label}: {self.value:.1f}", True, (255, 255, 255))
+            label_text = font.render(
+                f"{self.label}: {self.value:.1f}", True, (255, 255, 255)
+            )
             surface.blit(label_text, (self.x - 100, self.y - 15))

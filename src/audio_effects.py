@@ -1,13 +1,14 @@
 """
 Audio Effects Module - Handles equalizer and audio effects
 """
-from typing import List, Dict, Optional
-import pygame
-import numpy as np
-from scipy.signal import butter, filtfilt
-import tempfile
 import os
+import tempfile
 import wave
+from typing import Dict, List, Optional
+
+import numpy as np
+import pygame
+from scipy.signal import butter, filtfilt
 
 
 class Equalizer:
@@ -70,7 +71,9 @@ class Equalizer:
         # Calculate weighted volume adjustment
         # Give more weight to mid-range frequencies for perceived loudness
         weights = [0.8, 1.2, 1.5, 1.2, 0.8]  # Mid frequencies have more impact
-        weighted_gain = sum(gain * weight for gain, weight in zip(self.gains, weights)) / sum(weights)
+        weighted_gain = sum(
+            gain * weight for gain, weight in zip(self.gains, weights)
+        ) / sum(weights)
 
         # Convert dB to linear factor (clamped to reasonable range)
         self._volume_adjustment = max(0.1, min(2.0, 10 ** (weighted_gain / 20.0)))
@@ -82,11 +85,11 @@ class Equalizer:
     def get_frequency_emphasis(self) -> Dict[str, float]:
         """Get frequency emphasis for visual feedback"""
         return {
-            'bass': max(0.0, self.gains[0]),      # 60 Hz
-            'low_mid': max(0.0, self.gains[1]),   # 250 Hz
-            'mid': max(0.0, self.gains[2]),       # 1 kHz
-            'high_mid': max(0.0, self.gains[3]),  # 4 kHz
-            'treble': max(0.0, self.gains[4])     # 16 kHz
+            "bass": max(0.0, self.gains[0]),  # 60 Hz
+            "low_mid": max(0.0, self.gains[1]),  # 250 Hz
+            "mid": max(0.0, self.gains[2]),  # 1 kHz
+            "high_mid": max(0.0, self.gains[3]),  # 4 kHz
+            "treble": max(0.0, self.gains[4]),  # 16 kHz
         }
 
     def apply_to_volume(self, base_volume: float) -> float:
@@ -104,8 +107,7 @@ class Equalizer:
 
     def has_changes(self, file_path: str) -> bool:
         """Check if the equalizer settings have changed since last processing"""
-        return (self._last_processed_file != file_path or
-                self._last_gains != self.gains)
+        return self._last_processed_file != file_path or self._last_gains != self.gains
 
     def process_file(self, input_file: str) -> Optional[str]:
         """
@@ -123,11 +125,18 @@ class Equalizer:
         # Check if settings changed
         if self.has_changes(input_file):
             emphasis = self.get_frequency_emphasis()
-            active_bands = [name for i, name in enumerate(['Bass', 'Low-Mid', 'Mid', 'High-Mid', 'Treble'])
-                          if abs(self.get_band(i)) > 0.1]
+            active_bands = [
+                name
+                for i, name in enumerate(
+                    ["Bass", "Low-Mid", "Mid", "High-Mid", "Treble"]
+                )
+                if abs(self.get_band(i)) > 0.1
+            ]
 
             if active_bands:
-                print(f"Equalizer active: {', '.join(active_bands)} enhanced (Volume adjustment: {self._volume_adjustment:.2f}x)")
+                print(
+                    f"Equalizer active: {', '.join(active_bands)} enhanced (Volume adjustment: {self._volume_adjustment:.2f}x)"
+                )
 
             self._last_processed_file = input_file
             self._last_gains = self.gains.copy()
@@ -157,10 +166,10 @@ class Equalizer:
     def get_presets(self) -> Dict[str, callable]:
         """Get available presets"""
         return {
-            'Flat': self.preset_flat,
-            'Bass Boost': self.preset_bass_boost,
-            'Treble Boost': self.preset_treble_boost,
-            'Vocal': self.preset_vocal,
+            "Flat": self.preset_flat,
+            "Bass Boost": self.preset_bass_boost,
+            "Treble Boost": self.preset_treble_boost,
+            "Vocal": self.preset_vocal,
         }
 
 

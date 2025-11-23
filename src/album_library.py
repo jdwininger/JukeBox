@@ -1,9 +1,10 @@
 """
 Album Manager Module - Manages albums in numbered directories and exports metadata to CSV
 """
-import os
 import csv
+import os
 from typing import Dict, List, Optional
+
 from src.metadata import MetadataReader
 
 
@@ -59,11 +60,11 @@ class Album:
 
                 # Use first track to set album artist if not set
                 if self.artist == "Unknown":
-                    self.artist = metadata['artist']
+                    self.artist = metadata["artist"]
 
         # Set album title from first track if available
         if self.tracks and self.title == "Unknown":
-            self.title = self.tracks[0].get('album', 'Unknown')
+            self.title = self.tracks[0].get("album", "Unknown")
 
         self.is_valid = len(self.tracks) > 0
         return self.is_valid
@@ -80,8 +81,8 @@ class Album:
 
         # Get the first track file path
         first_track = self.tracks[0]
-        track_path = os.path.join(self.directory, first_track['filename'])
-        cover_path = os.path.join(self.directory, 'cover.jpg')
+        track_path = os.path.join(self.directory, first_track["filename"])
+        cover_path = os.path.join(self.directory, "cover.jpg")
 
         # Skip if cover.jpg already exists
         if os.path.exists(cover_path):
@@ -90,10 +91,14 @@ class Album:
 
         # Try to extract embedded art
         if MetadataReader.extract_album_art(track_path, cover_path):
-            print(f"Album {self.album_id:02d}: Extracted cover art from {first_track['filename']}")
+            print(
+                f"Album {self.album_id:02d}: Extracted cover art from {first_track['filename']}"
+            )
             return True
         else:
-            print(f"Album {self.album_id:02d}: No embedded art found in {first_track['filename']}")
+            print(
+                f"Album {self.album_id:02d}: No embedded art found in {first_track['filename']}"
+            )
             return False
 
     def to_csv_rows(self) -> List[List[str]]:
@@ -104,17 +109,13 @@ class Album:
             List of rows: first is header, rest are tracks
         """
         rows = [
-            ['Artist', self.artist],
-            ['Album', self.title],
-            ['Track #', 'Title', 'Duration']
+            ["Artist", self.artist],
+            ["Album", self.title],
+            ["Track #", "Title", "Duration"],
         ]
 
         for i, track in enumerate(self.tracks, 1):
-            rows.append([
-                str(i),
-                track['title'],
-                track['duration_formatted']
-            ])
+            rows.append([str(i), track["title"], track["duration_formatted"]])
 
         return rows
 
@@ -162,7 +163,9 @@ class AlbumLibrary:
 
             if album.scan():
                 self.albums[i] = album
-                print(f"Album {i:02d}: {album.artist} - {album.title} ({len(album.tracks)} tracks)")
+                print(
+                    f"Album {i:02d}: {album.artist} - {album.title} ({len(album.tracks)} tracks)"
+                )
 
     def get_album(self, album_id: int) -> Optional[Album]:
         """
@@ -204,7 +207,7 @@ class AlbumLibrary:
             True if export successful, False otherwise
         """
         try:
-            with open(output_file, 'w', newline='', encoding='utf-8') as f:
+            with open(output_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
 
                 for album in self.get_albums():
@@ -237,7 +240,7 @@ class AlbumLibrary:
             return False
 
         try:
-            with open(output_file, 'w', newline='', encoding='utf-8') as f:
+            with open(output_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 rows = album.to_csv_rows()
                 for row in rows:
@@ -253,16 +256,16 @@ class AlbumLibrary:
         """Get library statistics"""
         total_tracks = sum(len(album.tracks) for album in self.albums.values())
         total_duration = sum(
-            sum(track['duration_seconds'] for track in album.tracks)
+            sum(track["duration_seconds"] for track in album.tracks)
             for album in self.albums.values()
         )
 
         return {
-            'total_albums': len(self.albums),
-            'max_albums': self.MAX_ALBUMS,
-            'total_tracks': total_tracks,
-            'total_duration_seconds': total_duration,
-            'total_duration_formatted': self._format_duration(total_duration)
+            "total_albums": len(self.albums),
+            "max_albums": self.MAX_ALBUMS,
+            "total_tracks": total_tracks,
+            "total_duration_seconds": total_duration,
+            "total_duration_formatted": self._format_duration(total_duration),
         }
 
     def extract_all_cover_art(self) -> Dict[str, int]:
@@ -272,18 +275,18 @@ class AlbumLibrary:
         Returns:
             Dictionary with extraction statistics
         """
-        stats = {'extracted': 0, 'existing': 0, 'failed': 0, 'total': 0}
+        stats = {"extracted": 0, "existing": 0, "failed": 0, "total": 0}
 
         for album in self.get_albums():
-            stats['total'] += 1
-            cover_path = os.path.join(album.directory, 'cover.jpg')
+            stats["total"] += 1
+            cover_path = os.path.join(album.directory, "cover.jpg")
 
             if os.path.exists(cover_path):
-                stats['existing'] += 1
+                stats["existing"] += 1
             elif album.extract_cover_art():
-                stats['extracted'] += 1
+                stats["extracted"] += 1
             else:
-                stats['failed'] += 1
+                stats["failed"] += 1
 
         print(f"Cover art extraction complete:")
         print(f"  Total albums: {stats['total']}")

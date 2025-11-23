@@ -2,9 +2,10 @@
 """
 Create default theme images for JukeBox
 """
-import pygame
 import os
 from pathlib import Path
+
+import pygame
 
 
 def create_dark_theme():
@@ -20,7 +21,9 @@ def create_dark_theme():
     for y in range(700):
         # Gradient from dark gray to black
         color_val = int(64 * (1 - y / 700))
-        pygame.draw.line(background, (color_val, color_val, color_val), (0, y), (1000, y))
+        pygame.draw.line(
+            background, (color_val, color_val, color_val), (0, y), (1000, y)
+        )
     pygame.image.save(background, str(theme_dir / "background.png"))
     print(f"✓ Created {theme_dir / 'background.png'}")
 
@@ -75,7 +78,9 @@ def create_light_theme():
     for y in range(700):
         # Gradient from light gray to white
         color_val = int(200 + 55 * (y / 700))
-        pygame.draw.line(background, (color_val, color_val, color_val), (0, y), (1000, y))
+        pygame.draw.line(
+            background, (color_val, color_val, color_val), (0, y), (1000, y)
+        )
     pygame.image.save(background, str(theme_dir / "background.png"))
     print(f"✓ Created {theme_dir / 'background.png'}")
 

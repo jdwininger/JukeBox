@@ -3,26 +3,26 @@ Configuration Module - Handles application settings and configuration
 """
 import json
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 class Config:
     """Application configuration manager"""
 
     DEFAULT_CONFIG = {
-        'auto_play_next': True,
-        'shuffle_enabled': False,
-        'repeat_mode': 'off',  # 'off', 'all', 'one'
-        'volume': 0.7,
-        'max_albums': 50,
-        'show_album_art': True,
-        'export_format': 'csv',
-        'theme': 'dark',
+        "auto_play_next": True,
+        "shuffle_enabled": False,
+        "repeat_mode": "off",  # 'off', 'all', 'one'
+        "volume": 0.7,
+        "max_albums": 50,
+        "show_album_art": True,
+        "export_format": "csv",
+        "theme": "dark",
         # If set, this path will be used as the music library root
         # (e.g. '/home/user/Music/JukeBox'). If None the app falls back
         # to platform defaults (~/Music/JukeBox on macOS/Linux).
-        'music_dir': None,
-        'keyboard_shortcut_enabled': True,
+        "music_dir": None,
+        "keyboard_shortcut_enabled": True,
     }
 
     def __init__(self, config_file: str = None):
@@ -33,7 +33,7 @@ class Config:
             config_file: Path to config JSON file
         """
         if config_file is None:
-            config_file = os.path.join(os.path.expanduser('~'), '.jukebox_config.json')
+            config_file = os.path.join(os.path.expanduser("~"), ".jukebox_config.json")
 
         self.config_file = config_file
         self.settings = self.DEFAULT_CONFIG.copy()
@@ -43,7 +43,7 @@ class Config:
         """Load configuration from file"""
         if os.path.exists(self.config_file):
             try:
-                with open(self.config_file, 'r') as f:
+                with open(self.config_file, "r") as f:
                     loaded = json.load(f)
                     # Update with loaded values, keeping defaults for missing keys
                     self.settings.update(loaded)
@@ -54,7 +54,7 @@ class Config:
     def save(self) -> None:
         """Save configuration to file"""
         try:
-            with open(self.config_file, 'w') as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.settings, f, indent=2)
             print(f"Configuration saved to: {self.config_file}")
         except Exception as e:

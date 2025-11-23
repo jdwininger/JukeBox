@@ -3,11 +3,13 @@
 Test script to demonstrate equalizer functionality
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 from src.audio_effects import Equalizer
+
 
 def test_equalizer():
     """Test equalizer functionality"""
@@ -29,7 +31,9 @@ def test_equalizer():
     print(f"   Volume adjustment: {eq.get_volume_adjustment():.2f}x")
     print(f"   Applied to 50% volume: {eq.apply_to_volume(0.5):.2f}")
     emphasis = eq.get_frequency_emphasis()
-    print(f"   Frequency emphasis: Bass={emphasis['bass']:.1f}dB, Mid={emphasis['mid']:.1f}dB, Treble={emphasis['treble']:.1f}dB")
+    print(
+        f"   Frequency emphasis: Bass={emphasis['bass']:.1f}dB, Mid={emphasis['mid']:.1f}dB, Treble={emphasis['treble']:.1f}dB"
+    )
     print()
 
     # Test treble boost
@@ -39,7 +43,9 @@ def test_equalizer():
     print(f"   Volume adjustment: {eq.get_volume_adjustment():.2f}x")
     print(f"   Applied to 50% volume: {eq.apply_to_volume(0.5):.2f}")
     emphasis = eq.get_frequency_emphasis()
-    print(f"   Frequency emphasis: Bass={emphasis['bass']:.1f}dB, Mid={emphasis['mid']:.1f}dB, Treble={emphasis['treble']:.1f}dB")
+    print(
+        f"   Frequency emphasis: Bass={emphasis['bass']:.1f}dB, Mid={emphasis['mid']:.1f}dB, Treble={emphasis['treble']:.1f}dB"
+    )
     print()
 
     # Test vocal preset
@@ -49,7 +55,9 @@ def test_equalizer():
     print(f"   Volume adjustment: {eq.get_volume_adjustment():.2f}x")
     print(f"   Applied to 50% volume: {eq.apply_to_volume(0.5):.2f}")
     emphasis = eq.get_frequency_emphasis()
-    print(f"   Frequency emphasis: Bass={emphasis['bass']:.1f}dB, Mid={emphasis['mid']:.1f}dB, Treble={emphasis['treble']:.1f}dB")
+    print(
+        f"   Frequency emphasis: Bass={emphasis['bass']:.1f}dB, Mid={emphasis['mid']:.1f}dB, Treble={emphasis['treble']:.1f}dB"
+    )
     print()
 
     # Test custom settings
@@ -69,6 +77,7 @@ def test_equalizer():
     print("2. Open Config -> Equalizer")
     print("3. Adjust sliders or apply presets")
     print("4. Play music and notice volume changes based on EQ settings")
+
 
 if __name__ == "__main__":
     test_equalizer()

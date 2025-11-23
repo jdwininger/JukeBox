@@ -4,10 +4,11 @@ Create sample SVG media control button images for themes
 """
 from pathlib import Path
 
+
 def create_svg_media_buttons():
     """Create SVG versions of media control buttons"""
     # Create SVG button images for each theme
-    for theme_name in ['dark', 'light', 'Jeremy']:
+    for theme_name in ["dark", "light", "Jeremy"]:
         theme_dir = Path(f"themes/{theme_name}")
         theme_dir.mkdir(parents=True, exist_ok=True)
 
@@ -15,15 +16,16 @@ def create_svg_media_buttons():
 
     print("✓ SVG media control button images created for all themes")
 
+
 def create_theme_svg_buttons(theme_dir: Path, theme_name: str):
     """Create SVG media control buttons for a specific theme"""
 
     # Theme-specific colors
-    if theme_name == 'dark':
+    if theme_name == "dark":
         bg_color = "#282828"
         icon_color = "#DCDCDC"
         border_color = "#646464"
-    elif theme_name == 'light':
+    elif theme_name == "light":
         bg_color = "#F0F0F0"
         icon_color = "#3C3C3C"
         border_color = "#A0A0A0"
@@ -71,6 +73,7 @@ def create_theme_svg_buttons(theme_dir: Path, theme_name: str):
     (theme_dir / "config_button.svg").write_text(config_svg)
 
     print(f"✓ Created SVG media buttons for {theme_name} theme")
+
 
 if __name__ == "__main__":
     create_svg_media_buttons()

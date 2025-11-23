@@ -6,11 +6,11 @@ support is missing or the file cannot be opened by pygame for any reason.
 
 Functions are designed to never crash on import and return None on failure.
 """
-from typing import Optional, Tuple
 import os
+from typing import Optional, Tuple
 
 
-def _pil_image_to_pygame_surface(pil_image) -> 'pygame.Surface':
+def _pil_image_to_pygame_surface(pil_image) -> "pygame.Surface":
     """Convert a PIL Image to a pygame Surface.
 
     Import pygame locally to avoid importing it at module import-time for simple
@@ -28,13 +28,17 @@ def _pil_image_to_pygame_surface(pil_image) -> 'pygame.Surface':
     surface = pygame.image.fromstring(raw, size, mode)
     # Convert to a display-friendly format if possible
     try:
-        surface = surface.convert_alpha() if mode in ('RGBA', 'LA') else surface.convert()
+        surface = (
+            surface.convert_alpha() if mode in ("RGBA", "LA") else surface.convert()
+        )
     except Exception:
         pass
     return surface
 
 
-def load_image_surface(path: str, size: Tuple[int, int] = None) -> Optional['pygame.Surface']:
+def load_image_surface(
+    path: str, size: Tuple[int, int] = None
+) -> Optional["pygame.Surface"]:
     """Load an image file into a pygame Surface.
 
     - Tries pygame.image.load first.
@@ -49,8 +53,9 @@ def load_image_surface(path: str, size: Tuple[int, int] = None) -> Optional['pyg
 
     try:
         import pygame
+
         surf = pygame.image.load(path)
-        if size and hasattr(surf, 'get_size'):
+        if size and hasattr(surf, "get_size"):
             try:
                 surf = pygame.transform.smoothscale(surf, size)
             except Exception:
@@ -69,8 +74,8 @@ def load_image_surface(path: str, size: Tuple[int, int] = None) -> Optional['pyg
                 pil = pil.resize(size, Image.LANCZOS)
 
             # Ensure we have a mode pygame understands
-            if pil.mode not in ('RGBA', 'RGB'):
-                pil = pil.convert('RGBA')
+            if pil.mode not in ("RGBA", "RGB"):
+                pil = pil.convert("RGBA")
 
             return _pil_image_to_pygame_surface(pil)
         except Exception:

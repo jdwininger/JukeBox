@@ -3,18 +3,19 @@ Metadata Module - Handles ID3 tag reading and metadata extraction
 """
 import os
 from typing import Dict, List, Optional, Tuple
+
 from mutagen.easyid3 import EasyID3
 from mutagen.flac import FLAC
+from mutagen.id3 import APIC, ID3
+from mutagen.mp3 import MP3
 from mutagen.oggvorbis import OggVorbis
 from mutagen.wave import WAVE
-from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, APIC
 
 
 class MetadataReader:
     """Reads and extracts metadata from audio files"""
 
-    SUPPORTED_FORMATS = ('.mp3', '.wav', '.ogg', '.flac')
+    SUPPORTED_FORMATS = (".mp3", ".wav", ".ogg", ".flac")
 
     @staticmethod
     def get_duration_seconds(duration_ms: float) -> int:
@@ -46,13 +47,13 @@ class MetadataReader:
         ext = os.path.splitext(filename)[1].lower()
 
         try:
-            if ext == '.mp3':
+            if ext == ".mp3":
                 return cls._read_mp3(file_path)
-            elif ext == '.flac':
+            elif ext == ".flac":
                 return cls._read_flac(file_path)
-            elif ext == '.ogg':
+            elif ext == ".ogg":
                 return cls._read_ogg(file_path)
-            elif ext == '.wav':
+            elif ext == ".wav":
                 return cls._read_wav(file_path)
         except Exception as e:
             print(f"Error reading metadata from {filename}: {e}")
@@ -79,9 +80,9 @@ class MetadataReader:
         ext = os.path.splitext(filename)[1].lower()
 
         try:
-            if ext == '.mp3':
+            if ext == ".mp3":
                 return cls._extract_mp3_art(file_path, output_path)
-            elif ext == '.flac':
+            elif ext == ".flac":
                 return cls._extract_flac_art(file_path, output_path)
             # Note: OGG and WAV album art extraction can be added later if needed
         except Exception as e:
@@ -100,7 +101,7 @@ class MetadataReader:
             for tag in audio.tags.values():
                 if isinstance(tag, APIC):
                     # Found album art, save it
-                    with open(output_path, 'wb') as img_file:
+                    with open(output_path, "wb") as img_file:
                         img_file.write(tag.data)
                     print(f"Extracted album art to: {output_path}")
                     return True
@@ -119,7 +120,7 @@ class MetadataReader:
             # FLAC stores pictures in the pictures attribute
             if audio.pictures:
                 picture = audio.pictures[0]  # Get first picture
-                with open(output_path, 'wb') as img_file:
+                with open(output_path, "wb") as img_file:
                     img_file.write(picture.data)
                 print(f"Extracted album art to: {output_path}")
                 return True
@@ -134,22 +135,25 @@ class MetadataReader:
         """Read MP3 metadata"""
         try:
             audio = EasyID3(file_path)
-            title = audio.get('title', ['Unknown'])[0]
-            artist = audio.get('artist', ['Unknown'])[0]
-            album = audio.get('album', ['Unknown'])[0]
+            title = audio.get("title", ["Unknown"])[0]
+            artist = audio.get("artist", ["Unknown"])[0]
+            album = audio.get("album", ["Unknown"])[0]
 
             # Get duration
             from mutagen.mp3 import MP3
+
             mp3_audio = MP3(file_path)
-            duration_seconds = MetadataReader.get_duration_seconds(mp3_audio.info.length * 1000)
+            duration_seconds = MetadataReader.get_duration_seconds(
+                mp3_audio.info.length * 1000
+            )
 
             return {
-                'title': title,
-                'artist': artist,
-                'album': album,
-                'duration_seconds': duration_seconds,
-                'duration_formatted': MetadataReader.format_time(duration_seconds),
-                'filename': os.path.basename(file_path)
+                "title": title,
+                "artist": artist,
+                "album": album,
+                "duration_seconds": duration_seconds,
+                "duration_formatted": MetadataReader.format_time(duration_seconds),
+                "filename": os.path.basename(file_path),
             }
         except Exception as e:
             print(f"Error reading MP3: {e}")
@@ -160,19 +164,27 @@ class MetadataReader:
         """Read FLAC metadata"""
         try:
             audio = FLAC(file_path)
-            title = audio.get('title', ['Unknown'])[0] if audio.get('title') else 'Unknown'
-            artist = audio.get('artist', ['Unknown'])[0] if audio.get('artist') else 'Unknown'
-            album = audio.get('album', ['Unknown'])[0] if audio.get('album') else 'Unknown'
+            title = (
+                audio.get("title", ["Unknown"])[0] if audio.get("title") else "Unknown"
+            )
+            artist = (
+                audio.get("artist", ["Unknown"])[0]
+                if audio.get("artist")
+                else "Unknown"
+            )
+            album = (
+                audio.get("album", ["Unknown"])[0] if audio.get("album") else "Unknown"
+            )
 
             duration_seconds = int(audio.info.length)
 
             return {
-                'title': title,
-                'artist': artist,
-                'album': album,
-                'duration_seconds': duration_seconds,
-                'duration_formatted': MetadataReader.format_time(duration_seconds),
-                'filename': os.path.basename(file_path)
+                "title": title,
+                "artist": artist,
+                "album": album,
+                "duration_seconds": duration_seconds,
+                "duration_formatted": MetadataReader.format_time(duration_seconds),
+                "filename": os.path.basename(file_path),
             }
         except Exception as e:
             print(f"Error reading FLAC: {e}")
@@ -183,19 +195,27 @@ class MetadataReader:
         """Read OGG Vorbis metadata"""
         try:
             audio = OggVorbis(file_path)
-            title = audio.get('title', ['Unknown'])[0] if audio.get('title') else 'Unknown'
-            artist = audio.get('artist', ['Unknown'])[0] if audio.get('artist') else 'Unknown'
-            album = audio.get('album', ['Unknown'])[0] if audio.get('album') else 'Unknown'
+            title = (
+                audio.get("title", ["Unknown"])[0] if audio.get("title") else "Unknown"
+            )
+            artist = (
+                audio.get("artist", ["Unknown"])[0]
+                if audio.get("artist")
+                else "Unknown"
+            )
+            album = (
+                audio.get("album", ["Unknown"])[0] if audio.get("album") else "Unknown"
+            )
 
             duration_seconds = int(audio.info.length)
 
             return {
-                'title': title,
-                'artist': artist,
-                'album': album,
-                'duration_seconds': duration_seconds,
-                'duration_formatted': MetadataReader.format_time(duration_seconds),
-                'filename': os.path.basename(file_path)
+                "title": title,
+                "artist": artist,
+                "album": album,
+                "duration_seconds": duration_seconds,
+                "duration_formatted": MetadataReader.format_time(duration_seconds),
+                "filename": os.path.basename(file_path),
             }
         except Exception as e:
             print(f"Error reading OGG: {e}")
@@ -208,24 +228,36 @@ class MetadataReader:
             audio = WAVE(file_path)
 
             # WAV files may not have ID3 tags, use filename as fallback
-            title = 'Unknown'
-            artist = 'Unknown'
-            album = 'Unknown'
+            title = "Unknown"
+            artist = "Unknown"
+            album = "Unknown"
 
             if audio.tags:
-                title = audio.tags.get('TIT2', ['Unknown'])[0].text[0] if audio.tags.get('TIT2') else 'Unknown'
-                artist = audio.tags.get('TPE1', ['Unknown'])[0].text[0] if audio.tags.get('TPE1') else 'Unknown'
-                album = audio.tags.get('TALB', ['Unknown'])[0].text[0] if audio.tags.get('TALB') else 'Unknown'
+                title = (
+                    audio.tags.get("TIT2", ["Unknown"])[0].text[0]
+                    if audio.tags.get("TIT2")
+                    else "Unknown"
+                )
+                artist = (
+                    audio.tags.get("TPE1", ["Unknown"])[0].text[0]
+                    if audio.tags.get("TPE1")
+                    else "Unknown"
+                )
+                album = (
+                    audio.tags.get("TALB", ["Unknown"])[0].text[0]
+                    if audio.tags.get("TALB")
+                    else "Unknown"
+                )
 
             duration_seconds = int(audio.info.length)
 
             return {
-                'title': title,
-                'artist': artist,
-                'album': album,
-                'duration_seconds': duration_seconds,
-                'duration_formatted': MetadataReader.format_time(duration_seconds),
-                'filename': os.path.basename(file_path)
+                "title": title,
+                "artist": artist,
+                "album": album,
+                "duration_seconds": duration_seconds,
+                "duration_formatted": MetadataReader.format_time(duration_seconds),
+                "filename": os.path.basename(file_path),
             }
         except Exception as e:
             print(f"Error reading WAV: {e}")

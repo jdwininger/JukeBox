@@ -1,9 +1,11 @@
 """
 Music Player Module - Handles all music playback functionality
 """
-import pygame
 import os
 from typing import List, Optional
+
+import pygame
+
 from src.album_library import AlbumLibrary
 
 
@@ -44,7 +46,9 @@ class MusicPlayer:
                 # but provide a helpful message later when playback is attempted.
                 pass
         else:
-            print("Warning: audio mixer not available — playback disabled until mixer is provided.")
+            print(
+                "Warning: audio mixer not available — playback disabled until mixer is provided."
+            )
 
         # Start with first available album
         albums = self.library.get_albums()
@@ -68,7 +72,7 @@ class MusicPlayer:
         """Get the list of track names in current album"""
         album = self.get_current_album()
         if album:
-            return [track['title'] for track in album.tracks]
+            return [track["title"] for track in album.tracks]
         return []
 
     def add_to_queue(self, album_id: int, track_index: int) -> None:
@@ -131,10 +135,10 @@ class MusicPlayer:
 
         try:
             track = album.tracks[self.current_track_index]
-            file_path = os.path.join(album.directory, track['filename'])
+            file_path = os.path.join(album.directory, track["filename"])
 
             # Apply equalizer processing if available
-            if self.equalizer and hasattr(self.equalizer, 'process_file'):
+            if self.equalizer and hasattr(self.equalizer, "process_file"):
                 processed_file = self.equalizer.process_file(file_path)
                 if processed_file and processed_file != file_path:
                     file_path = processed_file
@@ -147,7 +151,9 @@ class MusicPlayer:
                 is_mixer_available = None
 
             if is_mixer_available is None or not is_mixer_available():
-                raise RuntimeError("Audio mixer is not available. Ensure pygame was installed with SDL_mixer/system audio libs and reinstall pygame.")
+                raise RuntimeError(
+                    "Audio mixer is not available. Ensure pygame was installed with SDL_mixer/system audio libs and reinstall pygame."
+                )
 
             pygame.mixer.music.load(file_path)
             pygame.mixer.music.play()
@@ -158,7 +164,9 @@ class MusicPlayer:
         except Exception as e:
             print(f"Error playing track: {e}")
 
-    def play(self, album_id: Optional[int] = None, track_index: Optional[int] = None) -> None:
+    def play(
+        self, album_id: Optional[int] = None, track_index: Optional[int] = None
+    ) -> None:
         """
         Add a track to the queue instead of playing immediately
 
@@ -252,14 +260,18 @@ class MusicPlayer:
         """Play the next track in current album"""
         album = self.get_current_album()
         if album and album.tracks:
-            self.current_track_index = (self.current_track_index + 1) % len(album.tracks)
+            self.current_track_index = (self.current_track_index + 1) % len(
+                album.tracks
+            )
             self.play()
 
     def previous(self) -> None:
         """Play the previous track in current album"""
         album = self.get_current_album()
         if album and album.tracks:
-            self.current_track_index = (self.current_track_index - 1) % len(album.tracks)
+            self.current_track_index = (self.current_track_index - 1) % len(
+                album.tracks
+            )
             self.play()
 
     def next_album(self) -> None:
@@ -268,7 +280,9 @@ class MusicPlayer:
         if not albums:
             return
 
-        current_index = next((i for i, a in enumerate(albums) if a.album_id == self.current_album_id), 0)
+        current_index = next(
+            (i for i, a in enumerate(albums) if a.album_id == self.current_album_id), 0
+        )
         next_index = (current_index + 1) % len(albums)
         self.play(album_id=albums[next_index].album_id, track_index=0)
 
@@ -278,7 +292,9 @@ class MusicPlayer:
         if not albums:
             return
 
-        current_index = next((i for i, a in enumerate(albums) if a.album_id == self.current_album_id), 0)
+        current_index = next(
+            (i for i, a in enumerate(albums) if a.album_id == self.current_album_id), 0
+        )
         prev_index = (current_index - 1) % len(albums)
         self.play(album_id=albums[prev_index].album_id, track_index=0)
 
@@ -293,7 +309,7 @@ class MusicPlayer:
 
         # Apply equalizer volume adjustment if available
         final_volume = self.volume
-        if self.equalizer and hasattr(self.equalizer, 'apply_to_volume'):
+        if self.equalizer and hasattr(self.equalizer, "apply_to_volume"):
             final_volume = self.equalizer.apply_to_volume(self.volume)
 
         pygame.mixer.music.set_volume(final_volume)
@@ -307,10 +323,10 @@ class MusicPlayer:
         track = self.get_current_track()
         if track:
             return {
-                'album_id': self.current_album_id,
-                'track_index': self.current_track_index,
-                'title': track.get('title', ''),
-                'artist': track.get('artist', '')
+                "album_id": self.current_album_id,
+                "track_index": self.current_track_index,
+                "title": track.get("title", ""),
+                "artist": track.get("artist", ""),
             }
         return None
 
@@ -330,6 +346,6 @@ class MusicPlayer:
 
     def cleanup(self) -> None:
         """Clean up resources including equalizer temp files"""
-        if self.equalizer and hasattr(self.equalizer, 'cleanup'):
+        if self.equalizer and hasattr(self.equalizer, "cleanup"):
             self.equalizer.cleanup()
         pygame.mixer.music.stop()

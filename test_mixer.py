@@ -13,6 +13,6 @@ def test_mixer_returns_bool():
     assert isinstance(result, bool)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_mixer_returns_bool()
-    print('test_mixer.py: OK')
+    print("test_mixer.py: OK")
