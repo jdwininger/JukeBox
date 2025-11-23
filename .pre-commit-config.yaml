@@ -1,0 +1,22 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+
+  - repo: https://github.com/pre-commit/mirrors-shellcheck
+    rev: v0.9.0
+    hooks:
+      - id: shellcheck
+        files: scripts/.*\.sh$|\.githooks/.*\.sh$
+
+  - repo: local
+    hooks:
+      - id: repo-safety-check
+        name: repo safety check
+        entry: scripts/check-for-bloat.sh
+        language: script
+        files: ^(?!)(.*)$
+        verbose: true

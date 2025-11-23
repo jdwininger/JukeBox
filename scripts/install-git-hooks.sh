@@ -27,3 +27,11 @@ echo "Configuring git to use $HOOK_DIR as hooksPath"
 git config core.hooksPath "$HOOK_DIR"
 
 echo "Git hooks installed. The pre-commit safety check will now run on commits."
+ 
+# Optionally install pre-commit framework (if available) for additional checks
+if command -v pre-commit >/dev/null 2>&1; then
+  echo "pre-commit is installed — installing pre-commit hooks (this modifies .git/hooks via core.hooksPath)"
+  (cd "$ROOT_DIR" && pre-commit install --install-hooks) || true
+else
+  echo "pre-commit not found in PATH. To enable pre-commit framework run: python -m pip install pre-commit && pre-commit install"
+fi
