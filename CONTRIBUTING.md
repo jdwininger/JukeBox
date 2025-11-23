@@ -89,6 +89,20 @@ JukeBox/
 └── JukeBox.app/           # macOS app bundle
 ```
 
+## Developer tooling
+
+To help avoid accidentally committing large generated artifacts (AppImages, extracted squashfs-root, embedded venvs, etc.),
+this repository includes a safety check and optional pre-commit hooks. To enable them locally run:
+
+```bash
+./scripts/install-git-hooks.sh
+# (optional) install the pre-commit framework to add additional checks
+python -m pip install --user pre-commit
+pre-commit install --install-hooks
+```
+
+After enabling these hooks, commits will run the safety check and standard formatting checks automatically.
+
 ## Adding Music to Your Library
 
 JukeBox organizes music into numbered albums (01-52):
