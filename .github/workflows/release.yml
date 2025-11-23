@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies for tests & builds
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y curl file xz-utils zsync build-essential pkg-config \
+          sudo apt-get install -y curl file xz-utils zsync jq build-essential pkg-config \
             libsdl2-dev libsdl2-mixer-dev libsndfile1-dev libopenal-dev libpng-dev libjpeg-dev libfreetype6-dev libx11-dev libxcb1-dev
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
