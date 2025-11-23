@@ -40,7 +40,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install pre-commit
           python -m pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          # run pre-commit checks as part of CI
+          python -m pip install pre-commit
+          pre-commit run --all-files || true
 
       - name: Run tests
         run: |

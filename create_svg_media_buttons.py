@@ -10,14 +10,14 @@ def create_svg_media_buttons():
     for theme_name in ['dark', 'light', 'Jeremy']:
         theme_dir = Path(f"themes/{theme_name}")
         theme_dir.mkdir(parents=True, exist_ok=True)
-        
+
         create_theme_svg_buttons(theme_dir, theme_name)
-    
+
     print("✓ SVG media control button images created for all themes")
 
 def create_theme_svg_buttons(theme_dir: Path, theme_name: str):
     """Create SVG media control buttons for a specific theme"""
-    
+
     # Theme-specific colors
     if theme_name == 'dark':
         bg_color = "#282828"
@@ -31,14 +31,14 @@ def create_theme_svg_buttons(theme_dir: Path, theme_name: str):
         bg_color = "#3C5064"
         icon_color = "#FFFFFF"
         border_color = "#788CA0"
-    
+
     # Play button SVG
     play_svg = f"""<?xml version="1.0" encoding="UTF-8"?>
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <circle cx="32" cy="32" r="30" fill="{bg_color}" stroke="{border_color}" stroke-width="2"/>
   <polygon points="20,16 20,48 48,32" fill="{icon_color}"/>
 </svg>"""
-    
+
     # Pause button SVG
     pause_svg = f"""<?xml version="1.0" encoding="UTF-8"?>
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
@@ -46,14 +46,14 @@ def create_theme_svg_buttons(theme_dir: Path, theme_name: str):
   <rect x="22" y="18" width="6" height="28" fill="{icon_color}"/>
   <rect x="36" y="18" width="6" height="28" fill="{icon_color}"/>
 </svg>"""
-    
+
     # Stop button SVG
     stop_svg = f"""<?xml version="1.0" encoding="UTF-8"?>
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <circle cx="32" cy="32" r="30" fill="{bg_color}" stroke="{border_color}" stroke-width="2"/>
   <rect x="20" y="20" width="24" height="24" fill="{icon_color}"/>
 </svg>"""
-    
+
     # Config button SVG (gear)
     config_svg = f"""<?xml version="1.0" encoding="UTF-8"?>
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
@@ -63,13 +63,13 @@ def create_theme_svg_buttons(theme_dir: Path, theme_name: str):
     <circle cx="0" cy="0" r="8" fill="{bg_color}" stroke="{icon_color}" stroke-width="2"/>
   </g>
 </svg>"""
-    
+
     # Write SVG files
     (theme_dir / "play_button.svg").write_text(play_svg)
     (theme_dir / "pause_button.svg").write_text(pause_svg)
     (theme_dir / "stop_button.svg").write_text(stop_svg)
     (theme_dir / "config_button.svg").write_text(config_svg)
-    
+
     print(f"✓ Created SVG media buttons for {theme_name} theme")
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ The UI provides:
 
 ### Frequency Bands
 - **60 Hz (Bass)**: Low-end frequencies, weight: 0.8x
-- **250 Hz (Low-Mid)**: Lower mid-range, weight: 1.2x  
+- **250 Hz (Low-Mid)**: Lower mid-range, weight: 1.2x
 - **1 kHz (Mid)**: Critical mid-range, weight: 1.5x
 - **4 kHz (High-Mid)**: Upper mid-range, weight: 1.2x
 - **16 kHz (Treble)**: High frequencies, weight: 0.8x
@@ -60,7 +60,7 @@ final_volume = base_volume * volume_adjustment
 - Higher frequencies reduced → Focuses on low end
 - **Result**: Volume adjustment ~1.0x, enhanced bass response
 
-### 2. Vocal Enhancement  
+### 2. Vocal Enhancement
 - 250 Hz: +4dB → Reduces muddiness
 - 1 kHz: +6dB → Enhances vocal clarity
 - 4 kHz: +3dB → Improves vocal presence
@@ -100,7 +100,7 @@ This demonstrates the equalizer calculations with various presets and settings.
 
 ### Current Implementation Benefits:
 - ✅ **Immediate Effect**: Changes are audible instantly
-- ✅ **Stable**: No dependency on external audio processing libraries  
+- ✅ **Stable**: No dependency on external audio processing libraries
 - ✅ **Cross-Platform**: Works on macOS, Linux, Windows
 - ✅ **Lightweight**: Minimal CPU usage
 - ✅ **Intuitive**: Behaves as users expect from an equalizer

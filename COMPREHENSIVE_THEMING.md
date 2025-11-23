@@ -97,7 +97,7 @@ For each themed element, the system uses this priority order:
 
 ### Light Theme
 - **Location**: `themes/light/`
-- **Background**: Light gradient (RGB 200→255) for bright environments  
+- **Background**: Light gradient (RGB 200→255) for bright environments
 - **Buttons**: Light gray (#C8C8C8) with lighter hover (#DCDCDC)
 - **Media Controls**: Clean light circular buttons with dark icons
 - **Navigation**: Bright arrow buttons with light styling
@@ -143,7 +143,7 @@ Create these PNG images for basic functionality:
 #### Media Control Buttons (64x64 pixels)
 - **play_button.png** - Triangular play symbol
 - **pause_button.png** - Double vertical bars
-- **stop_button.png** - Square stop symbol  
+- **stop_button.png** - Square stop symbol
 - **config_button.png** - Gear/settings icon
 
 #### Navigation Buttons (60x80 pixels - taller than wide)
@@ -204,11 +204,11 @@ The JukeBox supports complete customization of these interactive elements:
 
 #### Primary Media Controls
 - **Play Button** - Start/resume playback
-- **Pause Button** - Pause current track  
+- **Pause Button** - Pause current track
 - **Stop Button** - Stop playback completely
 - **Configure Button** - Open settings screen
 
-#### Navigation Controls  
+#### Navigation Controls
 - **Left Navigation** - Browse to previous albums (< button)
 - **Right Navigation** - Browse to next albums (> button)
 
@@ -262,7 +262,7 @@ The JukeBox supports complete customization of these interactive elements:
 themes/custom/
 ├── play_button.svg      # Scalable play button
 ├── pause_button.png     # Detailed pause button
-├── stop_button.svg      # Vector stop button  
+├── stop_button.svg      # Vector stop button
 ├── config_button.png    # Complex config icon
 ├── left_button.svg      # Clean left arrow
 └── right_button.png     # Detailed right arrow
@@ -361,7 +361,7 @@ The JukeBox includes dedicated navigation buttons for browsing through the album
 
 #### Unique Dimensions
 - **PNG Size**: 60x80 pixels (taller than wide)
-- **SVG ViewBox**: "0 0 60 80" 
+- **SVG ViewBox**: "0 0 60 80"
 - **Aspect Ratio**: 3:4 (height is 4/3 of width)
 - **Purpose**: Easier to click, visually distinct from media controls
 
@@ -380,7 +380,7 @@ Each built-in theme includes professionally designed arrow buttons:
 - **Style**: Clean, minimal arrows
 
 **Light Theme Navigation:**
-- **Background**: Light circular (#F0F0F0)  
+- **Background**: Light circular (#F0F0F0)
 - **Arrow**: Dark gray (#3C3C3C)
 - **Border**: Medium gray (#A0A0A0)
 - **Style**: High contrast arrows
@@ -439,7 +439,7 @@ All interactive buttons receive rollover highlights:
 
 **PNG/SVG Themed Buttons (No Borders):**
 - ✅ Play, Pause, Stop buttons (media controls)
-- ✅ Configuration button (gear icon)  
+- ✅ Configuration button (gear icon)
 - ✅ Left/Right navigation buttons (< >)
 
 **Text-Based Buttons (With Borders):**
@@ -456,17 +456,17 @@ def apply_brightness_filter(self, image: pygame.Surface, brightness: float) -> p
     """Apply brightness filter to an image for hover effects"""
     # Create a copy of the image
     bright_image = image.copy()
-    
+
     # Create white overlay surface with alpha for brightness
     overlay = pygame.Surface(image.get_size(), pygame.SRCALPHA)
-    
+
     # Calculate alpha value for brightness effect (30% white overlay)
     alpha = min(255, int((brightness - 1.0) * 255 * 0.3))
     overlay.fill((255, 255, 255, alpha))
-    
+
     # Blend the overlay with the original image
     bright_image.blit(overlay, (0, 0), special_flags=pygame.BLEND_ALPHA_SDL2)
-    
+
     return bright_image
 ```
 
@@ -479,7 +479,7 @@ The system intelligently determines which buttons should have borders:
 - Borders would interfere with the themed appearance
 - Rollover highlighting provides feedback without borders
 
-**Text-Based Buttons:** White borders for visibility  
+**Text-Based Buttons:** White borders for visibility
 - These buttons need borders to be clearly defined
 - Border helps distinguish button area from background
 - Essential for usability on various background colors
@@ -506,12 +506,12 @@ When themes are switched, all buttons automatically receive the new theme while 
 def handle_theme_selection(self, pos):
     """Handle theme button clicks"""
     # ... theme switching logic ...
-    
+
     # Update all buttons with new theme
     self.play_button.theme = self.current_theme
     self.pause_button.theme = self.current_theme
     # ... (all other buttons)
-    
+
     # Rollover effects automatically work with new theme
 ```
 
@@ -532,40 +532,40 @@ class Theme:
         # Basic theme properties
         self.name = name
         self.theme_dir = theme_dir
-        
+
         # Image file paths
         self.background_path = os.path.join(theme_dir, 'background.png')
         self.button_path = os.path.join(theme_dir, 'button.png')
         # ... (other image paths)
-        
+
         # Media button paths (PNG and SVG)
         self.play_button_path = os.path.join(theme_dir, 'play_button.png')
         self.play_button_svg_path = os.path.join(theme_dir, 'play_button.svg')
         # ... (other media button paths)
-        
+
         # Navigation button paths
         self.left_button_path = os.path.join(theme_dir, 'left_button.png')
         self.right_button_path = os.path.join(theme_dir, 'right_button.png')
         self.left_button_svg_path = os.path.join(theme_dir, 'left_button.svg')
         self.right_button_svg_path = os.path.join(theme_dir, 'right_button.svg')
-        
+
         # Loaded image surfaces (cached)
         self.background: Optional[pygame.Surface] = None
         self.play_button: Optional[pygame.Surface] = None
         # ... (other surfaces)
-        
+
     def load(self) -> bool:
         """Load all theme images"""
         # Load background image
-        # Load button images  
+        # Load button images
         # Load media button images (PNG first, SVG fallback)
         # Load navigation button images
         # Return success status
-        
+
     def get_media_button_image(self, button_type: str) -> Optional[pygame.Surface]:
         """Get themed media button image"""
         # Return cached button surface for 'play', 'pause', 'stop', 'config', 'left', 'right'
-        
+
     def _load_media_button(self, button_type: str) -> Optional[pygame.Surface]:
         """Load media button with PNG/SVG fallback"""
         # Try PNG first, then SVG, return None if both fail
@@ -579,21 +579,21 @@ class ThemeManager:
         self.themes: Dict[str, Theme] = {}
         self.current_theme: Optional[Theme] = None
         self.discover_themes()
-        
+
     def discover_themes(self) -> None:
         """Automatically discover all available themes"""
         # Scan themes directory for subdirectories
         # Create Theme objects for each found theme
-        
+
     def set_current_theme(self, theme_name: str) -> bool:
         """Switch to specified theme"""
         # Load theme if not already loaded
         # Set as current theme
         # Return success status
-        
+
     def get_current_theme(self) -> Optional[Theme]:
         """Get the currently active theme"""
-        
+
     def get_available_themes(self) -> List[str]:
         """Get list of all available theme names"""
 ```
@@ -605,25 +605,25 @@ class UI:
         # ... existing initialization ...
         self.theme_manager = theme_manager
         self.current_theme = theme_manager.get_current_theme()
-        
+
         # Create buttons with theme support
         self.setup_buttons()
-        
+
     def setup_buttons(self):
         """Create all UI buttons with theme integration"""
         # Media control buttons with icon_type and theme
         self.play_button = Button(..., theme=self.current_theme, icon_type='play')
         self.pause_button = Button(..., theme=self.current_theme, icon_type='pause')
         # ... (other buttons)
-        
+
         # Navigation buttons with theme and scaling
         self.left_nav_button = Button(..., theme=self.current_theme, icon_type='left')
         self.right_nav_button = Button(..., theme=self.current_theme, icon_type='right')
-        
+
         # Number pad buttons with theme
         for digit in ['0', '1', '2', ...]:
             btn = NumberPadButton(..., theme=self.current_theme)
-            
+
     def draw_main_screen(self):
         """Main screen rendering with theme support"""
         # Draw themed background
@@ -632,7 +632,7 @@ class UI:
             self.screen.blit(background, (0, 0))
         else:
             self.screen.fill(Colors.DARK_GRAY)  # Fallback
-            
+
         # ... rest of UI drawing ...
 ```
 
@@ -641,12 +641,12 @@ class UI:
 #### Enhanced Button Class
 ```python
 class Button:
-    def __init__(self, x, y, width, height, text, color=Colors.GRAY, theme=None, 
+    def __init__(self, x, y, width, height, text, color=Colors.GRAY, theme=None,
                  is_gear_icon=False, icon_type=None):
         # ... existing initialization ...
         self.theme = theme
         self.icon_type = icon_type  # 'play', 'pause', 'stop', 'config', 'left', 'right'
-        
+
     def draw(self, surface, font):
         """Enhanced drawing with theme support and rollover highlights"""
         # Determine if themed image is available
@@ -654,13 +654,13 @@ class Button:
         if self.theme and self.icon_type:
             themed_img = self.theme.get_media_button_image(self.icon_type)
             has_themed_image = themed_img is not None
-            
+
         # Draw background and border for text-based buttons only
         if not has_themed_image:
             color = self.hover_color if self.is_hovered else self.color
             pygame.draw.rect(surface, color, self.rect)
             pygame.draw.rect(surface, Colors.WHITE, self.rect, 2)  # Border
-            
+
         # Draw themed image or fallback icon
         if self.icon_type and self.theme:
             themed_img = self.theme.get_media_button_image(self.icon_type)
@@ -679,7 +679,7 @@ class Button:
             text_surface = font.render(self.text, True, Colors.WHITE)
             text_rect = text_surface.get_rect(center=self.rect.center)
             surface.blit(text_surface, text_rect)
-            
+
     def apply_brightness_filter(self, image, brightness):
         """Apply brightness overlay for hover effects"""
         # Create white overlay with 30% opacity
@@ -694,10 +694,10 @@ class Button:
 def main():
     # Initialize configuration
     config = Config()
-    
+
     # Initialize theme manager
     theme_manager = ThemeManager()
-    
+
     # Load user's preferred theme
     preferred_theme = config.get('theme', 'dark')
     if not theme_manager.set_current_theme(preferred_theme):
@@ -705,7 +705,7 @@ def main():
         available = theme_manager.get_available_themes()
         if available:
             theme_manager.set_current_theme(available[0])
-            
+
     # Initialize UI with theme support
     ui = UI(player, library, config, theme_manager)
 ```
@@ -719,14 +719,14 @@ def handle_theme_selection(self, pos):
             # Switch theme
             self.theme_manager.set_current_theme(theme_name)
             self.current_theme = self.theme_manager.get_current_theme()
-            
+
             # Save preference
             self.config.set('theme', theme_name)
             self.config.save()  # Persists to ~/.jukebox_config.json
-            
+
             # Update all buttons with new theme
             self.update_button_themes()
-            
+
             # Show confirmation
             self.config_message = f"Theme changed to {theme_name.capitalize()}"
 ```
@@ -754,9 +754,9 @@ def handle_theme_selection(self, pos):
 - **Size Caching**: Background scaled once at theme load time
 - **No Redraw**: Background surface reused until theme changes
 
-#### Button Rendering  
+#### Button Rendering
 - **Themed Buttons**: ~0.1ms per button per frame
-- **Text Buttons**: ~0.05ms per button per frame  
+- **Text Buttons**: ~0.05ms per button per frame
 - **Rollover Effects**: +0.05ms per hovered button
 - **Total Impact**: <1ms for entire UI (negligible at 60fps)
 
@@ -784,7 +784,7 @@ def handle_theme_selection(self, pos):
 
 #### Theme Not Loading
 **Symptoms**: Default colors shown instead of themed images
-**Causes**: 
+**Causes**:
 - Theme directory name incorrect
 - Missing required image files
 - Invalid image file format
@@ -854,7 +854,7 @@ def handle_theme_selection(self, pos):
 The application provides console output for theme operations:
 ```
 Found theme: dark
-Found theme: light  
+Found theme: light
 Found theme: Jeremy
 Theme changed to: dark
 Loaded SVG play button: themes/dark/play_button.svg
@@ -870,7 +870,7 @@ ls themes/mytheme/background.png
 ls themes/mytheme/button.png
 ls themes/mytheme/button_hover.png
 
-# Optional for enhanced theme  
+# Optional for enhanced theme
 ls themes/mytheme/play_button.png
 ls themes/mytheme/pause_button.png
 ls themes/mytheme/stop_button.png
@@ -924,7 +924,7 @@ cat ~/.jukebox_config.json
 - [ ] **Online Theme Repository** - Download community-created themes
 - [ ] **Automatic Updates** - Update themes from online sources
 
-#### Visual Enhancements  
+#### Visual Enhancements
 - [ ] **Gradient Backgrounds** - CSS-style gradient support
 - [ ] **Pattern Backgrounds** - Repeating pattern support
 - [ ] **Dynamic Colors** - Time-based or music-reactive colors
@@ -939,7 +939,7 @@ Allow themes to specify color overrides for specific UI elements:
   "name": "Cyberpunk",
   "colors": {
     "text_primary": "#00FFFF",
-    "text_secondary": "#FF00FF", 
+    "text_secondary": "#FF00FF",
     "accent": "#FFFF00",
     "background_overlay": "#0A0E27"
   }
@@ -954,7 +954,7 @@ Allow themes to specify color overrides for specific UI elements:
 
 #### Professional Features
 - [ ] **Theme Validation** - Check theme completeness and quality
-- [ ] **Performance Profiler** - Analyze theme rendering performance  
+- [ ] **Performance Profiler** - Analyze theme rendering performance
 - [ ] **Accessibility Checker** - Verify theme meets accessibility standards
 - [ ] **Multi-resolution Support** - Themes adapt to different screen sizes
 
@@ -980,7 +980,7 @@ The JukeBox theming system provides a comprehensive, user-friendly way to custom
 
 The system is designed to be:
 - **Easy to Use** - Simple file-based theme creation
-- **Powerful** - Complete visual customization capability  
+- **Powerful** - Complete visual customization capability
 - **Extensible** - Built for future enhancements
 - **Reliable** - Graceful fallbacks and error handling
 - **Performant** - Minimal impact on application performance

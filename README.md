@@ -49,7 +49,7 @@ A sophisticated, fully-themed music jukebox application built with Python, pygam
 - **Configuration Screen**: Real-time theme switching and settings management
 - **4-Digit Selection System**: Quick track selection with real-time input display
 - **Browse Position System**: Navigate 4 albums at a time with side buttons
-- **Smart Layout Adaptation**: 
+- **Smart Layout Adaptation**:
   - Fullscreen: 1.0x scale factor with optimal spacing
   - Windowed: 0.75x scale factor maintaining proportions
 - **Visual Feedback System**:
@@ -60,7 +60,7 @@ A sophisticated, fully-themed music jukebox application built with Python, pygam
 ### Keyboard Shortcuts
 - `Space`: Play/Pause
 - `←→`: Previous/Next track (within album)
-- `N`/`P`: Previous/Next album  
+- `N`/`P`: Previous/Next album
 - `↑↓`: Increase/Decrease volume
 - `C`: Toggle configuration screen
 - `Alt+Enter`: Toggle fullscreen mode
@@ -323,7 +323,7 @@ JukeBox features a comprehensive theming system with complete PNG/SVG button sup
 
 **Available Built-in Themes:**
 - **dark** (default): Professional dark gradient with themed controls
-- **light**: Clean light gradient with light themed controls  
+- **light**: Clean light gradient with light themed controls
 - **matrix**: Green matrix-style digital theme
 - **neon**: Vibrant neon cyberpunk theme
 - **wood**: Warm wooden jukebox aesthetic
@@ -338,9 +338,9 @@ Each theme includes:
 - **Main Background**: Full 1280x800 themed background with scaling support
 
 #### Button Graphics (PNG/SVG with Fallbacks)
-- **Media Controls**: 
+- **Media Controls**:
   - `play_button.png/svg` - Play button with theme styling
-  - `pause_button.png/svg` - Pause button with theme styling  
+  - `pause_button.png/svg` - Pause button with theme styling
   - `stop_button.png/svg` - Stop button with theme styling
   - `config_button.png/svg` - Configuration gear icon
 - **Navigation Controls**:
@@ -367,7 +367,7 @@ themes/
 │   ├── background.png         # Main background image (1280x800)
 │   ├── play_button.png        # Play button (50x50)
 │   ├── play_button.svg        # Play button SVG (vector)
-│   ├── pause_button.png       # Pause button (50x50) 
+│   ├── pause_button.png       # Pause button (50x50)
 │   ├── pause_button.svg       # Pause button SVG (vector)
 │   ├── stop_button.png        # Stop button (50x50)
 │   ├── stop_button.svg        # Stop button SVG (vector)
@@ -429,7 +429,7 @@ themes/
    - `background.png`: 1280x800 pixels main background
    - **Media Button Graphics** (PNG/SVG):
      - `play_button.png` or `play_button.svg`: 50x50 pixels
-     - `pause_button.png` or `pause_button.svg`: 50x50 pixels  
+     - `pause_button.png` or `pause_button.svg`: 50x50 pixels
      - `stop_button.png` or `stop_button.svg`: 50x50 pixels
      - `config_button.png` or `config_button.svg`: 50x50 pixels
    - **Navigation Button Graphics**:
@@ -446,7 +446,7 @@ themes/
 - **SVG Support**: Vector graphics scale perfectly at any resolution
 - **PNG Fallbacks**: Automatic fallback to PNG if SVG unavailable
 - **Color Fallbacks**: System defaults if no graphics found
-- **Responsive Scaling**: 
+- **Responsive Scaling**:
   - Fullscreen mode: Full-size graphics (1.0x scale)
   - Windowed mode: Proportional scaling (0.75x scale)
 - **Real-time Switching**: No application restart required
@@ -455,7 +455,7 @@ themes/
 
 - **Background**: Should be 1280x800 pixels or larger (auto-scaled to fit)
 - **Media Buttons**: 50x50 pixels for consistency (PNG or SVG)
-- **Navigation Buttons**: 60x80 pixels (taller than wide, PNG or SVG)  
+- **Navigation Buttons**: 60x80 pixels (taller than wide, PNG or SVG)
 - **Format**: PNG with transparency or SVG for vector scaling
 - **Colors**: Ensure good contrast for text visibility over backgrounds
 - **SVG Benefits**: Perfect scaling, smaller file sizes, crisp at any resolution
@@ -508,7 +508,7 @@ themes/
 
 #### Themed Controls (No Borders)
 - **Media Buttons**: Play, Pause, Stop with PNG/SVG graphics
-- **Configuration Button**: Gear icon with theme styling  
+- **Configuration Button**: Gear icon with theme styling
 - **Navigation Arrows**: Side buttons for album browsing
 
 #### Bordered Controls (Text-based)
@@ -529,7 +529,7 @@ themes/
 ### ✅ **Complete Feature Set**
 - Professional 3-column album browsing interface
 - Complete theming system with PNG/SVG support and real-time switching
-- Rollover highlights and visual feedback on all interactive elements  
+- Rollover highlights and visual feedback on all interactive elements
 - Responsive design scaling for fullscreen/windowed modes
 - 4-digit selection system with real-time input display
 - Enhanced Now Playing display with persistent track information
@@ -666,7 +666,7 @@ JukeBox/
 - **Directory Naming**: Albums must be in numbered directories (01-52) for recognition
 - **Smart Browsing**: Use side navigation buttons to browse 4 albums at a time
 
-### Theme Customization  
+### Theme Customization
 - **Graphics Format**: Use SVG for scalable vector graphics or PNG for pixel-perfect images
 - **Consistent Sizing**: Follow recommended button sizes for professional appearance
 - **Visual Testing**: Test themes in both fullscreen and windowed modes
@@ -728,7 +728,7 @@ JukeBox/
 - [ ] Advanced theme validation tools
 - [ ] Theme export/import functionality
 
-### Interface Enhancements  
+### Interface Enhancements
 - [ ] Customizable column layout options
 - [ ] Advanced keyboard navigation
 - [ ] Touch screen support optimization

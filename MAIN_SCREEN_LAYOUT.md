@@ -65,7 +65,7 @@ The JukeBox features a sophisticated, responsive interface with complete theming
 
 2. **Media Control Buttons** (Center)
    - **Play Button** [▶]: PNG/SVG themed, square 50x50, rollover highlights
-   - **Pause Button** [⏸]: PNG/SVG themed, square 50x50, rollover highlights  
+   - **Pause Button** [⏸]: PNG/SVG themed, square 50x50, rollover highlights
    - **Stop Button** [⏹]: PNG/SVG themed, square 50x50, rollover highlights
    - Buttons scale with fullscreen/windowed mode
    - Brightness effect on hover (30% brighter)
@@ -80,7 +80,7 @@ The JukeBox features a sophisticated, responsive interface with complete theming
 **Top Card** (Album at browse_position)
 - **Album Art**: Square album art with album number overlay
 - **Artist**: Text wrapping for long names (16+ chars wrap at word boundaries)
-- **Album Title**: Text wrapping (windowed: 14 chars, fullscreen: 28 chars)  
+- **Album Title**: Text wrapping (windowed: 14 chars, fullscreen: 28 chars)
 - **Track Count**: "X tracks" in blue
 - **Track List**: First few tracks that fit in card space
 - **Border**: White 2px border for definition
@@ -93,13 +93,13 @@ The JukeBox features a sophisticated, responsive interface with complete theming
 - **Yellow Border**: 3px border to indicate active status
 - **Header**: "Now Playing" label in yellow
 - **Large Album Art**: Centered, square format with album number
-- **Track Information**: 
+- **Track Information**:
   - Current track title (large font, white)
   - Selection display "Selection XX YY" (medium gray)
 - **Persistent Display**: Shows last played track even when stopped
 - **Empty State**: "Choose an album and song." when nothing played
 
-#### Right Column - Album Browsing (Albums 3 & 4)  
+#### Right Column - Album Browsing (Albums 3 & 4)
 **Top Card** (Album at browse_position + 2)
 - Same layout as left column cards
 
@@ -113,7 +113,7 @@ The JukeBox features a sophisticated, responsive interface with complete theming
 - **Right Button** [>]: 60x80 pixels (taller than wide), PNG/SVG themed
 - **Positioning**: Beside number pad, equidistant spacing
 - **Functionality**: Browse previous/next 4 albums
-- **Responsive Scaling**: 
+- **Responsive Scaling**:
   - Fullscreen: 60x80 (1.0x scale)
   - Windowed: 45x60 (0.75x scale)
 - **Rollover Effects**: Brighten 30% on hover
@@ -129,14 +129,14 @@ The JukeBox features a sophisticated, responsive interface with complete theming
 #### Layout Design
 - **Centered Positioning**: Dynamic centering regardless of screen size
 - **Semi-transparent Border**: 15% black overlay border around entire pad
-- **Responsive Scaling**: 
+- **Responsive Scaling**:
   - Fullscreen: Full size buttons and spacing
   - Windowed: 75% scale factor for proportional reduction
 
 #### Button Layout (5 Rows)
 ```
 Row 1: [7] [8] [9]
-Row 2: [4] [5] [6]  
+Row 2: [4] [5] [6]
 Row 3: [1] [2] [3]
 Row 4: [0] [<]
 Row 5: [CLR] [ENT]
@@ -147,7 +147,7 @@ Row 5: [CLR] [ENT]
 - **Color Coding**:
   - Numbers (0-9): Gray background with hover effects
   - CLR: Red background (clear function)
-  - ENT: Green background (enter function)  
+  - ENT: Green background (enter function)
   - <: Blue background (backspace function)
 - **Rollover Effects**: All buttons brighten when hovered
 - **Responsive Sizing**: Scale with screen mode
@@ -165,7 +165,7 @@ Row 5: [CLR] [ENT]
 - **Left Side**: "4-digit: Album(2) + Track(2) | C: Config | Space: Play/Pause | Alt+Enter: Fullscreen | ↑↓: Volume"
 - **Dynamic Content**: Updates based on current mode
 
-#### Status Information  
+#### Status Information
 - **Queue Counter** (Right Side): "Queue: X song(s)" when queue has items
 - **Theme Indicator**: Current theme shown in config screen
 
@@ -186,7 +186,7 @@ Row 5: [CLR] [ENT]
 - Clean appearance with themed images
 - Rollover brightness effects
 
-#### Text-based Bordered Buttons  
+#### Text-based Bordered Buttons
 - ✅ Number pad buttons (0-9, CLR, ENT, <)
 - ✅ Configuration screen buttons
 - ✅ Theme selection buttons
@@ -252,7 +252,7 @@ Row 5: [CLR] [ENT]
    - Album number overlay with white border
    - Consistent sizing across all cards
 
-2. **Information Section**  
+2. **Information Section**
    - Artist name (with text wrapping)
    - Album title (with smart truncation)
    - Track count in blue
@@ -296,7 +296,7 @@ The JukeBox interface now features:
 - Professional theme assets for all built-in themes
 - Comprehensive theming documentation
 
-### ✅ **Enhanced User Experience** 
+### ✅ **Enhanced User Experience**
 - Rollover highlights on all interactive elements
 - Responsive scaling for fullscreen/windowed modes
 - Smart text wrapping and truncation

@@ -14,21 +14,21 @@ from album_library import AlbumLibrary
 def main():
     print("Album Art Extraction Test")
     print("=" * 40)
-    
+
     # Initialize library
     library = AlbumLibrary("music")
-    
+
     # Scan for albums
     print("Scanning library...")
     library.scan_library()
-    
+
     albums = library.get_albums()
     print(f"Found {len(albums)} albums")
-    
+
     # Extract album art for all albums
     print("\nExtracting album art...")
     stats = library.extract_all_cover_art()
-    
+
     print(f"\nExtraction complete!")
     print(f"Results: {stats}")
 

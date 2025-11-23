@@ -130,3 +130,12 @@ jobs:
               echo "File $f not found, skipping upload"
             fi
           done
+
+      - name: Request AppImageHub listing (optional)
+        if: ${{ secrets.APPIMAGEHUB_PAT != '' }}
+        env:
+          APPIMAGEHUB_PAT: ${{ secrets.APPIMAGEHUB_PAT }}
+        run: |
+          chmod +x scripts/publish-to-appimagehub.sh
+          # pass release tag and release url into the helper
+          scripts/publish-to-appimagehub.sh "${{ github.event.release.tag_name }}" "${{ github.event.release.html_url }}"

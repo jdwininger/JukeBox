@@ -59,7 +59,7 @@ class AlbumArtCache:
     def __init__(self, max_size=50):
         self._cache = {}
         self._max_size = max_size
-        
+
     def get_art(self, album_id, size):
         cache_key = (album_id, size)
         if cache_key not in self._cache:
@@ -80,7 +80,7 @@ def get_spectrum_data(self, samples=512):
     # Cache results for similar audio segments
     if not hasattr(self, '_last_spectrum_cache'):
         self._last_spectrum_cache = {}
-    
+
     # Implement spectrum caching logic
 ```
 
@@ -103,7 +103,7 @@ class AsyncFileLoader:
         self.load_queue = queue.Queue()
         self.worker_thread = threading.Thread(target=self._worker)
         self.worker_thread.start()
-    
+
     def _worker(self):
         # Background file loading
         pass
@@ -115,17 +115,17 @@ class AsyncFileLoader:
 class SurfacePool:
     def __init__(self):
         self._pools = {}  # size -> [surface, surface, ...]
-    
+
     def get_surface(self, size):
         if size not in self._pools:
             self._pools[size] = []
-        
+
         pool = self._pools[size]
         if pool:
             return pool.pop()
         else:
             return pygame.Surface(size)
-    
+
     def return_surface(self, surface):
         size = surface.get_size()
         if size in self._pools:
@@ -188,16 +188,16 @@ class PerformanceMonitor:
     def __init__(self):
         self.frame_times = []
         self.max_samples = 60
-    
+
     def start_frame(self):
         self.frame_start = time.time()
-    
+
     def end_frame(self):
         frame_time = time.time() - self.frame_start
         self.frame_times.append(frame_time)
         if len(self.frame_times) > self.max_samples:
             self.frame_times.pop(0)
-    
+
     def get_average_fps(self):
         if not self.frame_times:
             return 0

@@ -51,7 +51,7 @@ def run(self) -> None:
 
 ### Optimizations Retained:
 - ✅ Text rendering cache (significant performance gain)
-- ✅ Background image caching (memory efficiency) 
+- ✅ Background image caching (memory efficiency)
 - ✅ Selective audio control updates (CPU savings)
 - ✅ Event handling optimizations (responsiveness)
 

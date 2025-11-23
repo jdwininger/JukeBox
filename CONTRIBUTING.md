@@ -112,7 +112,7 @@ Supported formats: MP3, WAV, OGG, FLAC
 
 ### Current Themes
 - **dark** (default): Professional dark theme
-- **light**: Clean light theme  
+- **light**: Clean light theme
 - **Jeremy**: Custom theme
 
 ### Creating Custom Themes

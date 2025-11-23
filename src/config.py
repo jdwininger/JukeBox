@@ -8,7 +8,7 @@ from typing import Dict, Any
 
 class Config:
     """Application configuration manager"""
-    
+
     DEFAULT_CONFIG = {
         'auto_play_next': True,
         'shuffle_enabled': False,
@@ -24,21 +24,21 @@ class Config:
         'music_dir': None,
         'keyboard_shortcut_enabled': True,
     }
-    
+
     def __init__(self, config_file: str = None):
         """
         Initialize configuration
-        
+
         Args:
             config_file: Path to config JSON file
         """
         if config_file is None:
             config_file = os.path.join(os.path.expanduser('~'), '.jukebox_config.json')
-        
+
         self.config_file = config_file
         self.settings = self.DEFAULT_CONFIG.copy()
         self.load()
-    
+
     def load(self) -> None:
         """Load configuration from file"""
         if os.path.exists(self.config_file):
@@ -50,7 +50,7 @@ class Config:
                 print(f"Configuration loaded from: {self.config_file}")
             except Exception as e:
                 print(f"Error loading config: {e}")
-    
+
     def save(self) -> None:
         """Save configuration to file"""
         try:
@@ -59,20 +59,20 @@ class Config:
             print(f"Configuration saved to: {self.config_file}")
         except Exception as e:
             print(f"Error saving config: {e}")
-    
+
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value"""
         return self.settings.get(key, default)
-    
+
     def set(self, key: str, value: Any) -> None:
         """Set a configuration value"""
         self.settings[key] = value
-    
+
     def reset_to_defaults(self) -> None:
         """Reset all settings to defaults"""
         self.settings = self.DEFAULT_CONFIG.copy()
         self.save()
-    
+
     def get_all(self) -> Dict[str, Any]:
         """Get all settings"""
         return self.settings.copy()

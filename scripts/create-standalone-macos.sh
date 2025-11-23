@@ -159,13 +159,13 @@ chmod +x "$BUNDLE_PATH/Contents/MacOS/JukeBox"
 if [ -f "$PROJECT_ROOT/assets/icon.icns" ]; then
     echo "Adding application icon..."
     cp "$PROJECT_ROOT/assets/icon.icns" "$BUNDLE_PATH/Contents/Resources/"
-    
+
     # Update Info.plist to include icon
     /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string icon.icns" "$BUNDLE_PATH/Contents/Info.plist" 2>/dev/null || true
 elif [ -f "$PROJECT_ROOT/assets/icon.png" ]; then
     echo "Adding application icon (PNG fallback)..."
     cp "$PROJECT_ROOT/assets/icon.png" "$BUNDLE_PATH/Contents/Resources/"
-    
+
     # Update Info.plist to include icon
     /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string icon.png" "$BUNDLE_PATH/Contents/Info.plist" 2>/dev/null || true
 fi

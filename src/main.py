@@ -120,10 +120,10 @@ def main():
         print("👉 On Fedora/RPM:     sudo dnf install -y SDL2-devel SDL2_mixer SDL2_mixer-devel libsndfile-devel")
         print(f"Then reinstall pygame inside your virtualenv: {sys.executable} -m pip install --upgrade --force-reinstall pygame")
         raise
-    
+
     # Load configuration
     config = Config()
-    
+
     # Initialize theme system
     theme_dir = os.path.join(os.path.dirname(__file__), '..', 'themes')
     theme_manager = ThemeManager(theme_dir)
@@ -136,7 +136,7 @@ def main():
             theme_manager.set_current_theme(available[0])
         else:
             print("Warning: No themes available")
-    
+
     # Setup library
     # User-configurable music directory (config 'music_dir') takes precedence.
     # If not set, default to ~/Music/JukeBox on macOS/Linux, or project-local
@@ -151,19 +151,19 @@ def main():
             music_dir = os.path.join(os.path.dirname(__file__), '..', 'music')
     library = AlbumLibrary(music_dir)
     library.scan_library()
-    
+
     # Create the UI first (which creates the equalizer)
     ui = UI(None, library, config, theme_manager)  # Pass None for player initially
-    
+
     # Create the player with the equalizer from UI
     player = MusicPlayer(library, ui.equalizer)
-    
+
     # Now set the player in the UI
     ui.player = player
-    
+
     # Run the application
     ui.run()
-    
+
     # Cleanup
     player.cleanup()
     pygame.quit()
