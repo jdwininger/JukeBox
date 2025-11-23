@@ -2372,15 +2372,15 @@ class UI:
         preview_width = 200
         # default windowed placement above buttons (previous behavior)
         default_x = self.width // 2 - preview_width // 2
-        # move preview up by 20px to give it more breathing room
-        default_y = theme_section_y - 130 - 20
+        # move preview up by an additional 20px (total -40) to give it more breathing room
+        default_y = theme_section_y - 130 - 40
 
         if self.fullscreen:
             # place above the title which sits at theme_section_y - 30
             title_y = theme_section_y - 30
             # Move preview above the title with a small gap
-            # Move fullscreen preview up by 20px as well
-            py = title_y - 10 - 120 - 20  # 120 is preview height
+            # Move fullscreen preview up by an additional 20px too
+            py = title_y - 10 - 120 - 40  # 120 is preview height
             px = self.width // 2 - preview_width // 2
             return px, py
 

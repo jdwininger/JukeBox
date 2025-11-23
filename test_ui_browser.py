@@ -308,9 +308,13 @@ def test_theme_preview_position_fullscreen_vs_windowed():
 
         # In fullscreen the preview y should be above the title (i.e., less than windowed y)
         assert py2 < py1
-        # Both positions should have been moved up by ~20px relative to the previous defaults
-        # (we don't rely on exact math elsewhere so a simple delta check is fine)
-        assert (py1 - (ui.height - 180 - 130 - 20)) == 0 or (py1 - (ui.height - 180 - 130)) != 0
+        # Verify exact expected positions after the 40px upward shift:
+        # windowed: theme_section_y - 130 - 40
+        expected_py1 = ui.height - 180 - 130 - 40
+        # fullscreen: title_y - 10 - 120 - 40
+        expected_py2 = ui.height - 180 - 30 - 10 - 120 - 40
+        assert py1 == expected_py1
+        assert py2 == expected_py2
         # x should still be centered for each width
         assert abs(px1 + 100 - (1280 / 2)) < 2
         assert abs(px2 + 100 - (1920 / 2)) < 2
