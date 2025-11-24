@@ -35,7 +35,7 @@ A sophisticated, fully-themed music jukebox application built with Python, pygam
 - **Automatic Indexing**: Creates organized catalog on startup
 
 ### Playback Controls
-- Play, pause, stop functionality
+- Play, skip, stop functionality
 - Navigate between tracks within an album
 - Navigate between albums in the library
 - Auto-advance to next track when current finishes
@@ -44,7 +44,7 @@ A sophisticated, fully-themed music jukebox application built with Python, pygam
 ### User Interface
 - **Professional 3-Column Layout**: Browse albums with visual card-based design
 - **Enhanced Now Playing Display**: Persistent track information with yellow highlighting
-- **Themed Media Controls**: PNG/SVG play, pause, stop buttons with rollover effects
+- **Themed Media Controls**: PNG/SVG play, skip, stop buttons with rollover effects
 - **Responsive Number Pad**: Centered, semi-transparent border with color-coded buttons
 - **Configuration Screen**: Real-time theme switching and settings management
 - **4-Digit Selection System**: Quick track selection with real-time input display
@@ -420,7 +420,7 @@ Each theme includes:
 #### Button Graphics (PNG/SVG with Fallbacks)
 - **Media Controls**:
   - `play_button.png/svg` - Play button with theme styling
-  - `pause_button.png/svg` - Pause button with theme styling
+  - `pause_button.png/svg` - Skip button with theme styling
   - `stop_button.png/svg` - Stop button with theme styling
   - `config_button.png/svg` - Configuration gear icon
 - **Navigation Controls**:
@@ -447,8 +447,8 @@ themes/
 │   ├── background.png         # Main background image (1280x800)
 │   ├── play_button.png        # Play button (50x50)
 │   ├── play_button.svg        # Play button SVG (vector)
-│   ├── pause_button.png       # Pause button (50x50)
-│   ├── pause_button.svg       # Pause button SVG (vector)
+│   ├── pause_button.png       # Skip button (50x50)
+│   ├── pause_button.svg       # Skip button SVG (vector)
 │   ├── stop_button.png        # Stop button (50x50)
 │   ├── stop_button.svg        # Stop button SVG (vector)
 │   ├── config_button.png      # Configuration gear (50x50)
@@ -509,7 +509,7 @@ themes/
    - `background.png`: 1280x800 pixels main background
    - **Media Button Graphics** (PNG/SVG):
      - `play_button.png` or `play_button.svg`: 50x50 pixels
-     - `pause_button.png` or `pause_button.svg`: 50x50 pixels
+    - `pause_button.png` or `pause_button.svg`: 50x50 pixels (used as the Skip control)
      - `stop_button.png` or `stop_button.svg`: 50x50 pixels
      - `config_button.png` or `config_button.svg`: 50x50 pixels
    - **Navigation Button Graphics**:
@@ -588,6 +588,7 @@ themes/
 
 #### Themed Controls (No Borders)
 - **Media Buttons**: Play, Pause, Stop with PNG/SVG graphics
+ - **Media Buttons**: Play, Skip, Stop with PNG/SVG graphics
 - **Configuration Button**: Gear icon with theme styling
 - **Navigation Arrows**: Side buttons for album browsing
 
