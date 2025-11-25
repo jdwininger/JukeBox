@@ -205,7 +205,8 @@ def test_volume_overlay_position():
         label_h = ui.small_font.get_height()
         top_extra = label_h + 12
         assert vw == ui.volume_slider.width + 20
-        assert vh == ui.volume_slider.height + 12 + top_extra
+        # overlay was extended downward by 10px
+        assert vh == ui.volume_slider.height + 12 + top_extra + 10
         assert vx == ui.volume_slider.x - 8
         assert vy == ui.volume_slider.y - top_extra
     finally:
