@@ -60,3 +60,8 @@ cover.jpg
 squashfs-root/
 JukeBox.AppDir/
 *.AppImage
+
+# Ignore local test scripts and create_* helper scripts (keep them on disk but
+# do not sync to GitHub when committing)
+test_*.py
+create_*.py
