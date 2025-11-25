@@ -2355,12 +2355,17 @@ class UI:
         # improve contrast (50% opacity). This sits behind the slider and
         # does not affect interaction with the slider itself.
         try:
+            # Include the volume label above the slider in the overlay so the
+            # label and slider are visible against busy backgrounds.
+            label_h = self.small_font.get_height()
             vol_overlay_w = self.volume_slider.width + 20
-            vol_overlay_h = self.volume_slider.height + 12
+            # Top padding: include previous 6px + label height + 6px spacing
+            top_extra = label_h + 12
+            vol_overlay_h = self.volume_slider.height + 12 + top_extra
             vol_overlay_surf = pygame.Surface((vol_overlay_w, vol_overlay_h), pygame.SRCALPHA)
             vol_overlay_surf.fill((0, 0, 0, int(255 * 0.5)))
             vol_overlay_x = self.volume_slider.x - 8
-            vol_overlay_y = self.volume_slider.y - 6
+            vol_overlay_y = self.volume_slider.y - top_extra
             self.screen.blit(vol_overlay_surf, (vol_overlay_x, vol_overlay_y))
         except Exception:
             pass
@@ -3056,7 +3061,7 @@ class UI:
         border_surface = pygame.Surface(
             (border_rect.width, border_rect.height), pygame.SRCALPHA
         )
-        border_surface.fill((0, 0, 0, int(255 * 0.15)))  # Black at 15% opacity
+        border_surface.fill((0, 0, 0, int(255 * 0.5)))  # Black at 50% opacity
         self.screen.blit(border_surface, border_rect.topleft)
 
         # Scale navigation button positions and sizes
@@ -3420,10 +3425,12 @@ class UI:
         coordinates used when drawing the overlay. Useful for unit tests.
         """
         try:
+            label_h = self.small_font.get_height()
+            top_extra = label_h + 12
             x = int(self.volume_slider.x - 8)
-            y = int(self.volume_slider.y - 6)
+            y = int(self.volume_slider.y - top_extra)
             w = int(self.volume_slider.width + 20)
-            h = int(self.volume_slider.height + 12)
+            h = int(self.volume_slider.height + 12 + top_extra)
             return x, y, w, h
         except Exception:
             # If slider isn't initialized, return a sensible empty rectangle

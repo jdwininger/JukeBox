@@ -202,9 +202,11 @@ def test_volume_overlay_position():
 
         vx, vy, vw, vh = ui.compute_volume_overlay_origin()
 
+        label_h = ui.small_font.get_height()
+        top_extra = label_h + 12
         assert vw == ui.volume_slider.width + 20
-        assert vh == ui.volume_slider.height + 12
+        assert vh == ui.volume_slider.height + 12 + top_extra
         assert vx == ui.volume_slider.x - 8
-        assert vy == ui.volume_slider.y - 6
+        assert vy == ui.volume_slider.y - top_extra
     finally:
         pygame.quit()
