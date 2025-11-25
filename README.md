@@ -519,10 +519,20 @@ themes/
 2. Add theme images (PNG or SVG format):
    - `background.png`: 1280x800 pixels main background
    - **Media Button Graphics** (PNG/SVG):
-     - `play_button.png` or `play_button.svg`: 50x50 pixels
-    - `pause_button.png` or `pause_button.svg`: 50x50 pixels (used as the Skip control)
-     - `stop_button.png` or `stop_button.svg`: 50x50 pixels
-     - `config_button.png` or `config_button.svg`: 50x50 pixels
+     - `play_button.png` or `play_button.svg`: 50×50 pixels
+     - `pause_button.png` or `pause_button.svg`: 50×50 pixels (used as the Skip control)
+     - `stop_button.png` or `stop_button.svg`: 50×50 pixels
+     - `config_button.png` or `config_button.svg`: 50×50 pixels
+     - `exit_button.png` or `exit_button.svg`: 50×50 pixels (optional) — icon used on the top-right Exit button
+
+   - **Hover / Pressed variants (optional)**
+     The app now supports themed hover and pressed variants for media/navigation/config/exit icons.
+     For maximum theming control include the following additional files (PNG or SVG):
+     - `*_hover.png` / `*_hover.svg` — asset used when the button is hovered
+     - `*_pressed.png` / `*_pressed.svg` — asset used when the button is pressed
+
+     Example: `play_button_hover.svg`, `play_button_pressed.svg`, `exit_button_hover.svg`, `exit_button_pressed.svg`.
+     If a hover/pressed variant is not present the UI will fall back to the base asset and apply a subtle brightness effect on hover.
    - **Navigation Button Graphics**:
      - `nav_left_button.png` or `nav_left_button.svg`: 60x80 pixels
      - `nav_right_button.png` or `nav_right_button.svg`: 60x80 pixels
