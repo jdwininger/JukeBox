@@ -174,6 +174,12 @@ class Button:
         """Draw play, pause, or stop icon based on icon_type"""
         center_x, center_y = self.rect.center
         icon_size = min(self.rect.width, self.rect.height) // 3
+
+        # Draw a visible button background so icon-only buttons are readable
+        bg_color = self.hover_color if self.is_hovered else self.color
+        pygame.draw.rect(surface, bg_color, self.rect)
+        pygame.draw.rect(surface, Colors.WHITE, self.rect, 2)
+
         color = Colors.WHITE if self.is_hovered else Colors.LIGHT_GRAY
 
         if self.icon_type == "play":
@@ -213,6 +219,22 @@ class Button:
                 icon_size,
             )
             pygame.draw.rect(surface, color, stop_rect)
+
+        elif self.icon_type == "exit":
+            # Draw a simple 'X' exit symbol centered inside the button
+            thickness = max(2, icon_size // 3)
+            # Coordinates for X lines
+            x1, y1 = center_x - icon_size // 2, center_y - icon_size // 2
+            x2, y2 = center_x + icon_size // 2, center_y + icon_size // 2
+            x3, y3 = center_x - icon_size // 2, center_y + icon_size // 2
+            x4, y4 = center_x + icon_size // 2, center_y - icon_size // 2
+            pygame.draw.line(surface, color, (x1, y1), (x2, y2), thickness)
+            pygame.draw.line(surface, color, (x3, y3), (x4, y4), thickness)
+
+        else:
+            # Fallback: draw a simple centered dot so the button isn't empty
+            dot_radius = max(2, icon_size // 4)
+            pygame.draw.circle(surface, color, (center_x, center_y), dot_radius)
 
     def update(self, pos: Tuple[int, int]) -> None:
         """Update button hover state"""
