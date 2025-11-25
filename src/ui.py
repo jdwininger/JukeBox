@@ -3507,19 +3507,9 @@ class UI:
                 self.config_density_slider.y = den_y
                 # cap slider width to column width
                 self.config_density_slider.width = min(self.config_density_slider.width, col_width - 40)
-                # Draw a semi-transparent black box behind the density slider
-                try:
-                    overlay_w = min(self.config_density_slider.width + 80, col_width - 20)
-                    overlay_h = self.config_density_slider.height + 12
-                    overlay_surf = pygame.Surface((overlay_w, overlay_h), pygame.SRCALPHA)
-                    overlay_surf.fill((0, 0, 0, int(255 * 0.5)))
-                    # Position the overlay so it covers the slider and the value text
-                    overlay_x = den_x - 6
-                    overlay_y = den_y - 6
-                    self.screen.blit(overlay_surf, (overlay_x, overlay_y))
-                except Exception:
-                    # If anything fails drawing the overlay, ignore to keep UI robust
-                    pass
+                # Previously a semi-transparent box was drawn behind the density
+                # slider. That overlay has been removed to avoid visual clutter
+                # while keeping the slider itself intact.
                 self.config_density_slider.draw(self.screen, self.small_font)
                 dval = float(self.config.get("track_list_density", 0.8))
                 txt = self.small_font.render(f"{dval:.2f}", True, Colors.LIGHT_GRAY)
