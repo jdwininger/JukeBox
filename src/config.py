@@ -23,6 +23,11 @@ class Config:
         # to platform defaults (~/Music/JukeBox on macOS/Linux).
         "music_dir": None,
         "keyboard_shortcut_enabled": True,
+        # Toggle allowing compact, denser track lists on album cards
+        "compact_track_list": True,
+        # Density multiplier for track list rendering (0.5 = very dense, 1.0 = normal)
+        # This is exposed as a slider in the Configuration screen.
+        "track_list_density": 0.8,
     }
 
     def __init__(self, config_file: str = None):

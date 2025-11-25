@@ -36,6 +36,7 @@ A sophisticated, fully-themed music jukebox application built with Python, pygam
 
 ### Playback Controls
 - Play, skip, stop functionality
+- Credits: playback requires credits — one credit allows one play. Use the "Add Credit" button on the main screen (right column, below the album cards) to add credits.
 - Navigate between tracks within an album
 - Navigate between albums in the library
 - Auto-advance to next track when current finishes
@@ -47,7 +48,8 @@ A sophisticated, fully-themed music jukebox application built with Python, pygam
 - **Themed Media Controls**: PNG/SVG play, skip, stop buttons with rollover effects
 - **Responsive Number Pad**: Centered, semi-transparent border with color-coded buttons
 - **Configuration Screen**: Real-time theme switching and settings management
-- **4-Digit Selection System**: Quick track selection with real-time input display
+ - **4-Digit Selection System**: Quick track selection with real-time input display
+ - **Compact Track Lists**: Album cards use a smaller, denser font for track listings so more song titles fit on each card
 - **Browse Position System**: Navigate 4 albums at a time with side buttons
 - **Smart Layout Adaptation**:
   - Fullscreen: 1.0x scale factor with optimal spacing
@@ -63,6 +65,7 @@ A sophisticated, fully-themed music jukebox application built with Python, pygam
 - `N`/`P`: Previous/Next album
 - `↑↓`: Increase/Decrease volume
 - `C`: Toggle configuration screen
+  - `Enter` / `Esc` during Exit dialog: Confirm (Enter) or cancel (Esc) when the Exit confirmation dialog appears
 - `Alt+Enter`: Toggle fullscreen mode
 - `0-9`: Direct number entry for track selection
 - `Enter`: Execute 4-digit selection
@@ -296,6 +299,8 @@ If this directory doesn't exist the app will create it and ensure the expected n
 
 If you prefer the repo-local `music/` folder, start the program from the repo root or update config to point elsewhere (future enhancement: configurable via CLI/config file).
 
+Note: The app now automatically prefers an existing ~/Music/JukeBox-like folder (for example `~/Music/Jukebox` or `~/Music/jukebox`) when no `music_dir` is configured. This avoids creating a new `~/Music/JukeBox` directory if you already have a similarly-named folder in your Music directory.
+
 Configuring library from the app (GUI)
 ------------------------------------
 
@@ -307,6 +312,12 @@ You can now change the music library location from inside the application:
 
 If you pick a folder, the app will persist your choice to `~/.jukebox_config.json` as `music_dir`, create the numbered album slots (01–52) if they don't exist, and update the library immediately.
 If you cancel the dialog, the app will keep using the current library location (which defaults to `~/Music/JukeBox` on macOS/Linux).
+
+Compact Track List setting:
+- Toggle compact track listings on album cards from the Settings section in the Configuration screen. When enabled, album cards use a denser font and tighter spacing so more track titles fit on each card.
+
+Density slider:
+- Fine-tune how densely track lists are drawn using the new "Density" slider in the Configuration screen (range: 0.5 = very dense, 1.0 = normal). Changes apply immediately across the UI.
 
 #### Common Linux troubleshooting: missing audio / mixer
 
@@ -582,6 +593,8 @@ themes/
 ├──────────────────────────────────────────────────────────────────┤
 │ 4-digit: Album(2)+Track(2) | C: Config | Space: Play/Pause | Alt+Enter: Fullscreen │
 ╚══════════════════════════════════════════════════════════════════════════════════╝
+
+Note: A new "Add Credit" button is displayed beneath the right-column album cards on the main screen. Each press adds one credit; starting playback consumes one credit (one press to play a song).
 ```
 
 ### Interactive Elements
@@ -590,6 +603,7 @@ themes/
 - **Media Buttons**: Play, Pause, Stop with PNG/SVG graphics
  - **Media Buttons**: Play, Skip, Stop with PNG/SVG graphics
 - **Configuration Button**: Gear icon with theme styling
+  - **Exit Button**: An "Exit" control sits to the right of the Config (gear) button on the top-right — it opens a confirmation dialog to make sure you want to quit the program.
 - **Navigation Arrows**: Side buttons for album browsing
 
 #### Bordered Controls (Text-based)

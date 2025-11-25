@@ -360,6 +360,10 @@ class UI:
         self.small_medium_font = pygame.font.SysFont("Arial", 20)
         self.small_font = pygame.font.SysFont("Arial", 14)
         self.tiny_font = pygame.font.SysFont("Arial", 10)
+        # Dedicated font for album track lists (slightly smaller than tiny_font)
+        self.track_list_font = pygame.font.SysFont("Arial", 9)
+        # Smaller fullscreen track font when compact mode enabled
+        self.track_list_font_fullscreen = pygame.font.SysFont("Arial", 12)
 
         # Performance optimizations
         self._cached_background = None
@@ -474,12 +478,24 @@ class UI:
             icon_type="stop",
         )
 
-        # Export and Config + Album nav (right side anchored) - config button also square
+        # Export and Config + Album nav (right side anchored) - config and exit buttons (square)
         right_spacing = spacing
         right_x = self.width - self.margin
         # Place from right to left
-        self.config_button = Button(
+        # Place exit button flush against the right margin, and move the
+        # config (gear) left of it so both fit on the top controls bar.
+        self.exit_button = Button(
             right_x - media_button_size,
+            controls_y,
+            media_button_size,
+            media_button_size,
+            "Exit",
+            Colors.RED,
+            theme=self.current_theme,
+        )
+
+        self.config_button = Button(
+            right_x - media_button_size - media_button_size - right_spacing,
             controls_y,
             media_button_size,
             media_button_size,
@@ -514,6 +530,10 @@ class UI:
             theme=self.current_theme,
             icon_type="right",
         )
+        # Credit button (will be positioned dynamically under right-column album cards)
+        self.credit_button = Button(
+            0, 0, 160, 36, "Add Credit", Colors.YELLOW, theme=self.current_theme
+        )
         # Number pad (bottom right) — initialized inline below
 
         # Audio controls
@@ -521,6 +541,11 @@ class UI:
 
         # Config screen buttons
         self.setup_config_buttons()
+
+        # Exit confirmation modal buttons (created once so tests can interact)
+        self.exit_confirm_yes = Button(0, 0, 120, 40, "Yes", Colors.RED, theme=self.current_theme)
+        self.exit_confirm_no = Button(0, 0, 120, 40, "No", Colors.GREEN, theme=self.current_theme)
+        self.exit_confirm_open = False
         """Setup clickable number pad for 4-digit selection"""
         # Base origin for number pad; we'll re-center during draw
         pad_x = self.width - 360
@@ -718,10 +743,10 @@ class UI:
             theme=self.current_theme,
         )  # Purple color
         # Music library chooser button (opens a system folder dialog)
-        # Lowered 20px to avoid clipping into the text above
+        # Lowered 40px to avoid clipping into the text above (moved down 20px total)
         self.config_choose_music_button = Button(
             center_x + 300,
-            config_y + 20,
+            config_y + 40,
             button_width + 80,
             button_height,
             "Choose Library",
@@ -747,6 +772,19 @@ class UI:
             "Fullscreen",
             Colors.GRAY,
             theme=self.current_theme,
+        )
+
+        # Toggle button for compact track lists (states: ON/OFF visual)
+        self.config_compact_button = Button(
+            center_x - 260, config_y + 40 + 4 * 35, button_width + 40, 34, "Compact Track List", Colors.BLUE, theme=self.current_theme
+        )
+
+        # Density slider for track lists (0.5 .. 1.0)
+        density_x = center_x - 260
+        density_y = config_y + 40 + 4 * 35 + 48
+        self.config_density_slider = Slider(
+            density_x, density_y, button_width + 180, 36, min_val=0.5, max_val=1.0,
+            initial_val=float(self.config.get("track_list_density", 0.8)), label="Density", theme=self.current_theme
         )
 
         # Theme selection buttons
@@ -879,6 +917,7 @@ class UI:
             return
 
         for event in events:
+            # handle events normally
             if event.type == pygame.QUIT:
                 self.running = False
                 return  # Early exit on quit
@@ -906,6 +945,47 @@ class UI:
                 # Navigation button positions are now handled in draw_number_pad_centered()
 
             elif event.type == pygame.MOUSEMOTION:
+                # If an exit confirmation modal is open, handle its clicks first
+                if getattr(self, "exit_confirm_open", False):
+                    # Only update hover states on motion; clicks are handled in MOUSEBUTTONDOWN
+                    # Only update hover states on motion; clicks are handled in MOUSEBUTTONDOWN
+                    try:
+                        self.exit_confirm_yes.update(event.pos)
+                        self.exit_confirm_no.update(event.pos)
+                    except Exception:
+                        pass
+                    continue
+
+                # If an exit confirmation modal is open, handle its clicks first
+                if getattr(self, "exit_confirm_open", False):
+                    if self.exit_confirm_yes.is_clicked(getattr(event, 'pos', None)):
+                        self.running = False
+                        self.exit_confirm_open = False
+                        continue
+                    elif self.exit_confirm_no.is_clicked(getattr(event, 'pos', None)):
+                        self.exit_confirm_open = False
+                        continue
+
+                # If exit modal open, handle yes/no first
+                if getattr(self, "exit_confirm_open", False):
+                    if self.exit_confirm_yes.is_clicked(event.pos):
+                        self.running = False
+                        self.exit_confirm_open = False
+                        continue
+                    elif self.exit_confirm_no.is_clicked(event.pos):
+                        self.exit_confirm_open = False
+                        continue
+
+                # If exit confirmation modal is open, handle yes/no first
+                if getattr(self, "exit_confirm_open", False):
+                    if self.exit_confirm_yes.is_clicked(event.pos):
+                        self.running = False
+                        self.exit_confirm_open = False
+                        continue
+                    elif self.exit_confirm_no.is_clicked(event.pos):
+                        self.exit_confirm_open = False
+                        continue
+
                 if self.config_screen_open:
                     # If the in-app music-directory modal is open, handle modal clicks first
                     if self.config_music_editing:
@@ -1043,6 +1123,14 @@ class UI:
                     self.config_reset_button.update(event.pos)
                     self.config_close_button.update(event.pos)
                     self.config_extract_art_button.update(event.pos)
+                    self.config_compact_button.update(event.pos)
+                    # Update density slider hover/drag state
+                    try:
+                        mouse_pressed = pygame.mouse.get_pressed()[0]
+                        self.config_density_slider.update(event.pos, mouse_pressed)
+                    except Exception:
+                        # In tests, pygame mouse may not be available - ignore
+                        pass
                     self.config_equalizer_button.update(event.pos)
                     self.config_fullscreen_button.update(event.pos)
                     self.config_choose_music_button.update(event.pos)
@@ -1071,8 +1159,12 @@ class UI:
                     self.pause_button.update(event.pos)
                     self.stop_button.update(event.pos)
                     self.config_button.update(event.pos)
+                    self.exit_button.update(event.pos)
                     self.left_nav_button.update(event.pos)
                     self.right_nav_button.update(event.pos)
+                    # Credit button (main screen)
+                    if hasattr(self, "credit_button"):
+                        self.credit_button.update(event.pos)
                     mouse_pressed = pygame.mouse.get_pressed()[0]
                     self.volume_slider.update(event.pos, mouse_pressed)
                     if self.show_equalizer:
@@ -1080,6 +1172,18 @@ class UI:
                             slider.update(event.pos, mouse_pressed)
                     for btn in self.number_pad_buttons:
                         btn.update(event.pos)
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                # Also treat mouse up events for the exit confirmation modal (helps some environments)
+                if getattr(self, "exit_confirm_open", False):
+                    pass
+                    if self.exit_confirm_yes.is_clicked(getattr(event, 'pos', None)):
+                        self.running = False
+                        self.exit_confirm_open = False
+                        continue
+                    elif self.exit_confirm_no.is_clicked(getattr(event, 'pos', None)):
+                        self.exit_confirm_open = False
+                        continue
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # If browser open and using older SDL, button 4/5 indicate wheel scroll
@@ -1146,6 +1250,38 @@ class UI:
                         self.config_music_preview = None
                         # don't process other clicks
                         continue
+
+                    # Toggle compact track list
+                    if self.config_compact_button.is_clicked(event.pos):
+                        try:
+                                    current = bool(self.config.get("compact_track_list", True))
+                                    self.config.set("compact_track_list", not current)
+                                    self.config.save()
+                                    self.config_message = f"Compact Track List: {'ON' if not current else 'OFF'}"
+                                    self.config_message_timer = 180
+                                    # Force a full redraw / clear caches so layout updates apply immediately
+                                    try:
+                                        self.clear_caches()
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            pass
+
+                    # Persist density slider value on any click inside the configuration screen
+                    try:
+                        if hasattr(self, "config_density_slider"):
+                            val = float(self.config_density_slider.get_value())
+                            val = max(0.5, min(1.0, val))
+                            self.config.set("track_list_density", val)
+                            self.config.save()
+                            self.config_message = f"Track list density: {val:.2f}"
+                            self.config_message_timer = 140
+                            try:
+                                self.clear_caches()
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
 
                     # If modal is active, handle clicks on modal buttons
                     if self.config_music_editing:
@@ -1277,6 +1413,9 @@ class UI:
                         self.config_screen_open = True
                         self.config_message = ""
                         self.clear_caches()  # Clear caches when opening config
+                    elif self.exit_button.is_clicked(event.pos):
+                        # Open an exit confirmation dialog/modal
+                        self.exit_confirm_open = True
                     elif self.left_nav_button.is_clicked(event.pos):
                         albums = self.player.library.get_albums()
                         if albums:
@@ -1287,6 +1426,20 @@ class UI:
                         if albums:
                             # Move right by 4 albums, but don't go past album 49
                             self.browse_position = min(48, self.browse_position + 4)
+                    elif hasattr(self, "credit_button") and self.credit_button.is_clicked(
+                        event.pos
+                    ):
+                            # Add a single credit when the button is pressed
+                            if self.player:
+                                try:
+                                    self.player.add_credit(1)
+                                    self.config_message = f"Added 1 credit (Total: {self.player.get_credits()})"
+                                    self.config_message_timer = 180  # 3 seconds at 60fps
+                                except Exception:
+                                    pass
+                            else:
+                                # No player available (headless tests) - ignore
+                                pass
                     else:
                         # Check number pad buttons
                         self.handle_number_pad_click(event.pos)
@@ -1311,6 +1464,18 @@ class UI:
                         continue
 
             elif event.type == pygame.KEYDOWN:
+                # If exit confirm modal is open, handle keyboard shortcuts first
+                if getattr(self, "exit_confirm_open", False):
+                    # Enter (or keypad Enter) -> confirm exit
+                    if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                        self.running = False
+                        self.exit_confirm_open = False
+                        return
+                    # Escape -> cancel
+                    elif event.key == pygame.K_ESCAPE:
+                        self.exit_confirm_open = False
+                        # consume this event
+                        continue
                 # If in music dir modal, capture typing and modal key actions
                 if self.config_music_editing:
                     if event.key == pygame.K_ESCAPE:
@@ -2213,11 +2378,14 @@ class UI:
         self.play_button.draw(self.screen, self.small_font)
         self.pause_button.draw(self.screen, self.small_font)
         self.stop_button.draw(self.screen, self.small_font)
-        # Config button at top-right
-        self.config_button.rect.x = self.width - self.margin - media_button_size
-        self.config_button.rect.y = (
-            controls_margin_top + 15
-        )  # Adjusted for increased margin
+        # Exit and Config buttons at top-right (exit flush to margin, config to left)
+        self.exit_button.rect.x = self.width - self.margin - media_button_size
+        self.exit_button.rect.y = controls_margin_top + 15
+        self.exit_button.draw(self.screen, self.small_font)
+
+        # Place config button to the left of exit button
+        self.config_button.rect.x = self.exit_button.rect.x - media_button_size - spacing
+        self.config_button.rect.y = controls_margin_top + 15
         self.config_button.draw(self.screen, self.small_font)
 
         # Determine start of album content area below controls
@@ -2258,6 +2426,34 @@ class UI:
                 "C: Config | Space: Play/Pause | ↑↓: Volume", True, Colors.WHITE
             )
             self.screen.blit(instructions, (20, text_y))
+
+            # If exit confirmation is open, draw the modal on top before flipping
+            if getattr(self, "exit_confirm_open", False):
+                overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 160))
+                self.screen.blit(overlay, (0, 0))
+
+                modal_w = 520
+                modal_h = 180
+                modal_x = (self.width - modal_w) // 2
+                modal_y = (self.height - modal_h) // 2
+                modal_rect = pygame.Rect(modal_x, modal_y, modal_w, modal_h)
+                pygame.draw.rect(self.screen, Colors.WHITE, modal_rect)
+                pygame.draw.rect(self.screen, Colors.GRAY, modal_rect, 3)
+
+                msg = self.medium_font.render("Confirm Exit", True, Colors.BLACK)
+                self.screen.blit(msg, (modal_x + 20, modal_y + 18))
+                body = self.small_font.render(
+                    "Are you sure you want to exit the program?", True, Colors.DARK_GRAY
+                )
+                self.screen.blit(body, (modal_x + 20, modal_y + 60))
+
+                self.exit_confirm_yes.rect.x = modal_x + modal_w - 260
+                self.exit_confirm_yes.rect.y = modal_y + modal_h - 64
+                self.exit_confirm_no.rect.x = modal_x + modal_w - 130
+                self.exit_confirm_no.rect.y = modal_y + modal_h - 64
+                self.exit_confirm_yes.draw(self.screen, self.small_font)
+                self.exit_confirm_no.draw(self.screen, self.small_font)
 
             pygame.display.flip()
             return  # Exit early for empty library
@@ -2349,6 +2545,32 @@ class UI:
                     albums[right_album_2], col3_x, row2_y, col3_width - 10, card_h
                 )
 
+        # Credit UI placed under the two right column album cards
+        try:
+            # Compute a centered position within the right column
+            credit_w = min(self.credit_button.rect.width, col3_width - 40)
+            credit_x = col3_x + (col3_width - credit_w) // 2
+            # Lower the credit button slightly to give breathing room
+            credit_y = row2_y + card_h + 27  # moved down by 15px
+            self.credit_button.rect.x = credit_x
+            self.credit_button.rect.y = credit_y
+            self.credit_button.rect.width = credit_w
+            self.credit_button.draw(self.screen, self.small_font)
+
+            # Draw current credit count underneath the button
+            credits = 0
+            if self.player:
+                try:
+                    credits = self.player.get_credits()
+                except Exception:
+                    credits = 0
+            credit_txt = self.small_font.render(f"Credits: {credits}", True, Colors.YELLOW)
+            txt_rect = credit_txt.get_rect(center=(credit_x + credit_w // 2, credit_y + self.credit_button.rect.height + 12))
+            self.screen.blit(credit_txt, txt_rect)
+        except Exception:
+            # UI drawing should never crash tests; ignore if player or layout not available
+            pass
+
         # Draw side navigation buttons
         self.left_nav_button.draw(self.screen, self.small_font)
         self.right_nav_button.draw(self.screen, self.small_font)
@@ -2381,6 +2603,38 @@ class UI:
             queue_y = text_y  # Use same y position as instructions
             self.screen.blit(queue_surface, (queue_x, queue_y))
 
+        # If exit confirmation is open, draw modal on top of the screen (draw before final flip)
+        if self.exit_confirm_open:
+            # Semi-transparent overlay
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 160))
+            self.screen.blit(overlay, (0, 0))
+
+            modal_w = 520
+            modal_h = 180
+            modal_x = (self.width - modal_w) // 2
+            modal_y = (self.height - modal_h) // 2
+            modal_rect = pygame.Rect(modal_x, modal_y, modal_w, modal_h)
+            pygame.draw.rect(self.screen, Colors.WHITE, modal_rect)
+            pygame.draw.rect(self.screen, Colors.GRAY, modal_rect, 3)
+
+            # Message
+            msg = self.medium_font.render("Confirm Exit", True, Colors.BLACK)
+            self.screen.blit(msg, (modal_x + 20, modal_y + 18))
+            body = self.small_font.render(
+                "Are you sure you want to exit the program?", True, Colors.DARK_GRAY
+            )
+            self.screen.blit(body, (modal_x + 20, modal_y + 60))
+
+            # Position Yes/No buttons
+            self.exit_confirm_yes.rect.x = modal_x + modal_w - 260
+            self.exit_confirm_yes.rect.y = modal_y + modal_h - 64
+            self.exit_confirm_no.rect.x = modal_x + modal_w - 130
+            self.exit_confirm_no.rect.y = modal_y + modal_h - 64
+            self.exit_confirm_yes.draw(self.screen, self.small_font)
+            self.exit_confirm_no.draw(self.screen, self.small_font)
+
+        # Final flip once per frame
         pygame.display.flip()
 
     def draw_album_card(self, album, x: int, y: int, width: int, height: int) -> None:
@@ -2440,8 +2694,17 @@ class UI:
                 f"{album.album_id:02d}", True, Colors.BLACK
             )
             # Position consistently with album art overlay (top-left corner)
+            # For *placeholder* albums (album.is_valid == False) we want the
+            # artist/title to appear on the left side of the card instead of
+            # being positioned at the art area. Keep the album number overlay
+            # in the art area but reset the text origin to the left content
+            # area for placeholders.
             text_x = art_rect.x + 3
             text_y = art_rect.y + 3
+            if not getattr(album, "is_valid", True):
+                # Move text area back to left side for empty/placeholder slots
+                text_x = content_x
+                text_y = content_y
             # Add white border around the number
             border_padding = 4  # Match the padding used for album art overlay
             border_rect = pygame.Rect(
@@ -2558,21 +2821,43 @@ class UI:
         spacing_after_count = 5 if self.fullscreen else 3
         current_y += line_height + spacing_after_count
 
-        # Show all tracks that fit - adjust track line height for fullscreen
-        track_line_height = 18 if self.fullscreen else 12
+        # Show all tracks that fit - line-height depends on fullscreen and compact setting
+        compact = bool(self.config.get("compact_track_list", True))
+        # Read density multiplier from config (0.5 to 1.0 where smaller => denser)
+        density = float(self.config.get("track_list_density", 0.8))
+        density = max(0.5, min(1.0, density))
+        # Base line heights (px) depending on mode and compact flag, then scale by density
+        if self.fullscreen:
+            base_line = 16 if compact else 18
+        else:
+            base_line = 10 if compact else 12
+        track_line_height = max(6, int(base_line * density))
         max_tracks = min(
             len(album.tracks),
             (content_height - (current_y - text_y) - 10) // track_line_height,
         )
         for i, track in enumerate(album.tracks[:max_tracks]):
             if current_y + track_line_height < y + card_height - padding:
-                # Truncate track title to fit
-                max_chars = max(15, int(text_width // 7))  # Ensure integer
+                # Truncate track title to fit. Allow slightly more characters
+                # by assuming roughly 6px per character.
+                max_chars = max(15, int(text_width // 6))  # Ensure integer
                 title = track["title"][:max_chars]
                 if len(track["title"]) > max_chars:
                     title += "..."
-                # Use larger font for track listing in fullscreen
-                track_font = self.small_font if self.fullscreen else self.tiny_font
+                # Derive an appropriate font size based on density and compact state
+                try:
+                    if self.fullscreen:
+                        base_font_size = 12 if compact else max(12, self.small_font.get_height())
+                    else:
+                        base_font_size = 9 if compact else max(10, self.tiny_font.get_height())
+                    font_size = max(8, int(base_font_size * density))
+                    track_font = pygame.font.SysFont("Arial", font_size)
+                except Exception:
+                    # Fall back to pre-created fonts on any error
+                    if self.fullscreen:
+                        track_font = self.track_list_font_fullscreen if compact else self.small_font
+                    else:
+                        track_font = self.track_list_font if compact else self.tiny_font
                 track_text = track_font.render(f"{i+1:2d}. {title}", True, Colors.GRAY)
                 self.screen.blit(track_text, (text_x + 5, current_y))
                 current_y += track_line_height
@@ -3042,6 +3327,38 @@ class UI:
         self.album_art_cache[album.album_id] = art_surface
         return art_surface
 
+    def compute_album_text_origin(self, album, x: int, y: int, width: int, height: int):
+        """Compute the (text_x, text_y) origin positions for album text in draw_album_card.
+
+        This duplicates the positioning logic used by draw_album_card and is useful
+        for unit-testing layout behavior without requiring surface inspection.
+        """
+        padding = 8
+        content_x = x + padding
+        content_y = y + padding
+        content_width = width - padding * 2
+        content_height = height - padding * 2
+
+        art_size = min(content_height - 10, content_width // 2.2)
+        art_x = x + width - padding - art_size
+        art_y = content_y
+        # Determine if there is album art present
+        art_img = self.get_album_art(album)
+
+        if art_img:
+            # with art, text starts at the left content area
+            text_x = content_x
+            text_y = content_y
+        else:
+            # no art: default to art area top-left, but placeholders move text to left
+            text_x = int(art_x + 3)
+            text_y = int(art_y + 3)
+            if not getattr(album, "is_valid", True):
+                text_x = content_x
+                text_y = content_y
+
+        return text_x, text_y, int(art_x)
+
     def draw_config_screen(self) -> None:
         """Draw the configuration screen with improved organization"""
         self.screen.fill(Colors.DARK_GRAY)
@@ -3055,17 +3372,20 @@ class UI:
         title_rect = title.get_rect(center=(self.width // 2, 40))
         self.screen.blit(title, title_rect)
 
-        # Left Column - Settings
+        # Three column layout for configuration screen (left/settings, middle/library, right/audio/visual)
         left_x = 50
         settings_y = 100
+        col_gap = 40
+        col_width = (self.width - left_x * 2 - col_gap * 2) // 3
+        mid_x = left_x + col_width + col_gap
+        right_x = mid_x + col_width + col_gap
 
-        # Settings section header
+        # Settings section (left column)
         settings_header = self.medium_font.render("Settings", True, Colors.YELLOW)
         self.screen.blit(settings_header, (left_x, settings_y))
 
-        # Configuration toggles
         config_y = settings_y + 40
-        line_height = 35
+        line_height = 36
 
         config_items = [
             ("Auto Play Next Track", self.config.get("auto_play_next")),
@@ -3078,17 +3398,51 @@ class UI:
         for i, (label, value) in enumerate(config_items):
             y = config_y + i * line_height
             label_text = self.small_font.render(f"{label}:", True, Colors.WHITE)
-            self.screen.blit(label_text, (left_x + 20, y))
+            self.screen.blit(label_text, (left_x + 10, y))
 
             value_str = "ON" if value else "OFF"
             value_color = Colors.GREEN if value else Colors.RED
             value_text = self.small_font.render(value_str, True, value_color)
-            self.screen.blit(value_text, (left_x + 280, y))
+            self.screen.blit(value_text, (left_x + col_width - 20, y))
 
-        # Library information section
-        info_y = config_y + len(config_items) * line_height + 30
+        # Compact setting and density control
+        try:
+            compact_state = bool(self.config.get("compact_track_list", True))
+            compact_button_x = left_x + 10
+            compact_button_y = config_y + len(config_items) * line_height + 8
+            self.config_compact_button.rect.x = compact_button_x
+            self.config_compact_button.rect.y = compact_button_y
+            # ensure button width fits within column
+            self.config_compact_button.rect.width = min(self.config_compact_button.rect.width, col_width - 20)
+            self.config_compact_button.draw(self.screen, self.small_font)
+
+            state_txt = "ON" if compact_state else "OFF"
+            state_color = Colors.GREEN if compact_state else Colors.RED
+            state_surf = self.small_font.render(state_txt, True, state_color)
+            self.screen.blit(state_surf, (compact_button_x + self.config_compact_button.rect.width + 8, compact_button_y + 8))
+
+            # Density slider below compact toggle
+            if hasattr(self, "config_density_slider"):
+                den_x = compact_button_x
+                # Lower density slider slightly for better spacing
+                den_y = compact_button_y + self.config_compact_button.rect.height + 14 + 30
+                self.config_density_slider.x = den_x
+                self.config_density_slider.y = den_y
+                # cap slider width to column width
+                self.config_density_slider.width = min(self.config_density_slider.width, col_width - 40)
+                self.config_density_slider.draw(self.screen, self.small_font)
+                dval = float(self.config.get("track_list_density", 0.8))
+                txt = self.small_font.render(f"{dval:.2f}", True, Colors.LIGHT_GRAY)
+                self.screen.blit(txt, (den_x + self.config_density_slider.width + 10, den_y + 8))
+        except Exception:
+            pass
+
+        # Library information section (middle column)
+        info_x = mid_x
+        # Raise the Library header to the same top alignment as Settings
+        info_y = settings_y
         info_header = self.medium_font.render("Library Info", True, Colors.YELLOW)
-        self.screen.blit(info_header, (left_x, info_y))
+        self.screen.blit(info_header, (info_x, info_y))
 
         stats = self.library.get_library_stats()
         info_lines = [
@@ -3101,7 +3455,7 @@ class UI:
         for i, info in enumerate(info_lines):
             y = info_y + 40 + i * 25
             info_text = self.small_font.render(info, True, Colors.LIGHT_GRAY)
-            self.screen.blit(info_text, (left_x + 20, y))
+            self.screen.blit(info_text, (info_x + 10, y))
 
         # Show configured music directory (or default)
         music_dir = self.config.get("music_dir")
@@ -3115,10 +3469,10 @@ class UI:
         md_text = self.small_font.render(
             f"Music folder: {music_dir}", True, Colors.LIGHT_GRAY
         )
-        self.screen.blit(md_text, (left_x + 20, y))
+        self.screen.blit(md_text, (info_x + 10, y))
 
         # Right Column - Actions (audio / visual kept on the right)
-        right_x = self.width // 2 + 50
+        # right_x was computed earlier as right_x variable (col position)
 
         # Audio effects section (kept to the right column)
         # Align vertically with the top Settings header so controls are parallel
@@ -3127,7 +3481,7 @@ class UI:
         effects_header = self.medium_font.render("Audio Effects", True, Colors.YELLOW)
         self.screen.blit(effects_header, (right_x, effects_y))
 
-        self.config_equalizer_button.rect.x = right_x + 20
+        self.config_equalizer_button.rect.x = right_x + 10
         # move equalizer button 10px higher
         self.config_equalizer_button.rect.y = effects_y + 30
         self.config_equalizer_button.draw(self.screen, self.small_font)
@@ -3146,13 +3500,15 @@ class UI:
         self.config_fullscreen_button.rect.y = visual_effects_y + 30
         self.config_fullscreen_button.draw(self.screen, self.small_font)
 
-        # Draw choose music directory button (moved to left of Library Actions for convenience)
-        # Position next to the Library Info section on the left column
-        md_button_x = left_x + 20
-        # Push the choose button down by ~20px to avoid clipping with the text above
-        md_button_y = info_y + 40 + len(info_lines) * 25 + 30
+        # Draw choose music directory button (middle column)
+        md_button_x = info_x + 10
+        # Nudge the choose-library button a few pixels further down so it is
+        # visually separated from the music-folder text above.
+        md_button_y = y + 28
         self.config_choose_music_button.rect.x = md_button_x
         self.config_choose_music_button.rect.y = md_button_y
+        # Make sure button width fits inside column
+        self.config_choose_music_button.rect.width = min(self.config_choose_music_button.rect.width, col_width - 20)
         self.config_choose_music_button.draw(self.screen, self.small_font)
 
         # Consolidated Library Actions: place action buttons in two columns under the Music folder area

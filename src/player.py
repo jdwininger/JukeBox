@@ -55,6 +55,39 @@ class MusicPlayer:
         if albums:
             self.current_album_id = albums[0].album_id
 
+        # Credits system: number of available play credits (1 credit allows one play)
+        self._credits = 0
+
+    # ----- Credits API -----
+    def add_credit(self, amount: int = 1) -> None:
+        """Add credits to the player.
+
+        Args:
+            amount: Number of credits to add (must be >= 0)
+        """
+        try:
+            amount = int(amount)
+        except Exception:
+            return
+        if amount <= 0:
+            return
+        self._credits += amount
+
+    def use_credit(self) -> bool:
+        """Attempt to consume a single credit.
+
+        Returns:
+            True if a credit was available and consumed, False otherwise.
+        """
+        if self._credits >= 1:
+            self._credits -= 1
+            return True
+        return False
+
+    def get_credits(self) -> int:
+        """Return the current number of available credits."""
+        return self._credits
+
     def get_current_album(self):
         """Get the current album"""
         if self.current_album_id is None:
@@ -78,12 +111,20 @@ class MusicPlayer:
     def add_to_queue(self, album_id: int, track_index: int) -> None:
         """Add a track to the queue"""
         was_empty = len(self.queue) == 0
+        # If adding the first track to an empty queue would immediately start
+        # playback (nothing is playing), require a credit before appending.
+        if was_empty and not self.is_music_playing():
+            if not self.use_credit():
+                print("Insufficient credits to start playback")
+                return
         self.queue.append((album_id, track_index))
         print(f"Added to queue: Album {album_id:02d}, Track {track_index + 1:02d}")
 
         # If queue was empty and nothing is playing, start playing
         if was_empty and not self.is_music_playing():
-            self.start_queue()
+            # we've already consumed a credit above if we needed one, so
+            # prevent start_queue from trying to consume again
+            self.start_queue(require_credit=False)
 
     def get_queue(self) -> List[tuple]:
         """Get the current queue"""
@@ -109,14 +150,25 @@ class MusicPlayer:
                 queue_text += f"{i+1:2d}. {album.artist} - {track['title']}{status}\n"
         return queue_text.strip()
 
-    def play_from_queue(self) -> None:
-        """Play the current track from the queue (always at index 0)"""
+    def play_from_queue(self, require_credit: bool = True) -> None:
+        """Play the current track from the queue (always at index 0)
+
+        Args:
+            require_credit: If True, consume one credit to start playback. If False,
+                playback will proceed without consuming credits (used for automatic
+                queue progression).
+        """
         if not self.queue:
             print("Queue is empty")
             return
 
         self.queue_index = 0
         album_id, track_index = self.queue[0]
+        # If this playback is user-initiated and credits are required, try to use one
+        if require_credit:
+            if not self.use_credit():
+                print("Insufficient credits to play from queue")
+                return
         self._play_track(album_id, track_index)
 
     def _play_track(self, album_id: int, track_index: int) -> None:
@@ -179,7 +231,7 @@ class MusicPlayer:
             self.add_to_queue(album_id, track_index)
         elif self.queue and not self.is_music_playing():
             # If nothing is playing and we have a queue, play from queue
-            self.play_from_queue()
+            self.play_from_queue(require_credit=False)
         else:
             print("No track specified or already playing")
 
@@ -222,7 +274,7 @@ class MusicPlayer:
         # Since previous songs are removed, just restart the current track
         print("Restarting current track")
         self.queue_index = 0
-        self.play_from_queue()
+        self.play_from_queue(require_credit=False)
 
     def update_music_state(self) -> None:
         """Update music state and advance queue if track ended"""
@@ -230,11 +282,11 @@ class MusicPlayer:
             # Track ended, move to next in queue
             self.next_track()
 
-    def start_queue(self) -> None:
+    def start_queue(self, require_credit: bool = True) -> None:
         """Start playing from the beginning of the queue"""
         if self.queue:
             self.queue_index = 0
-            self.play_from_queue()
+            self.play_from_queue(require_credit=require_credit)
         else:
             print("Queue is empty")
 

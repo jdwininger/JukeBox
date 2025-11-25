@@ -92,7 +92,20 @@ def setup_library():
         if cfg_music_dir:
             music_dir = os.path.expanduser(cfg_music_dir)
         else:
-            music_dir = os.path.expanduser(os.path.join("~", "Music", "JukeBox"))
+            # Prefer an existing Music/Jukebox-like folder when available
+            home_music = os.path.expanduser(os.path.join("~", "Music"))
+            variants = ["JukeBox", "Jukebox", "jukebox", "Juke Box", "Juke-Box"]
+            found = None
+            for v in variants:
+                cand = os.path.join(home_music, v)
+                if os.path.exists(cand):
+                    found = cand
+                    break
+
+            if found:
+                music_dir = found
+            else:
+                music_dir = os.path.expanduser(os.path.join("~", "Music", "JukeBox"))
     else:
         music_dir = os.path.join(program_dir, "music")
 
