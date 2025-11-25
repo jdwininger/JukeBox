@@ -2361,7 +2361,8 @@ class UI:
             vol_overlay_w = self.volume_slider.width + 20
             # Top padding: include previous 6px + label height + 6px spacing
             top_extra = label_h + 12
-            vol_overlay_h = self.volume_slider.height + 12 + top_extra
+            # Extend downward by 10px to give the slider more breathing room
+            vol_overlay_h = self.volume_slider.height + 12 + top_extra + 10
             vol_overlay_surf = pygame.Surface((vol_overlay_w, vol_overlay_h), pygame.SRCALPHA)
             vol_overlay_surf.fill((0, 0, 0, int(255 * 0.5)))
             vol_overlay_x = self.volume_slider.x - 8
@@ -3051,11 +3052,13 @@ class UI:
 
         # Draw semi-transparent black border around keypad (15% opacity)
         border_padding = int(12 * scale_factor)
+        # Expand the keypad border so it fully encloses the bottom row
+        # (CLR and ENT) — swap 4 rows -> 5 rows and one additional spacing
         border_rect = pygame.Rect(
             pad_x - border_padding,
             pad_y - border_padding - int(40 * scale_factor),
             total_width + border_padding * 2,
-            pad_button_h * 4 + spacing * 3 + int(60 * scale_factor),
+            pad_button_h * 5 + spacing * 4 + int(60 * scale_factor),
         )
         # Create semi-transparent surface
         border_surface = pygame.Surface(
@@ -3430,7 +3433,8 @@ class UI:
             x = int(self.volume_slider.x - 8)
             y = int(self.volume_slider.y - top_extra)
             w = int(self.volume_slider.width + 20)
-            h = int(self.volume_slider.height + 12 + top_extra)
+            # Overlay is extended down 10px to leave extra padding beneath the slider
+            h = int(self.volume_slider.height + 12 + top_extra + 10)
             return x, y, w, h
         except Exception:
             # If slider isn't initialized, return a sensible empty rectangle
