@@ -109,44 +109,49 @@ class Button:
                 pygame.draw.rect(surface, color, self.rect)
                 pygame.draw.rect(surface, Colors.WHITE, self.rect, 2)
 
-        if self.is_gear_icon:
-            # Try to use themed config button image first
-            if self.theme:
-                config_img = self.theme.get_media_button_image("config")
-                if config_img:
-                    # Scale image to button size
-                    scaled_img = pygame.transform.scale(
-                        config_img, (self.rect.width, self.rect.height)
-                    )
-                    # Apply brightness effect on hover
-                    if self.is_hovered:
-                        scaled_img = self.apply_brightness_filter(scaled_img, 1.3)
-                    surface.blit(scaled_img, self.rect)
+            if self.is_gear_icon:
+                # Try to use themed config button image (hover variant if hovered)
+                if self.theme:
+                    state = "hover" if self.is_hovered else "normal"
+                    config_img = self.theme.get_media_button_image("config", state=state)
+                    if config_img is not None:
+                        scaled_img = pygame.transform.scale(
+                            config_img, (self.rect.width, self.rect.height)
+                        )
+                        surface.blit(scaled_img, self.rect)
+                    else:
+                        # Fall back to gear icon drawing
+                        self.draw_gear_icon(surface)
                 else:
-                    # Fall back to gear icon
+                    # No theme available, draw gear icon
                     self.draw_gear_icon(surface)
-            else:
-                # No theme, draw gear icon
-                self.draw_gear_icon(surface)
-        elif self.icon_type:
-            # Try to use themed media/navigation button image first
-            if self.theme:
-                media_img = self.theme.get_media_button_image(self.icon_type)
-                if media_img:
-                    # Scale image to button size
-                    scaled_img = pygame.transform.scale(
-                        media_img, (self.rect.width, self.rect.height)
-                    )
-                    # Apply brightness effect on hover
-                    if self.is_hovered:
-                        scaled_img = self.apply_brightness_filter(scaled_img, 1.3)
-                    surface.blit(scaled_img, self.rect)
+
+            elif self.icon_type:
+                # Attempt to use themed media/navigation icon (preferring hover/pressed state)
+                if self.theme:
+                    state = "hover" if self.is_hovered else "normal"
+                    media_img = self.theme.get_media_button_image(self.icon_type, state=state)
+                    if media_img is not None:
+                        scaled_img = pygame.transform.scale(
+                            media_img, (self.rect.width, self.rect.height)
+                        )
+                        surface.blit(scaled_img, self.rect)
+                    else:
+                        # Fall back to base asset and brighten on hover if needed
+                        base_img = self.theme.get_media_button_image(self.icon_type, state="normal")
+                        if base_img is not None:
+                            scaled_img = pygame.transform.scale(
+                                base_img, (self.rect.width, self.rect.height)
+                            )
+                            if self.is_hovered:
+                                scaled_img = self.apply_brightness_filter(scaled_img, 1.3)
+                            surface.blit(scaled_img, self.rect)
+                        else:
+                            # No themed asset available, draw default icon
+                            self.draw_media_icon(surface)
                 else:
-                    # Fall back to drawn icon
+                    # No theme, draw default media icon
                     self.draw_media_icon(surface)
-            else:
-                # No theme, draw media control icon
-                self.draw_media_icon(surface)
         else:
             # Draw text as usual
             text_surface = font.render(self.text, True, Colors.WHITE)
