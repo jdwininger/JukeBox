@@ -255,7 +255,9 @@ class Theme:
                     load_image_surface = None
 
                 if load_image_surface is not None:
-                    surf = load_image_surface(png_path, size=(64, 64))
+                    # Load media assets at the UI's intended media control size
+                    # to avoid rescaling at render-time and preserve crispness.
+                    surf = load_image_surface(png_path, size=(50, 50))
                 else:
                     surf = pygame.image.load(png_path)
 
@@ -271,7 +273,8 @@ class Theme:
         if SVG_SUPPORT and os.path.exists(svg_path):
             try:
                 # Load SVG at standard button size (64x64)
-                svg_surface = self.load_svg_as_surface(svg_path, 64, 64)
+                # Render SVG at the UI's target media control size (50x50)
+                svg_surface = self.load_svg_as_surface(svg_path, 50, 50)
                 setattr(self, button_attr, svg_surface)
             except Exception as e:
                 print(f"Error loading {button_type} button SVG: {e}")
@@ -288,7 +291,7 @@ class Theme:
                     load_image_surface = None
 
                 if load_image_surface is not None:
-                    surf = load_image_surface(png_hover, size=(64, 64))
+                    surf = load_image_surface(png_hover, size=(50, 50))
                 else:
                     surf = pygame.image.load(png_hover)
 
@@ -297,7 +300,7 @@ class Theme:
                 print(f"Error loading {button_type} hover PNG: {e}")
         elif SVG_SUPPORT and os.path.exists(svg_hover):
             try:
-                surf = self.load_svg_as_surface(svg_hover, 64, 64)
+                surf = self.load_svg_as_surface(svg_hover, 50, 50)
                 setattr(self, hover_attr, surf)
             except Exception as e:
                 print(f"Error loading {button_type} hover SVG: {e}")
@@ -313,7 +316,7 @@ class Theme:
                     load_image_surface = None
 
                 if load_image_surface is not None:
-                    surf = load_image_surface(png_pressed, size=(64, 64))
+                    surf = load_image_surface(png_pressed, size=(50, 50))
                 else:
                     surf = pygame.image.load(png_pressed)
 
@@ -322,13 +325,10 @@ class Theme:
                 print(f"Error loading {button_type} pressed PNG: {e}")
         elif SVG_SUPPORT and os.path.exists(svg_pressed):
             try:
-                surf = self.load_svg_as_surface(svg_pressed, 64, 64)
+                surf = self.load_svg_as_surface(svg_pressed, 50, 50)
                 setattr(self, pressed_attr, surf)
             except Exception as e:
                 print(f"Error loading {button_type} pressed SVG: {e}")
-                print(f"Loaded SVG {button_type} button: {svg_path}")
-            except Exception as e:
-                print(f"Error loading {button_type} button SVG: {e}")
 
     def load_svg_as_surface(
         self, svg_path: str, width: int = None, height: int = None
@@ -404,11 +404,16 @@ class Theme:
     def get_media_button_image(self, button_type: str, state: str = "normal") -> Optional[pygame.Surface]:
         """Get media button image by type and state (normal | hover | pressed)
 
-        Returns None if that state isn't available for the given button.
+        If a state-specific asset is not present, fall back to the 'normal' state where
+        possible. This makes the UI resilient when themes only provide a single
+        static image for a media control.
+
+        Returns None if no asset is available for the requested type.
         """
         if state not in ("normal", "hover", "pressed"):
             state = "normal"
 
+        # Map the requested state to an attribute name
         if state == "normal":
             attr = f"{button_type}_button"
         elif state == "hover":
@@ -416,7 +421,15 @@ class Theme:
         else:
             attr = f"{button_type}_button_pressed"
 
-        return getattr(self, attr, None)
+        # Try to return the state-specific image first
+        img = getattr(self, attr, None)
+
+        # If a hover/pressed state was requested but isn't available, fall back
+        # to the normal variant so the UI still has an icon to display.
+        if img is None and state != "normal":
+            img = getattr(self, f"{button_type}_button", None)
+
+        return img
 
 
 class ThemeManager:

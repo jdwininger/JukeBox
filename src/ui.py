@@ -69,94 +69,68 @@ class Button:
 
     def draw(self, surface: pygame.Surface, font: pygame.font.Font) -> None:
         """Draw the button on the surface"""
-        # Check if this button will use a themed image
-        has_themed_image = False
+        # Draw button visuals depending on theme availability and button type.
+        state = "hover" if self.is_hovered else "normal"
 
-        if self.theme:
-            if self.is_gear_icon:
-                # Check if config button has themed image
-                config_img = self.theme.get_media_button_image("config")
-                has_themed_image = config_img is not None
-            elif self.icon_type:
-                # Check if media/navigation button has themed image
-                media_img = self.theme.get_media_button_image(self.icon_type)
-                has_themed_image = media_img is not None
-            else:
-                # Regular buttons (text-based) don't use themed images
-                has_themed_image = False
-
-        # Only draw background and border for text-based buttons (not themed image buttons)
-        if not has_themed_image:
+        # If this is a media/icon button, try to draw the themed icon first
+        if self.icon_type or self.is_gear_icon:
             if self.theme:
-                # Use theme background if available for regular buttons
-                button_img = self.theme.get_button_image(
-                    "hover" if self.is_hovered else "normal"
-                )
-                if button_img and not (self.is_gear_icon or self.icon_type):
-                    # Only use theme background for regular text buttons
-                    scaled_img = pygame.transform.scale(
-                        button_img, (self.rect.width, self.rect.height)
-                    )
+                # Prefer state-specific media/icon image if present
+                if self.is_gear_icon:
+                    img = self.theme.get_media_button_image("config", state=state)
+                else:
+                    img = self.theme.get_media_button_image(self.icon_type, state=state)
+
+                if img is not None:
+                    scaled_img = pygame.transform.scale(img, (self.rect.width, self.rect.height))
                     surface.blit(scaled_img, self.rect)
                 else:
-                    # Text-based button: draw background and border
-                    color = self.hover_color if self.is_hovered else self.color
-                    pygame.draw.rect(surface, color, self.rect)
-                    pygame.draw.rect(surface, Colors.WHITE, self.rect, 2)
+                    # Fallback to normal-state image if available
+                    if self.is_gear_icon:
+                        base_img = self.theme.get_media_button_image("config", state="normal")
+                    else:
+                        base_img = self.theme.get_media_button_image(self.icon_type, state="normal")
+
+                    if base_img is not None:
+                        scaled_img = pygame.transform.scale(base_img, (self.rect.width, self.rect.height))
+                        if self.is_hovered and not self.is_gear_icon:
+                            scaled_img = self.apply_brightness_filter(scaled_img, 1.3)
+                        surface.blit(scaled_img, self.rect)
+                    else:
+                        # No themed asset: draw the default icon/gear
+                        if self.is_gear_icon:
+                            self.draw_gear_icon(surface)
+                        else:
+                            self.draw_media_icon(surface)
             else:
-                # No theme, use color and border
+                # No theme: draw default icon
+                if self.is_gear_icon:
+                    self.draw_gear_icon(surface)
+                else:
+                    self.draw_media_icon(surface)
+
+            # Icon buttons do not render text labels, done.
+            return
+
+        # For text-based buttons: draw background (theme image if available) and always render text
+        if self.theme:
+            button_img = self.theme.get_button_image(state)
+            if button_img is not None:
+                scaled_img = pygame.transform.scale(button_img, (self.rect.width, self.rect.height))
+                surface.blit(scaled_img, self.rect)
+            else:
                 color = self.hover_color if self.is_hovered else self.color
                 pygame.draw.rect(surface, color, self.rect)
                 pygame.draw.rect(surface, Colors.WHITE, self.rect, 2)
-
-            if self.is_gear_icon:
-                # Try to use themed config button image (hover variant if hovered)
-                if self.theme:
-                    state = "hover" if self.is_hovered else "normal"
-                    config_img = self.theme.get_media_button_image("config", state=state)
-                    if config_img is not None:
-                        scaled_img = pygame.transform.scale(
-                            config_img, (self.rect.width, self.rect.height)
-                        )
-                        surface.blit(scaled_img, self.rect)
-                    else:
-                        # Fall back to gear icon drawing
-                        self.draw_gear_icon(surface)
-                else:
-                    # No theme available, draw gear icon
-                    self.draw_gear_icon(surface)
-
-            elif self.icon_type:
-                # Attempt to use themed media/navigation icon (preferring hover/pressed state)
-                if self.theme:
-                    state = "hover" if self.is_hovered else "normal"
-                    media_img = self.theme.get_media_button_image(self.icon_type, state=state)
-                    if media_img is not None:
-                        scaled_img = pygame.transform.scale(
-                            media_img, (self.rect.width, self.rect.height)
-                        )
-                        surface.blit(scaled_img, self.rect)
-                    else:
-                        # Fall back to base asset and brighten on hover if needed
-                        base_img = self.theme.get_media_button_image(self.icon_type, state="normal")
-                        if base_img is not None:
-                            scaled_img = pygame.transform.scale(
-                                base_img, (self.rect.width, self.rect.height)
-                            )
-                            if self.is_hovered:
-                                scaled_img = self.apply_brightness_filter(scaled_img, 1.3)
-                            surface.blit(scaled_img, self.rect)
-                        else:
-                            # No themed asset available, draw default icon
-                            self.draw_media_icon(surface)
-                else:
-                    # No theme, draw default media icon
-                    self.draw_media_icon(surface)
         else:
-            # Draw text as usual
-            text_surface = font.render(self.text, True, Colors.WHITE)
-            text_rect = text_surface.get_rect(center=self.rect.center)
-            surface.blit(text_surface, text_rect)
+            color = self.hover_color if self.is_hovered else self.color
+            pygame.draw.rect(surface, color, self.rect)
+            pygame.draw.rect(surface, Colors.WHITE, self.rect, 2)
+
+        # Now draw the text label on top for text-based buttons
+        text_surface = font.render(self.text, True, Colors.WHITE)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        surface.blit(text_surface, text_rect)
 
     def draw_gear_icon(self, surface: pygame.Surface) -> None:
         """Draw a gear icon in the button center"""
@@ -850,6 +824,17 @@ class UI:
             pygame.K_7: "7",
             pygame.K_8: "8",
             pygame.K_9: "9",
+            # also accept numeric keypad keys
+            pygame.K_KP0: "0",
+            pygame.K_KP1: "1",
+            pygame.K_KP2: "2",
+            pygame.K_KP3: "3",
+            pygame.K_KP4: "4",
+            pygame.K_KP5: "5",
+            pygame.K_KP6: "6",
+            pygame.K_KP7: "7",
+            pygame.K_KP8: "8",
+            pygame.K_KP9: "9",
         }
 
         if event.key in key_map:
@@ -1585,6 +1570,12 @@ class UI:
                         self.selection_buffer = ""
                         self.selection_mode = False
 
+                # Backspace -> pop last digit from selection buffer (if not editing)
+                elif event.key == pygame.K_BACKSPACE:
+                    if not self.config_screen_open:
+                        self.selection_buffer = self.selection_buffer[:-1]
+                        self.selection_mode = len(self.selection_buffer) > 0
+
                 # Number keys for 4-digit song selection
                 elif event.key in [
                     pygame.K_0,
@@ -1597,12 +1588,23 @@ class UI:
                     pygame.K_7,
                     pygame.K_8,
                     pygame.K_9,
+                    # include keypad numbers as well
+                    pygame.K_KP0,
+                    pygame.K_KP1,
+                    pygame.K_KP2,
+                    pygame.K_KP3,
+                    pygame.K_KP4,
+                    pygame.K_KP5,
+                    pygame.K_KP6,
+                    pygame.K_KP7,
+                    pygame.K_KP8,
+                    pygame.K_KP9,
                 ]:
                     if not self.config_screen_open:
                         self.handle_number_input(event)
 
-                # Enter to execute selection
-                elif event.key == pygame.K_RETURN:
+                # Enter to execute selection (also accept keypad Enter)
+                elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                     # Check for Alt+Enter for fullscreen toggle
                     if (
                         pygame.key.get_pressed()[pygame.K_LALT]
