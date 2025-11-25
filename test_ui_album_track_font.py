@@ -211,3 +211,31 @@ def test_volume_overlay_position():
         assert vy == ui.volume_slider.y - top_extra
     finally:
         pygame.quit()
+
+
+def test_exit_button_uses_theme_asset():
+    """Exit button should use a themed icon when the current theme provides one."""
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    pygame.init()
+    pygame.font.init()
+    try:
+        from src.theme import ThemeManager
+
+        tm = ThemeManager()
+        # pick the first available theme if any
+        av = tm.get_available_themes()
+        if av:
+            tm.set_current_theme(av[0])
+
+        player = DummyPlayer()
+        ui = UI(player=player, library=DummyLibrary(), config=DummyConfig(), theme_manager=tm)
+
+        assert ui.exit_button.icon_type == "exit"
+        # The theme should expose an exit asset if the file exists
+        theme = tm.get_current_theme()
+        if theme is not None:
+            img = theme.get_media_button_image("exit")
+            assert img is not None, "expected theme to provide exit button image"
+
+    finally:
+        pygame.quit()

@@ -63,6 +63,10 @@ class Theme:
         self.config_button_path = os.path.join(theme_dir, "config_button.png")
         self.config_button_svg_path = os.path.join(theme_dir, "config_button.svg")
 
+        # Exit button paths (icon support)
+        self.exit_button_path = os.path.join(theme_dir, "exit_button.png")
+        self.exit_button_svg_path = os.path.join(theme_dir, "exit_button.svg")
+
         # Navigation button paths
         self.left_button_path = os.path.join(theme_dir, "left_button.png")
         self.left_button_svg_path = os.path.join(theme_dir, "left_button.svg")
@@ -83,6 +87,8 @@ class Theme:
         self.pause_button: Optional[pygame.Surface] = None
         self.stop_button: Optional[pygame.Surface] = None
         self.config_button: Optional[pygame.Surface] = None
+        # Exit button image (optional)
+        self.exit_button: Optional[pygame.Surface] = None
 
         # Color scheme
         self.colors = {
@@ -204,6 +210,11 @@ class Theme:
         )
         self._load_media_button(
             "config", self.config_button_path, self.config_button_svg_path
+        )
+
+        # Load exit button if provided by the theme
+        self._load_media_button(
+            "exit", self.exit_button_path, self.exit_button_svg_path
         )
 
         # Load navigation buttons (PNG first, then SVG)
