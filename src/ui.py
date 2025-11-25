@@ -2552,6 +2552,19 @@ class UI:
             credit_x = col3_x + (col3_width - credit_w) // 2
             # Lower the credit button slightly to give breathing room
             credit_y = row2_y + card_h + 27  # moved down by 15px
+            # Draw a semi-transparent black box behind the credit button and
+            # the credits counter for visual separation.
+            try:
+                overlay_w = credit_w + 16
+                overlay_h = self.credit_button.rect.height + 30
+                overlay_surf = pygame.Surface((overlay_w, overlay_h), pygame.SRCALPHA)
+                overlay_surf.fill((0, 0, 0, int(255 * 0.5)))
+                overlay_x = credit_x - 8
+                overlay_y = credit_y - 6
+                self.screen.blit(overlay_surf, (overlay_x, overlay_y))
+            except Exception:
+                pass
+
             self.credit_button.rect.x = credit_x
             self.credit_button.rect.y = credit_y
             self.credit_button.rect.width = credit_w
@@ -3456,6 +3469,19 @@ class UI:
                 self.config_density_slider.y = den_y
                 # cap slider width to column width
                 self.config_density_slider.width = min(self.config_density_slider.width, col_width - 40)
+                # Draw a semi-transparent black box behind the density slider
+                try:
+                    overlay_w = min(self.config_density_slider.width + 80, col_width - 20)
+                    overlay_h = self.config_density_slider.height + 12
+                    overlay_surf = pygame.Surface((overlay_w, overlay_h), pygame.SRCALPHA)
+                    overlay_surf.fill((0, 0, 0, int(255 * 0.5)))
+                    # Position the overlay so it covers the slider and the value text
+                    overlay_x = den_x - 6
+                    overlay_y = den_y - 6
+                    self.screen.blit(overlay_surf, (overlay_x, overlay_y))
+                except Exception:
+                    # If anything fails drawing the overlay, ignore to keep UI robust
+                    pass
                 self.config_density_slider.draw(self.screen, self.small_font)
                 dval = float(self.config.get("track_list_density", 0.8))
                 txt = self.small_font.render(f"{dval:.2f}", True, Colors.LIGHT_GRAY)
