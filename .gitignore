@@ -65,3 +65,20 @@ JukeBox.AppDir/
 # do not sync to GitHub when committing)
 test_*.py
 create_*.py
+
+# Dev-only files / workflows / packaging artifacts
+.githooks/
+.github/workflows/
+scripts/
+Makefile
+.pre-commit-config.yaml
+RELEASE_NOTES.md
+JukeBox-*.AppImage.sha256
+JukeBox-*.release-manifest.txt
+library_export.csv
+
+# Developer docs / optimization notes (keep local)
+COMPREHENSIVE_THEMING.md
+OPTIMIZATION_FIXES.md
+PERFORMANCE_OPTIMIZATIONS.md
+MAIN_SCREEN_LAYOUT.md
