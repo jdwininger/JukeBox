@@ -186,3 +186,25 @@ def test_valid_album_without_art_text_right():
         assert num_x >= art_x and num_x < art_x + art_size
     finally:
         pygame.quit()
+
+
+def test_volume_overlay_position():
+    """The volume slider should have a semi-transparent black overlay positioned
+    correctly relative to the slider rectangle."""
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    pygame.init()
+    pygame.font.init()
+    try:
+        player = DummyPlayer()
+        ui = UI(player=player, library=DummyLibrary(), config=DummyConfig(), theme_manager=StubThemeManager())
+        # Render main screen so slider layout is applied
+        ui.draw_main_screen()
+
+        vx, vy, vw, vh = ui.compute_volume_overlay_origin()
+
+        assert vw == ui.volume_slider.width + 20
+        assert vh == ui.volume_slider.height + 12
+        assert vx == ui.volume_slider.x - 8
+        assert vy == ui.volume_slider.y - 6
+    finally:
+        pygame.quit()

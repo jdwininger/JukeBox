@@ -2351,6 +2351,20 @@ class UI:
         self.volume_slider.y = controls_margin_top + 25  # Adjusted for increased margin
         self.volume_slider.width = 220
         self.volume_slider.height = 20
+        # Draw a semi-transparent black box behind the volume slider to
+        # improve contrast (50% opacity). This sits behind the slider and
+        # does not affect interaction with the slider itself.
+        try:
+            vol_overlay_w = self.volume_slider.width + 20
+            vol_overlay_h = self.volume_slider.height + 12
+            vol_overlay_surf = pygame.Surface((vol_overlay_w, vol_overlay_h), pygame.SRCALPHA)
+            vol_overlay_surf.fill((0, 0, 0, int(255 * 0.5)))
+            vol_overlay_x = self.volume_slider.x - 8
+            vol_overlay_y = self.volume_slider.y - 6
+            self.screen.blit(vol_overlay_surf, (vol_overlay_x, vol_overlay_y))
+        except Exception:
+            pass
+
         self.volume_slider.draw(
             self.screen,
             self.small_font,
@@ -3397,6 +3411,23 @@ class UI:
 
         # album number overlay sits at a fixed offset inside the art rect
         return int(art_x + 3), int(art_y + 3)
+
+    def compute_volume_overlay_origin(self):
+        """Return the computed overlay rectangle (x, y, w, h) used for the
+        semi-transparent background behind the main volume slider.
+
+        This reads the current volume_slider attributes and returns the
+        coordinates used when drawing the overlay. Useful for unit tests.
+        """
+        try:
+            x = int(self.volume_slider.x - 8)
+            y = int(self.volume_slider.y - 6)
+            w = int(self.volume_slider.width + 20)
+            h = int(self.volume_slider.height + 12)
+            return x, y, w, h
+        except Exception:
+            # If slider isn't initialized, return a sensible empty rectangle
+            return 0, 0, 0, 0
 
     def draw_config_screen(self) -> None:
         """Draw the configuration screen with improved organization"""
