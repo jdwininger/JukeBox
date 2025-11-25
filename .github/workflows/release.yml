@@ -1,0 +1,157 @@
+name: Release builds and attach AppImages
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release-build:
+    name: Build and upload AppImages on release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run safety check
+        run: |
+          chmod +x scripts/check-for-bloat.sh
+          ./scripts/check-for-bloat.sh
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.14'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
+      - name: Install dependencies for tests & builds
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y curl file xz-utils zsync jq build-essential pkg-config \
+            libsdl2-dev libsdl2-mixer-dev libsndfile1-dev libopenal-dev libpng-dev libjpeg-dev libfreetype6-dev libx11-dev libxcb1-dev
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: |
+          python -m pip install pytest
+          pytest -q
+
+      - name: Build full AppImage
+        run: |
+          chmod +x scripts/build-appimage.sh
+          # Build a full AppImage (non-slim) first
+          bash scripts/build-appimage.sh
+          # Ensure unique filename so we can produce both builds
+          if [ -f JukeBox-x86_64.AppImage ]; then
+            mv JukeBox-x86_64.AppImage JukeBox-x86_64-full.AppImage
+          fi
+
+      - name: Build slim AppImage
+        run: |
+          chmod +x scripts/build-appimage.sh
+          bash scripts/build-appimage.sh --slim
+          if [ -f JukeBox-x86_64.AppImage ]; then
+            mv JukeBox-x86_64.AppImage JukeBox-x86_64-slim.AppImage
+          fi
+
+      - name: Create minimal release tar (source + runtime files)
+        run: |
+          chmod +x scripts/create-release-tar.sh
+          bash scripts/create-release-tar.sh
+
+      - name: Create SHA256 checksums and zsync metadata
+        run: |
+          set -e
+          for f in JukeBox-x86_64-full.AppImage JukeBox-x86_64-slim.AppImage; do
+            if [ -f "$f" ]; then
+              echo "Creating checksum and zsync for $f"
+              sha256sum "$f" > "$f.sha256"
+              # zsyncmake creates a .zsync metadata file
+              if command -v zsyncmake >/dev/null 2>&1; then
+                zsyncmake "$f"
+              else
+                echo "zsyncmake not available, skipping .zsync creation for $f"
+              fi
+            fi
+          done
+
+          # Create a combined manifest listing checksums (sha256) for release artifacts
+          manifest_file="JukeBox-x86_64.release-manifest.txt"
+          echo "Creating combined manifest: $manifest_file"
+          rm -f "$manifest_file"
+          for a in JukeBox-x86_64-full.AppImage JukeBox-x86_64-full.AppImage.sha256 JukeBox-x86_64-full.AppImage.zsync JukeBox-x86_64-slim.AppImage JukeBox-x86_64-slim.AppImage.sha256 JukeBox-x86_64-slim.AppImage.zsync; do
+            if [ -f "$a" ]; then
+              if [[ "$a" == *.sha256 ]]; then
+                # If file already contains sha256, include the content and filename
+                awk '{print $1 "  " $2}' "$a" >> "$manifest_file" || true
+              else
+                sha256sum "$a" >> "$manifest_file" || true
+              fi
+            fi
+          done
+          echo "Manifest created:" && cat "$manifest_file"
+
+      - name: Create checksum for release tar
+        run: |
+          set -e
+          # tar created in build/release by scripts/create-release-tar.sh
+          for t in build/release/*.tar.gz; do
+            if [ -f "$t" ]; then
+              sha256sum "$t" > "$t.sha256"
+              echo "Created checksum for $t"
+            fi
+          done
+
+      - name: Optional sign AppImages (GPG)
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY || '' }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE || '' }}
+        run: |
+          set -e
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+            for f in JukeBox-x86_64-*.AppImage JukeBox-x86_64-*.AppImage.sha256 JukeBox-x86_64-*.AppImage.zsync JukeBox-x86_64.release-manifest.txt; do
+              if [ -f "$f" ]; then
+                gpg --batch --yes --passphrase "$GPG_PASSPHRASE" -ab "$f"
+              fi
+            done
+          else
+            echo "GPG_PRIVATE_KEY not provided — skipping signing step"
+          fi
+
+      - name: Upload built AppImage assets to release (if present)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPLOAD_URL: ${{ github.event.release.upload_url }}
+        run: |
+          set -e
+          # strip template suffix like '{?name,label}'
+          UPLOAD_URL_STRIPPED="${UPLOAD_URL%\{*}"
+          for f in JukeBox-x86_64-full.AppImage JukeBox-x86_64-slim.AppImage JukeBox-x86_64-full.AppImage.sha256 JukeBox-x86_64-slim.AppImage.sha256 JukeBox-x86_64-full.AppImage.zsync JukeBox-x86_64-slim.AppImage.zsync JukeBox-x86_64.release-manifest.txt JukeBox-x86_64-full.AppImage.asc JukeBox-x86_64-slim.AppImage.asc JukeBox-x86_64-full.AppImage.sha256.asc JukeBox-x86_64-slim.AppImage.sha256.asc JukeBox-x86_64.release-manifest.txt.asc build/release/*.tar.gz build/release/*.tar.gz.sha256; do
+            if [ -f "$f" ]; then
+              echo "Uploading $f to release..."
+              curl -s -X POST \
+                -H "Authorization: token ${GITHUB_TOKEN}" \
+                -H "Content-Type: application/octet-stream" \
+                --data-binary @"$f" "${UPLOAD_URL_STRIPPED}?name=$(basename "$f")"
+            else
+              echo "File $f not found, skipping upload"
+            fi
+          done
+
+      - name: Request AppImageHub listing (optional)
+        if: ${{ secrets.APPIMAGEHUB_PAT != '' }}
+        env:
+          APPIMAGEHUB_PAT: ${{ secrets.APPIMAGEHUB_PAT }}
+        run: |
+          chmod +x scripts/publish-to-appimagehub.sh
+          # pass release tag and release url into the helper
+          scripts/publish-to-appimagehub.sh "${{ github.event.release.tag_name }}" "${{ github.event.release.html_url }}"
