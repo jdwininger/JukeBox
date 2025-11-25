@@ -484,6 +484,7 @@ class UI:
         # Place from right to left
         # Place exit button flush against the right margin, and move the
         # config (gear) left of it so both fit on the top controls bar.
+        # Use an icon-type button for exit so themes can provide an exit icon
         self.exit_button = Button(
             right_x - media_button_size,
             controls_y,
@@ -492,6 +493,7 @@ class UI:
             "Exit",
             Colors.RED,
             theme=self.current_theme,
+            icon_type="exit",
         )
 
         self.config_button = Button(

@@ -76,9 +76,25 @@ RELEASE_NOTES.md
 JukeBox-*.AppImage.sha256
 JukeBox-*.release-manifest.txt
 library_export.csv
+# Large binaries / build artifacts (ignore common packaged binaries)
+*.AppImage
+*.apk
+*.deb
+*.rpm
+*.msi
+*.exe
+*.iso
+*.tar.gz
+*.tar.xz
+*.zip
+*.7z
+*.AppDir
 
 # Developer docs / optimization notes (keep local)
 COMPREHENSIVE_THEMING.md
 OPTIMIZATION_FIXES.md
 PERFORMANCE_OPTIMIZATIONS.md
 MAIN_SCREEN_LAYOUT.md
+
+.gitignore
+Jeremy
