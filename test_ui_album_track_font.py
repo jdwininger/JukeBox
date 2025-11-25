@@ -143,6 +143,10 @@ def test_placeholder_album_text_left():
         text_x, text_y, computed_art_x = ui.compute_album_text_origin(a, x, y, w, h)
         assert text_x == content_x, "Placeholder text should start at content_x (left side)"
         assert text_x < art_x, "Computed left-side text origin should be left of album art area"
+
+        # Album number overlay for placeholder should still be in the art area
+        num_x, num_y = ui.compute_album_number_origin(a, x, y, w, h)
+        assert num_x >= art_x and num_x < art_x + art_size, "Album number should be inside art area"
     finally:
         pygame.quit()
 
@@ -176,5 +180,9 @@ def test_valid_album_without_art_text_right():
         text_x, _, computed_art_x = ui.compute_album_text_origin(a, x, y, w, h)
         # For a valid album without art, text should be positioned near the art area
         assert text_x >= art_x - 5, "Computed text origin should be near the art area for valid album without art"
+
+        # Album number for valid album without art should be in art area as well
+        num_x, num_y = ui.compute_album_number_origin(a, x, y, w, h)
+        assert num_x >= art_x and num_x < art_x + art_size
     finally:
         pygame.quit()

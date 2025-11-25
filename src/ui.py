@@ -2693,29 +2693,35 @@ class UI:
             album_num_text = self.large_font.render(
                 f"{album.album_id:02d}", True, Colors.BLACK
             )
-            # Position consistently with album art overlay (top-left corner)
-            # For *placeholder* albums (album.is_valid == False) we want the
-            # artist/title to appear on the left side of the card instead of
-            # being positioned at the art area. Keep the album number overlay
-            # in the art area but reset the text origin to the left content
-            # area for placeholders.
-            text_x = art_rect.x + 3
-            text_y = art_rect.y + 3
+            # Position album number overlay consistently in the top-left of
+            # the album-art area. If the album is a placeholder (invalid)
+            # we still keep the small number box in the art area, but the
+            # textual content (artist/title) will be moved to the left side
+            # of the card.
+            album_num_x = art_rect.x + 3
+            album_num_y = art_rect.y + 3
+
+            # For textual content we use text_x/text_y; default to the
+            # art area origin but placeholders will render text on the
+            # left content column.
+            text_x = album_num_x
+            text_y = album_num_y
             if not getattr(album, "is_valid", True):
-                # Move text area back to left side for empty/placeholder slots
                 text_x = content_x
                 text_y = content_y
-            # Add white border around the number
+
+            # Add white border around the number box and then blit the
+            # album number at the album-art origin (not the textual origin)
             border_padding = 4  # Match the padding used for album art overlay
             border_rect = pygame.Rect(
-                text_x - border_padding,
-                text_y - border_padding,
+                album_num_x - border_padding,
+                album_num_y - border_padding,
                 album_num_text.get_width() + border_padding * 2,
                 album_num_text.get_height() + border_padding * 2,
             )
             pygame.draw.rect(self.screen, Colors.WHITE, border_rect)
             pygame.draw.rect(self.screen, Colors.BLACK, border_rect, 2)
-            self.screen.blit(album_num_text, (text_x, text_y))
+            self.screen.blit(album_num_text, (album_num_x, album_num_y))
 
         # Text content (left side) - adjust spacing for fullscreen
         line_height = 24 if self.fullscreen else 16
@@ -3350,7 +3356,9 @@ class UI:
             text_x = content_x
             text_y = content_y
         else:
-            # no art: default to art area top-left, but placeholders move text to left
+            # no art: default to art area top-left for the numeric overlay,
+            # but textual content will be either here or the left column
+            # for placeholders.
             text_x = int(art_x + 3)
             text_y = int(art_y + 3)
             if not getattr(album, "is_valid", True):
@@ -3358,6 +3366,24 @@ class UI:
                 text_y = content_y
 
         return text_x, text_y, int(art_x)
+
+    def compute_album_number_origin(self, album, x: int, y: int, width: int, height: int):
+        """Compute the (x,y) position of the album-number overlay for testing.
+
+        The album-number should always be placed in the top-left of the album
+        art area (even for placeholder albums), so this helper returns that
+        origin for assertions in unit tests.
+        """
+        padding = 8
+        content_width = width - padding * 2
+        content_height = height - padding * 2
+
+        art_size = min(content_height - 10, content_width // 2.2)
+        art_x = x + width - padding - art_size
+        art_y = y + padding
+
+        # album number overlay sits at a fixed offset inside the art rect
+        return int(art_x + 3), int(art_y + 3)
 
     def draw_config_screen(self) -> None:
         """Draw the configuration screen with improved organization"""
