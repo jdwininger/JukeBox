@@ -84,9 +84,17 @@ class Theme:
 
         # Media control button images
         self.play_button: Optional[pygame.Surface] = None
+        self.play_button_hover: Optional[pygame.Surface] = None
+        self.play_button_pressed: Optional[pygame.Surface] = None
         self.pause_button: Optional[pygame.Surface] = None
+        self.pause_button_hover: Optional[pygame.Surface] = None
+        self.pause_button_pressed: Optional[pygame.Surface] = None
         self.stop_button: Optional[pygame.Surface] = None
+        self.stop_button_hover: Optional[pygame.Surface] = None
+        self.stop_button_pressed: Optional[pygame.Surface] = None
         self.config_button: Optional[pygame.Surface] = None
+        self.config_button_hover: Optional[pygame.Surface] = None
+        self.config_button_pressed: Optional[pygame.Surface] = None
         # Exit button image (optional)
         self.exit_button: Optional[pygame.Surface] = None
 
@@ -199,9 +207,7 @@ class Theme:
                 print(f"Error loading slider_knob image: {e}")
 
         # Load media control buttons (PNG first, then SVG)
-        self._load_media_button(
-            "play", self.play_button_path, self.play_button_svg_path
-        )
+        self._load_media_button("play", self.play_button_path, self.play_button_svg_path)
         self._load_media_button(
             "pause", self.pause_button_path, self.pause_button_svg_path
         )
@@ -225,13 +231,20 @@ class Theme:
             "right", self.right_button_path, self.right_button_svg_path
         )
 
+        # Load exit button and its variants (PNG first then SVG)
+        self._load_media_button(
+            "exit", self.exit_button_path, self.exit_button_svg_path
+        )
+
     def _load_media_button(
         self, button_type: str, png_path: str, svg_path: str
     ) -> None:
         """Load media button image (PNG first, then SVG)"""
         button_attr = f"{button_type}_button"
+        hover_attr = f"{button_type}_button_hover"
+        pressed_attr = f"{button_type}_button_pressed"
 
-        # Try PNG first
+        # Try PNG first for normal state
         if os.path.exists(png_path):
             try:
                 # Import the robust loader locally (this method may be called
@@ -250,16 +263,69 @@ class Theme:
                     raise RuntimeError("failed to load PNG for button")
 
                 setattr(self, button_attr, surf)
-                return
             except Exception as e:
                 print(f"Error loading {button_type} button PNG: {e}")
 
         # Try SVG if PNG failed or doesn't exist
+        # Try SVG for normal state
         if SVG_SUPPORT and os.path.exists(svg_path):
             try:
                 # Load SVG at standard button size (64x64)
                 svg_surface = self.load_svg_as_surface(svg_path, 64, 64)
                 setattr(self, button_attr, svg_surface)
+            except Exception as e:
+                print(f"Error loading {button_type} button SVG: {e}")
+
+        # Hover/pressed variants: look for PNG/SVG with _hover/_pressed suffixes
+        # Hover PNG
+        png_hover = png_path.replace('.png', '_hover.png')
+        svg_hover = svg_path.replace('.svg', '_hover.svg')
+        if os.path.exists(png_hover):
+            try:
+                try:
+                    from src.image_utils import load_image_surface
+                except Exception:
+                    load_image_surface = None
+
+                if load_image_surface is not None:
+                    surf = load_image_surface(png_hover, size=(64, 64))
+                else:
+                    surf = pygame.image.load(png_hover)
+
+                setattr(self, hover_attr, surf)
+            except Exception as e:
+                print(f"Error loading {button_type} hover PNG: {e}")
+        elif SVG_SUPPORT and os.path.exists(svg_hover):
+            try:
+                surf = self.load_svg_as_surface(svg_hover, 64, 64)
+                setattr(self, hover_attr, surf)
+            except Exception as e:
+                print(f"Error loading {button_type} hover SVG: {e}")
+
+        # Pressed PNG
+        png_pressed = png_path.replace('.png', '_pressed.png')
+        svg_pressed = svg_path.replace('.svg', '_pressed.svg')
+        if os.path.exists(png_pressed):
+            try:
+                try:
+                    from src.image_utils import load_image_surface
+                except Exception:
+                    load_image_surface = None
+
+                if load_image_surface is not None:
+                    surf = load_image_surface(png_pressed, size=(64, 64))
+                else:
+                    surf = pygame.image.load(png_pressed)
+
+                setattr(self, pressed_attr, surf)
+            except Exception as e:
+                print(f"Error loading {button_type} pressed PNG: {e}")
+        elif SVG_SUPPORT and os.path.exists(svg_pressed):
+            try:
+                surf = self.load_svg_as_surface(svg_pressed, 64, 64)
+                setattr(self, pressed_attr, surf)
+            except Exception as e:
+                print(f"Error loading {button_type} pressed SVG: {e}")
                 print(f"Loaded SVG {button_type} button: {svg_path}")
             except Exception as e:
                 print(f"Error loading {button_type} button SVG: {e}")
@@ -335,10 +401,22 @@ class Theme:
             default = (128, 128, 128)
         return self.colors.get(color_key, default)
 
-    def get_media_button_image(self, button_type: str) -> Optional[pygame.Surface]:
-        """Get media button image by type"""
-        button_attr = f"{button_type}_button"
-        return getattr(self, button_attr, None)
+    def get_media_button_image(self, button_type: str, state: str = "normal") -> Optional[pygame.Surface]:
+        """Get media button image by type and state (normal | hover | pressed)
+
+        Returns None if that state isn't available for the given button.
+        """
+        if state not in ("normal", "hover", "pressed"):
+            state = "normal"
+
+        if state == "normal":
+            attr = f"{button_type}_button"
+        elif state == "hover":
+            attr = f"{button_type}_button_hover"
+        else:
+            attr = f"{button_type}_button_pressed"
+
+        return getattr(self, attr, None)
 
 
 class ThemeManager:
