@@ -73,7 +73,7 @@ class StubTheme:
     def get_button_image(self, key):
         return None
 
-    def get_media_button_image(self, key):
+    def get_media_button_image(self, key, state='normal'):
         return None
 
     def get_color(self, key, default=None):
