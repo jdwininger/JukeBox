@@ -39,7 +39,7 @@ class Button:
         width: int,
         height: int,
         text: str,
-        color: Tuple[int, int, int] = Colors.GRAY,
+        color: Tuple[int, int, int] = None,
         theme=None,
         is_gear_icon: bool = False,
         icon_type: str = None,
@@ -60,6 +60,17 @@ class Button:
         """
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
+        # If color is not explicitly provided, prefer theme's 'button' color
+        if color is None:
+            try:
+                # theme may be provided and expose get_color
+                if theme is not None:
+                    color = theme.get_color("button", Colors.GRAY)
+                else:
+                    color = Colors.GRAY
+            except Exception:
+                color = Colors.GRAY
+
         self.color = color
         self.hover_color = tuple(min(c + 50, 255) for c in color)
         self.is_hovered = False
@@ -461,7 +472,7 @@ class UI:
             media_button_size,
             media_button_size,
             "Play",
-            Colors.GREEN,
+            None,
             theme=self.current_theme,
             icon_type="play",
         )
@@ -472,7 +483,7 @@ class UI:
             media_button_size,
             media_button_size,
             "Pause",
-            Colors.BLUE,
+            None,
             theme=self.current_theme,
             icon_type="pause",
         )
@@ -483,7 +494,7 @@ class UI:
             media_button_size,
             media_button_size,
             "Stop",
-            Colors.RED,
+            None,
             theme=self.current_theme,
             icon_type="stop",
         )
