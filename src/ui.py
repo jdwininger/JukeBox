@@ -114,7 +114,16 @@ class Button:
 
         # For text-based buttons: draw background (theme image if available) and always render text
         if self.theme:
-            button_img = self.theme.get_button_image(state)
+            # Special-case: allow a themed `close_button` image to be used for
+            # text-labeled Close buttons (some themes provide a specific close
+            # artwork rather than the generic button background).
+            if self.text and self.text.strip().lower() == "close":
+                button_img = self.theme.get_media_button_image("close", state=state)
+                # fall back to generic button image if there is no close-specific asset
+                if button_img is None:
+                    button_img = self.theme.get_button_image(state)
+            else:
+                button_img = self.theme.get_button_image(state)
             if button_img is not None:
                 scaled_img = pygame.transform.scale(button_img, (self.rect.width, self.rect.height))
                 surface.blit(scaled_img, self.rect)

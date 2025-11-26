@@ -67,6 +67,10 @@ class Theme:
         self.exit_button_path = os.path.join(theme_dir, "exit_button.png")
         self.exit_button_svg_path = os.path.join(theme_dir, "exit_button.svg")
 
+        # Close button paths (for modal close buttons)
+        self.close_button_path = os.path.join(theme_dir, "close_button.png")
+        self.close_button_svg_path = os.path.join(theme_dir, "close_button.svg")
+
         # Navigation button paths
         self.left_button_path = os.path.join(theme_dir, "left_button.png")
         self.left_button_svg_path = os.path.join(theme_dir, "left_button.svg")
@@ -97,6 +101,10 @@ class Theme:
         self.config_button_pressed: Optional[pygame.Surface] = None
         # Exit button image (optional)
         self.exit_button: Optional[pygame.Surface] = None
+        # Close button image (optional)
+        self.close_button: Optional[pygame.Surface] = None
+        self.close_button_hover: Optional[pygame.Surface] = None
+        self.close_button_pressed: Optional[pygame.Surface] = None
 
         # Color scheme
         self.colors = {
@@ -221,6 +229,11 @@ class Theme:
         # Load exit button if provided by the theme
         self._load_media_button(
             "exit", self.exit_button_path, self.exit_button_svg_path
+        )
+
+        # Load close button variants if provided
+        self._load_media_button(
+            "close", self.close_button_path, self.close_button_svg_path
         )
 
         # Load navigation buttons (PNG first, then SVG)
