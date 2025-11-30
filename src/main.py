@@ -135,16 +135,29 @@ def main():
 
     # Initialize pygame
     pygame.init()
+    # Try to initialise the audio subsystem if available, but don't abort the
+    # whole application if pygame.mixer is missing. Music playback will be
+    # disabled when mixer support is not present; the UI and most features are
+    # still usable.
+    mixer_available = False
     try:
-        # Prefer a non-destructive availability check from audio_utils
         from src.audio_utils import is_mixer_available
 
-        if not is_mixer_available():
-            raise ModuleNotFoundError("pygame.mixer not available")
+        if is_mixer_available():
+            try:
+                pygame.mixer.init()
+                mixer_available = True
+            except Exception:
+                # Initialising mixer failed for some reason — leave it disabled.
+                mixer_available = False
+        else:
+            mixer_available = False
+    except Exception:
+        mixer_available = False
 
-        pygame.mixer.init()
-    except ModuleNotFoundError as exc:
-        # Give a clear error message for users running on Linux without SDL_mixer
+    if not mixer_available:
+        # Give a clear, helpful message but continue without raising so the
+        # UI can still be used in headless or audio-disabled environments.
         print(
             "\n❌ pygame.mixer is not available. This usually means system audio libraries (SDL_mixer / libsndfile) were missing when pygame was installed."
         )
@@ -157,7 +170,6 @@ def main():
         print(
             f"Then reinstall pygame inside your virtualenv: {sys.executable} -m pip install --upgrade --force-reinstall pygame"
         )
-        raise
 
     # Load configuration
     config = Config()

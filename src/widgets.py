@@ -120,8 +120,10 @@ class Slider:
         self.track_rect = pygame.Rect(
             self.x, self.y + self.height // 2 - 9, self.width, 18
         )
-        # Adjust knob radius based on current height - 32x48 pixel knobs
-        self.knob_radius = max(self.height + 6, 16)  # 16 radius = 32px diameter
+        # Adjust knob radius based on current height but clamp to avoid
+        # very large knobs which can overlap neighboring controls in small modals.
+        preferred = max(int(self.height * 0.9), 8)
+        self.knob_radius = max(8, min(preferred, 20))
         # Preserve current value center when resizing
         current_centerx = self._value_to_x(self.value)
         self.knob_rect = pygame.Rect(0, 0, self.knob_radius * 2, self.knob_radius * 2)
@@ -161,9 +163,9 @@ class Slider:
         if self.theme and hasattr(self.theme, "slider_knob") and self.theme.slider_knob:
             # Use PNG image from theme - allow up to 64x128 for horizontal sliders
             knob_image = self.theme.slider_knob
-            # Scale image to fit knob size, 32x48 for horizontal sliders
-            knob_width = 32
-            knob_height = 48
+            # Scale image to fit knob size; keep it within reasonable bounds
+            knob_width = min(48, self.knob_radius * 2)
+            knob_height = min(48, self.knob_radius * 2)
             scaled_knob = pygame.transform.smoothscale(
                 knob_image, (knob_width, knob_height)
             )
@@ -265,8 +267,9 @@ class VerticalSlider(Slider):
         self.track_rect = pygame.Rect(
             self.x + self.width // 2 - 9, self.y, 18, self.height
         )
-        # Use same knob radius as horizontal sliders - 32x48 pixel knobs for consistency
-        self.knob_radius = max(self.width + 6, 16)  # 16 radius = 32px diameter
+        # Use smaller, clamped knob radius to avoid overlapping other UI
+        preferred = max(int(self.width * 0.9), 8)
+        self.knob_radius = max(8, min(preferred, 20))
         # Preserve current value center when resizing
         knob_y = self._value_to_y(self.value)
         self.knob_rect = pygame.Rect(0, 0, self.knob_radius * 2, self.knob_radius * 2)

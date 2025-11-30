@@ -7,6 +7,7 @@ from typing import List, Optional
 import pygame
 
 from src.album_library import AlbumLibrary
+from src.audio_utils import is_mixer_available
 
 
 class MusicPlayer:
@@ -46,9 +47,27 @@ class MusicPlayer:
                 # but provide a helpful message later when playback is attempted.
                 pass
         else:
-            print(
-                "Warning: audio mixer not available — playback disabled until mixer is provided."
-            )
+            # Mixer not available at init — attempt a one-off safe init so the
+            # app can recover in environments where libs were installed later
+            # or in CI where a dummy driver is configured.
+            try:
+                from src.audio_utils import attempt_mixer_init
+
+                ok, msg = attempt_mixer_init()
+                if ok:
+                    try:
+                        pygame.mixer.music.set_volume(self.volume)
+                    except Exception:
+                        pass
+                else:
+                    print(
+                        "Warning: audio mixer not available — playback disabled until mixer is provided.",
+                        msg,
+                    )
+            except Exception:
+                print(
+                    "Warning: audio mixer not available — playback disabled until mixer is provided."
+                )
 
         # Start with first available album
         albums = self.library.get_albums()
@@ -203,9 +222,22 @@ class MusicPlayer:
                 is_mixer_available = None
 
             if is_mixer_available is None or not is_mixer_available():
-                raise RuntimeError(
-                    "Audio mixer is not available. Ensure pygame was installed with SDL_mixer/system audio libs and reinstall pygame."
-                )
+                # Try a last-ditch init attempt if the mixer module exists but
+                # wasn't initialised at startup. This will help in cases where
+                # the system audio backend becomes available while the app runs.
+                try:
+                    from src.audio_utils import attempt_mixer_init
+
+                    ok, msg = attempt_mixer_init()
+                    if not ok:
+                        raise RuntimeError(
+                            "Audio mixer is not available. Ensure pygame was installed with SDL_mixer/system audio libs and reinstall pygame. "
+                            + msg
+                        )
+                except Exception:
+                    raise RuntimeError(
+                        "Audio mixer is not available. Ensure pygame was installed with SDL_mixer/system audio libs and reinstall pygame."
+                    )
 
             pygame.mixer.music.load(file_path)
             pygame.mixer.music.play()
@@ -277,10 +309,25 @@ class MusicPlayer:
         self.play_from_queue(require_credit=False)
 
     def update_music_state(self) -> None:
-        """Update music state and advance queue if track ended"""
-        if self.is_playing and not pygame.mixer.music.get_busy():
-            # Track ended, move to next in queue
-            self.next_track()
+        """Update music state and advance queue if track ended.
+
+        Safely handle the case where the mixer is not available. If the
+        mixer is unavailable we cannot reliably determine playback state and
+        therefore skip advancing the queue.
+        """
+        if not self.is_playing:
+            return
+
+        if not is_mixer_available():
+            return
+
+        try:
+            if not pygame.mixer.music.get_busy():
+                # Track ended, move to next in queue
+                self.next_track()
+        except Exception:
+            # Ignore mixer errors — don't crash the app
+            return
 
     def start_queue(self, require_credit: bool = True) -> None:
         """Start playing from the beginning of the queue"""
@@ -291,20 +338,46 @@ class MusicPlayer:
             print("Queue is empty")
 
     def pause(self) -> None:
-        """Pause the current track"""
-        if self.is_playing and not self.is_paused:
-            pygame.mixer.music.pause()
+        """Pause the current track (safe when mixer unavailable)."""
+        if not self.is_playing or self.is_paused:
+            return
+
+        if not is_mixer_available():
+            # Mixer not available — change logical state only
             self.is_paused = True
+            return
+
+        try:
+            pygame.mixer.music.pause()
+        except Exception:
+            # If pause fails, keep internal state consistent
+            pass
+        self.is_paused = True
 
     def resume(self) -> None:
-        """Resume the paused track"""
-        if self.is_paused:
-            pygame.mixer.music.unpause()
+        """Resume the paused track (safe when mixer unavailable)."""
+        if not self.is_paused:
+            return
+
+        if not is_mixer_available():
+            # Mixer not available — only update logical state
             self.is_paused = False
+            return
+
+        try:
+            pygame.mixer.music.unpause()
+        except Exception:
+            # Ignore errors coming from mixer
+            pass
+        self.is_paused = False
 
     def stop(self) -> None:
-        """Stop the current track"""
-        pygame.mixer.music.stop()
+        """Stop the current track (no-op if mixer unavailable)."""
+        if is_mixer_available():
+            try:
+                pygame.mixer.music.stop()
+            except Exception:
+                pass
         self.is_playing = False
         self.is_paused = False
 
@@ -364,7 +437,12 @@ class MusicPlayer:
         if self.equalizer and hasattr(self.equalizer, "apply_to_volume"):
             final_volume = self.equalizer.apply_to_volume(self.volume)
 
-        pygame.mixer.music.set_volume(final_volume)
+        # Set mixer volume only if mixer is available; ignore errors
+        if is_mixer_available():
+            try:
+                pygame.mixer.music.set_volume(final_volume)
+            except Exception:
+                pass
 
     def get_volume(self) -> float:
         """Get the current volume level (0.0 to 1.0)"""
@@ -383,8 +461,18 @@ class MusicPlayer:
         return None
 
     def is_music_playing(self) -> bool:
-        """Check if music is currently playing"""
-        return pygame.mixer.music.get_busy()
+        """Check if music is currently playing.
+
+        Returns False when the mixer is unavailable or if calling the mixer
+        APIs raises an exception. This avoids crashing in environments where
+        pygame was built without audio support.
+        """
+        try:
+            if not is_mixer_available():
+                return False
+            return bool(pygame.mixer.music.get_busy())
+        except Exception:
+            return False
 
     def export_library(self, output_file: str) -> bool:
         """Export entire library to CSV"""
@@ -397,7 +485,12 @@ class MusicPlayer:
         return self.library.export_album_to_csv(self.current_album_id, output_file)
 
     def cleanup(self) -> None:
-        """Clean up resources including equalizer temp files"""
+        """Clean up resources including equalizer temp files."""
         if self.equalizer and hasattr(self.equalizer, "cleanup"):
             self.equalizer.cleanup()
-        pygame.mixer.music.stop()
+
+        if is_mixer_available():
+            try:
+                pygame.mixer.music.stop()
+            except Exception:
+                pass

@@ -190,6 +190,57 @@ Example SVG play button:
 
 ### Step 6: Testing Your Theme
 
+## Theme configuration — theme.conf
+
+In addition to images, themes can include a `theme.conf` INI file to expose editable color keys and per-button color overrides. This enables theme authors to tweak colors without touching Python source files or rebuilding assets.
+
+Where to put it
+
+- File: `theme.conf` inside the theme directory (`themes/<name>/theme.conf`)
+
+Supported sections
+
+- `[colors]` — overrides the canonical theme color keys used by the app. Examples:
+    - `background = 32,32,32`
+    - `text = #FFEE00`
+
+- `[button_colors]` — OPTIONAL section that lets theme authors specify per-button colors for text-labeled buttons (case-insensitive). Use button labels as keys (eg. `clr`, `ent`, `credits`). Example:
+    - Supports state-specific keys as well. You can provide hover and pressed variants using key suffixes `_hover` and `_pressed` (for example `credits_hover`, `clr_pressed`). These values will be used for the button's hover and pressed states when available.
+    ```ini
+    [button_colors]
+    credits = 255,215,0
+    clr = 200,50,50
+    ent = #64C864
+    credits_hover = 255,230,128
+    credits_pressed = 200,150,0
+    ```
+
+Parsing behavior & formats
+
+- Color values accept either comma-separated integer RGB triples (e.g. `32,32,32`) or hex colors (`#RRGGBB`).
+- Keys are parsed case-insensitively; `credits`, `CREDITS`, and `Credits` are equivalent.
+- `[button_colors]` is also accepted under the legacy section name `[buttons]` for compatibility.
+
+Precedence / fallback rules
+
+- When rendering text-labeled buttons, the UI first queries the per-button color from `Theme.get_button_color(name)` (which looks in `[button_colors]`).
+- If no per-button color is found, the UI falls back to the theme's generic `button` color from `[colors]`.
+- If the theme does not define either, a hard-coded default (gray) is used.
+
+What this affects
+
+- This only affects text-labeled buttons that render the label text (eg. `CLR`, `ENT`, `Credits`), not media icon buttons like `play`/`pause` (those use image assets if provided).
+- Per-button colors are ideal when you want particular action buttons to stand out (eg. Credits in gold, CLR in red).
+
+Example: dark theme
+
+The repository's `themes/dark/theme.conf` includes a small example `[button_colors]` section demonstrating how to color `Credits`, `CLR` and `ENT`.
+
+Notes & future options
+
+- We can expand theme.conf to support hover/pressed variants per button (eg. `credits_hover`) in a follow-up change if desired.
+- Another related enhancement is supporting per-button themed icon images named like `credits_button.png` — this provides richer visuals but requires image assets instead of color overrides.
+
 1. **Create theme directory** with all required images
 2. **Edit configuration**: Set `"theme": "mytheme"` in `~/.jukebox_config.json`
 3. **Launch JukeBox** and verify appearance

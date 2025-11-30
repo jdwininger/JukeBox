@@ -1,3 +1,4 @@
+
 # JukeBox - Professional Digital Music Library
 
 A sophisticated, fully-themed music jukebox application built with Python, pygame, and SDL2 that provides a professional album library experience with complete customization capabilities.
@@ -234,6 +235,43 @@ python -m src.diagnostics
 ```
 
 The command prints a short human-readable report and recommendations for resolving missing dependencies.
+
+Audio troubleshooting (pygame.mixer)
+-----------------------------------
+
+If you see "pygame.mixer is not available" on startup, playback has been disabled because the pygame build in your runtime lacks the mixer extension (usually due to missing system audio libraries when pygame was installed).
+
+Quick diagnostic commands (run inside the project's venv):
+
+```bash
+python -c "import pygame, importlib; print('pygame', pygame.__version__, pygame.__file__); importlib.import_module('pygame.mixer')"
+# or use the helper
+python -c "from src.audio_utils import mixer_status; print(mixer_status())"
+```
+
+Fixes (Debian/Ubuntu):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libsdl2-dev libsdl2-mixer-dev libsndfile1-dev build-essential
+.venv/bin/python -m pip install --upgrade --force-reinstall pygame
+```
+
+Fixes (Fedora/RPM):
+
+```bash
+sudo dnf install -y SDL2-devel SDL2_mixer SDL2_mixer-devel libsndfile-devel
+.venv/bin/python -m pip install --upgrade --force-reinstall pygame
+```
+
+If you're running headless (CI/Docker) and don't need real audio, set a dummy audio driver to avoid failures:
+
+```bash
+export SDL_AUDIODRIVER=dummy
+export SDL_VIDEODRIVER=dummy
+```
+
+The app also includes a safe runtime helper (`src.audio_utils.attempt_mixer_init`) that will attempt a best-effort mixer initialization — this is useful if system libraries are installed while the app runs and you want the app to recover without restarting.
 
 Automatic fixer helper
 ----------------------

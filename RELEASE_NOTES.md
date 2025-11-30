@@ -34,3 +34,7 @@ Files & Tools introduced or changed
 - .github/workflows/release.yml updated to include release tar and checksums
 
 If you want a fully offline, prebuilt venv included in release tar (fully standalone), we can add an optional mode to build and include it — note this *increases* the tarball size substantially.
+
+Theme & styling improvements
+----------------------------------
+- Added theme.conf per-button color overrides (new `[button_colors]` section) so theme authors can assign specific colors to text-labeled buttons (eg. `CLR`, `ENT`, `Credits`) without image assets. The system still prefers per-button images where provided and falls back to general theme colors.

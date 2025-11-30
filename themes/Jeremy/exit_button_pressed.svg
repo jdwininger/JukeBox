@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-<svg width="50" height="50" version="1.1" viewBox="0 0 13.229 13.229" xmlns="http://www.w3.org/2000/svg">
- <rect x=".3455" y=".37335" width="12.528" height="12.528" fill="#4d4d4d" stroke="#000" stroke-width=".70157"/>
- <g transform="rotate(-45 6.2407 5.5497)" fill="#f00" stroke="#f00">
-  <rect x="5.3879" y="3.0845" width=".6891" height="6.9894"/>
-  <rect transform="rotate(-90)" x="-6.9238" y="2.2377" width=".6891" height="6.9894"/>
- </g>
-</svg>
