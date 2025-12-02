@@ -38,3 +38,11 @@ If you want a fully offline, prebuilt venv included in release tar (fully standa
 Theme & styling improvements
 ----------------------------------
 - Added theme.conf per-button color overrides (new `[button_colors]` section) so theme authors can assign specific colors to text-labeled buttons (eg. `CLR`, `ENT`, `Credits`) without image assets. The system still prefers per-button images where provided and falls back to general theme colors.
+
+Queue & playback fixes
+----------------------------------
+- Fixed a bug preventing users from adding tracks to the queue while another track is playing, particularly in environments where the audio mixer reports not-busy. The queue credit check now uses the Player's logical `is_playing` flag alongside the mixer-reported state, ensuring consistent queueing behavior across all audio backends.
+- Added independent selection overlay positioning (`selection_center_override` and `selection_anchor_shift`) so the 4-digit selection display can remain visually fixed even when the Now Playing card moves.
+- Improved defensive access to theme and player APIs using `getattr`/`try-except` patterns to prevent crashes in headless tests or with lightweight theme stubs.
+- Enhanced font fallback in `FontManager` to correctly match expected signatures when falling back to bundled bitmap fonts, avoiding TypeErrors in headless test environments.
+- Made `AlbumLibrary` constructor optional (creates a temp directory when library path is omitted) to simplify test setup.
