@@ -1112,9 +1112,9 @@ class UI:
             self.selection_buffer += digit
             self.selection_mode = True
 
-            # Auto-execute when 4 digits are entered
-            if len(self.selection_buffer) == 4:
-                self.execute_selection()
+            # Do NOT auto-execute when 4 digits are entered. The user must
+            # explicitly press Enter/ENT to accept the selection. This lets
+            # users correct digits (backspace/CLR) before confirming.
 
     def execute_selection(self) -> None:
         """Execute 4-digit song selection"""
@@ -2233,9 +2233,10 @@ class UI:
                     self.selection_buffer += btn.digit
                     self.selection_mode = True
 
-                    # Auto-execute when 4 digits are entered
-                    if len(self.selection_buffer) == 4:
-                        self.execute_selection()
+                    # NOTE: Do NOT auto-execute on 4 digits — users must press
+                    # ENT (Enter) to accept. This intentionally leaves the
+                    # buffer intact so CLR/backspace can be used to correct
+                    # mistakes prior to confirmation.
                 break
 
     def handle_rescan(self) -> None:
@@ -4473,18 +4474,22 @@ class UI:
 
         # Draw the 4-digit selection display above the Now Playing box so
         # selection digits are centered just above the box.
-        # Show the currently playing selection if available, otherwise show
-        # the typed buffer (or dashes).
-        if getattr(self, 'last_track_info', None):
+        # UX rule: when the user is actively entering a selection (selection_mode),
+        # the typed buffer should be shown (even if we have a persisted last
+        # playing track). Otherwise prefer the last playing selection if present,
+        # otherwise show placeholders.
+        if getattr(self, 'selection_mode', False) and self.selection_buffer:
+            display_sel = self.selection_buffer[:4].ljust(4, "-")
+        elif getattr(self, 'last_track_info', None):
             at = self.last_track_info
             try:
                 album_id = int(at.get('album_id', 0))
                 track_idx = int(at.get('track_index', 0))
                 display_sel = f"{album_id:02d}{track_idx+1:02d}"
             except Exception:
-                display_sel = self.selection_buffer[:4].ljust(4, "-") if self.selection_mode else "----"
+                display_sel = "----"
         else:
-            display_sel = self.selection_buffer[:4].ljust(4, "-") if self.selection_mode else "----"
+            display_sel = "----"
         try:
             sel_font = getattr(self, 'selection_digits_font', self.medium_font)
             sel_color = Colors.RED
