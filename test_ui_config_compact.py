@@ -133,7 +133,9 @@ def test_credit_button_lowered_by_15px():
         content_height = ui.height - content_top - ui.bottom_area_height - 20
         if content_height < 200:
             content_height = 200
-        row1_y = content_top + 10
+
+        # UI now shifts the Now Playing row down by 10px in this layout
+        row1_y = content_top + 20
         row2_y = row1_y + content_height // 2 + 35
         card_h = (content_height // 2) + 15
         expected_y = row2_y + card_h + 27

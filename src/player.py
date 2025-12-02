@@ -132,7 +132,12 @@ class MusicPlayer:
         was_empty = len(self.queue) == 0
         # If adding the first track to an empty queue would immediately start
         # playback (nothing is playing), require a credit before appending.
-        if was_empty and not self.is_music_playing():
+        # Use the logical playing state (self.is_playing) as well as the
+        # mixer-reported state. On systems without a mixer available the
+        # mixer API may not report busy, but our logical state will still
+        # indicate playback is underway — in that case we must not require
+        # an extra credit to append to the queue.
+        if was_empty and not (self.is_music_playing() or self.is_playing):
             if not self.use_credit():
                 print("Insufficient credits to start playback")
                 return

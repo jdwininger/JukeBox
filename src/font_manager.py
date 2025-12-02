@@ -248,7 +248,14 @@ class FontManager:
             class _DummyFont:
                 def __init__(self, size=14):
                     self._size = size
-                    self._font = _BundledSysFont(size=self._size)
+                    # SysFont bundled fallback expects a (name, size) signature
+                    # so pass a dummy name and the size to match the expected
+                    # constructor and avoid TypeError in tests.
+                    try:
+                        self._font = _BundledSysFont("_bundled", self._size)
+                    except TypeError:
+                        # Conservative fallback for unexpected signatures
+                        self._font = _BundledSysFont(self._size)
 
                 def render(self, text, aa, color):
                     return self._font.render(text, aa, color)
