@@ -4406,7 +4406,15 @@ class UI:
             display_sel = self.selection_buffer[:4].ljust(4, "-") if self.selection_mode else "----"
         try:
             sel_font = getattr(self, 'selection_digits_font', self.medium_font)
-            sel_color = Colors.RED
+            # Visual cue: if the selection being drawn comes from the
+            # actively-typed buffer (selection_mode True) use a different
+            # color so users can see their typed input vs the currently
+            # playing selection. Store a small flag for tests/inspection.
+            is_typed = getattr(self, 'selection_mode', False) and bool(self.selection_buffer)
+            # Ensure a test-visible flag is set even if subsequent rendering
+            # code raises — this lets tests inspect which mode we intended.
+            self.last_selection_is_typed = bool(is_typed)
+            sel_color = Colors.GREEN if is_typed else Colors.RED
             sel_text = sel_font.render(display_sel, True, sel_color)
             offset = int(sel_text.get_height() / 2) + 12
             # Center the selection display horizontally with the main window
@@ -4427,14 +4435,17 @@ class UI:
             pad_y = 8
             bg = pygame.Rect(sel_rect.x - pad_x, sel_rect.y - pad_y, sel_rect.width + pad_x * 2, sel_rect.height + pad_y * 2)
             pygame.draw.rect(self.screen, Colors.DARK_GRAY, bg)
-            # Use a red border for the selection box so it stands out from the white
-            # album frames and matches the requested style
-            pygame.draw.rect(self.screen, Colors.RED, bg, 2)
+            # Use a border color that matches the selection text colour
+            border_color = sel_color
+            pygame.draw.rect(self.screen, border_color, bg, 2)
             self.screen.blit(sel_text, sel_rect)
             try:
                 self.last_selection_draw_rect = sel_rect
                 self.last_selection_bg_rect = bg
                 self.last_selection_display_string = display_sel
+                # Small, test-friendly flag so tests can assert which
+                # mode was used for rendering (typed input vs playing)
+                self.last_selection_is_typed = bool(is_typed)
             except Exception:
                 pass
         except Exception:
@@ -4492,7 +4503,10 @@ class UI:
             display_sel = "----"
         try:
             sel_font = getattr(self, 'selection_digits_font', self.medium_font)
-            sel_color = Colors.RED
+            # Indicate typed input visually and record mode for tests
+            is_typed = getattr(self, 'selection_mode', False) and bool(self.selection_buffer)
+            self.last_selection_is_typed = bool(is_typed)
+            sel_color = Colors.GREEN if is_typed else Colors.RED
             sel_text = sel_font.render(display_sel, True, sel_color)
             offset = int(sel_text.get_height() / 2) + 12
             # Center the selection display horizontally with the main window
@@ -4506,7 +4520,7 @@ class UI:
             pad_y = 8
             bg = pygame.Rect(sel_rect.x - pad_x, sel_rect.y - pad_y, sel_rect.width + pad_x * 2, sel_rect.height + pad_y * 2)
             pygame.draw.rect(self.screen, Colors.DARK_GRAY, bg)
-            pygame.draw.rect(self.screen, Colors.RED, bg, 2)
+            pygame.draw.rect(self.screen, sel_color, bg, 2)
             self.screen.blit(sel_text, sel_rect)
             try:
                 self.last_selection_draw_rect = sel_rect
