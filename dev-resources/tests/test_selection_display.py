@@ -163,5 +163,23 @@ def test_selection_display_above_now_playing():
         # After typing stops this should be the playing selection (not typed)
         assert getattr(ui, 'last_selection_is_typed', None) is False
 
+        # If playback has finished (nothing is playing) we still want
+        # actively-typed buffer to take precedence over the last played
+        # selection. This ensures the user sees their typed input even
+        # after a track completed.
+        ui.selection_mode = True
+        ui.selection_buffer = "9999"
+        # Simulate playback stopped but we have a previous last_track_info
+        ui.player = type('P', (), {
+            'get_current_track': lambda self: None,
+            'is_music_playing': lambda self: False,
+            'get_volume': lambda self: 0.0,
+            'get_current_album': lambda self: None,
+        })()
+        ui.last_track_info = {"album_id": 5, "track_index": 3}
+        ui.draw_main_screen()
+        assert getattr(ui, 'last_selection_display_string', None) == "9999"
+        assert getattr(ui, 'last_selection_is_typed', None) is True
+
     finally:
         pygame.quit()

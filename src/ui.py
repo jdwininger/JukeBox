@@ -4394,14 +4394,21 @@ class UI:
         # Use the dedicated selection font (72pt) in red with a bounding box.
         # Show the currently playing selection if available, otherwise show
         # the typed buffer (or dashes).
-        if getattr(self, 'last_track_info', None):
+        # Prefer the actively-typed selection buffer when available so
+        # that user input is immediately visible even if playback has
+        # stopped. Previously the last_track_info took precedence which
+        # resulted in the selection overlay turning green (typed) while
+        # still showing the previously-playing selection string.
+        if getattr(self, 'selection_mode', False) and self.selection_buffer:
+            display_sel = self.selection_buffer[:4].ljust(4, "-")
+        elif getattr(self, 'last_track_info', None):
             at = self.last_track_info
             try:
                 album_id = int(at.get('album_id', 0))
                 track_idx = int(at.get('track_index', 0))
                 display_sel = f"{album_id:02d}{track_idx+1:02d}"
             except Exception:
-                display_sel = self.selection_buffer[:4].ljust(4, "-") if self.selection_mode else "----"
+                display_sel = "----"
         else:
             display_sel = self.selection_buffer[:4].ljust(4, "-") if self.selection_mode else "----"
         try:
