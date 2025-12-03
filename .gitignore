@@ -88,7 +88,6 @@ library_export.csv
 *.tar.xz
 *.zip
 *.7z
-*.AppDir
 
 # Developer docs / optimization notes (keep local)
 COMPREHENSIVE_THEMING.md

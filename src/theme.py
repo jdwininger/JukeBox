@@ -26,6 +26,23 @@ except OSError as e:
 class Theme:
     """Represents a single theme with images and colors"""
 
+    # Default colors used when a theme doesn't override values. Kept as a
+    # class-level constant so other modules (eg. ThemeManager) can reference
+    # the canonical defaults without instantiating Theme objects.
+    DEFAULT_COLORS = {
+        "background": (32, 32, 32),
+        "text": (255, 255, 255),
+        "text_secondary": (200, 200, 200),
+        "accent": (100, 200, 100),
+        "button": (64, 64, 64),
+        "button_hover": (100, 100, 100),
+        "button_pressed": (50, 50, 50),
+        "button_text": (255, 255, 255),
+        "artist_text": (255, 255, 255),
+        "album_text": (200, 200, 200),
+        "track_list": (200, 200, 200),
+    }
+
     def __init__(self, theme_name: str, theme_dir: str):
         """
         Initialize a theme
@@ -67,6 +84,14 @@ class Theme:
         self.exit_button_path = os.path.join(theme_dir, "exit_button.png")
         self.exit_button_svg_path = os.path.join(theme_dir, "exit_button.svg")
 
+        # Close button paths (for modal close buttons)
+        self.close_button_path = os.path.join(theme_dir, "close_button.png")
+        self.close_button_svg_path = os.path.join(theme_dir, "close_button.svg")
+
+        # Credits button paths
+        self.credits_button_path = os.path.join(theme_dir, "credits_button.png")
+        self.credits_button_svg_path = os.path.join(theme_dir, "credits_button.svg")
+
         # Navigation button paths
         self.left_button_path = os.path.join(theme_dir, "left_button.png")
         self.left_button_svg_path = os.path.join(theme_dir, "left_button.svg")
@@ -97,20 +122,41 @@ class Theme:
         self.config_button_pressed: Optional[pygame.Surface] = None
         # Exit button image (optional)
         self.exit_button: Optional[pygame.Surface] = None
+        # Close button image (optional)
+        self.close_button: Optional[pygame.Surface] = None
+        self.close_button_hover: Optional[pygame.Surface] = None
+        self.close_button_pressed: Optional[pygame.Surface] = None
 
-        # Color scheme
-        self.colors = {
-            "background": (32, 32, 32),
-            "text": (255, 255, 255),
-            "text_secondary": (200, 200, 200),
-            "accent": (100, 200, 100),
-            "button": (64, 64, 64),
-            "button_hover": (100, 100, 100),
-            "button_pressed": (50, 50, 50),
-        }
+        # Credits button image (optional)
+        self.credits_button: Optional[pygame.Surface] = None
+        self.credits_button_hover: Optional[pygame.Surface] = None
+        self.credits_button_pressed: Optional[pygame.Surface] = None
+
+        # Color scheme (defaults). These keys are documented and can be
+        # overridden by a theme.conf file in the theme directory. Use a copy
+        # of DEFAULT_COLORS so each Theme instance can be modified safely.
+        self.colors = dict(self.DEFAULT_COLORS)
+
+        # Load any per-theme configuration (theme.conf) which can override
+        # color keys above. This lets theme authors provide easily-editable
+        # color and button color values without changing Python code.
+        # Keep a separate per-button color map so themes may declare
+        # specific colors for individual text-buttons (eg. CLR, ENT, Credits).
+        # Per-button colors structure; map: button_name -> { 'normal': (r,g,b), 'hover': (...), 'pressed': (...) }
+        self.button_colors = {}
+
+        try:
+            # Use the consolidated loader which reads both [colors] and
+            # [button_colors]/[buttons] sections.
+            self._load_theme_conf()
+        except Exception:
+            # Keep defaults on any error reading/parsing the file.
+            pass
 
         # Load images
         self.load_images()
+
+    
 
     def load_images(self) -> None:
         """Load theme images"""
@@ -223,12 +269,29 @@ class Theme:
             "exit", self.exit_button_path, self.exit_button_svg_path
         )
 
+        # Load close button variants if provided
+        self._load_media_button(
+            "close", self.close_button_path, self.close_button_svg_path
+        )
+
         # Load navigation buttons (PNG first, then SVG)
         self._load_media_button(
-            "left", self.left_button_path, self.left_button_svg_path
+            "left", self.left_button_path, self.left_button_svg_path, size=(60, 80)
         )
         self._load_media_button(
-            "right", self.right_button_path, self.right_button_svg_path
+            "right", self.right_button_path, self.right_button_svg_path, size=(60, 80)
+        )
+
+        # Load exit button and its variants (PNG first then SVG)
+        self._load_media_button(
+            "exit", self.exit_button_path, self.exit_button_svg_path
+        )
+
+        # Load credits button and its variants (PNG first then SVG). Use
+        # the requested 65x85 size so the artwork maps to the credit button
+        # dimensions used throughout the UI and avoids runtime scaling.
+        self._load_media_button(
+            "credits", self.credits_button_path, self.credits_button_svg_path, size=(65, 85)
         )
 
         # Load exit button and its variants (PNG first then SVG)
@@ -237,7 +300,7 @@ class Theme:
         )
 
     def _load_media_button(
-        self, button_type: str, png_path: str, svg_path: str
+        self, button_type: str, png_path: str, svg_path: str, size: Tuple[int, int] = (50, 50)
     ) -> None:
         """Load media button image (PNG first, then SVG)"""
         button_attr = f"{button_type}_button"
@@ -255,7 +318,9 @@ class Theme:
                     load_image_surface = None
 
                 if load_image_surface is not None:
-                    surf = load_image_surface(png_path, size=(64, 64))
+                    # Load media assets at the UI's intended media control size
+                    # to avoid rescaling at render-time and preserve crispness.
+                    surf = load_image_surface(png_path, size=size)
                 else:
                     surf = pygame.image.load(png_path)
 
@@ -271,7 +336,8 @@ class Theme:
         if SVG_SUPPORT and os.path.exists(svg_path):
             try:
                 # Load SVG at standard button size (64x64)
-                svg_surface = self.load_svg_as_surface(svg_path, 64, 64)
+                # Render SVG at the UI's target media control size
+                svg_surface = self.load_svg_as_surface(svg_path, size[0], size[1])
                 setattr(self, button_attr, svg_surface)
             except Exception as e:
                 print(f"Error loading {button_type} button SVG: {e}")
@@ -288,7 +354,7 @@ class Theme:
                     load_image_surface = None
 
                 if load_image_surface is not None:
-                    surf = load_image_surface(png_hover, size=(64, 64))
+                    surf = load_image_surface(png_hover, size=size)
                 else:
                     surf = pygame.image.load(png_hover)
 
@@ -297,7 +363,7 @@ class Theme:
                 print(f"Error loading {button_type} hover PNG: {e}")
         elif SVG_SUPPORT and os.path.exists(svg_hover):
             try:
-                surf = self.load_svg_as_surface(svg_hover, 64, 64)
+                surf = self.load_svg_as_surface(svg_hover, size[0], size[1])
                 setattr(self, hover_attr, surf)
             except Exception as e:
                 print(f"Error loading {button_type} hover SVG: {e}")
@@ -313,7 +379,7 @@ class Theme:
                     load_image_surface = None
 
                 if load_image_surface is not None:
-                    surf = load_image_surface(png_pressed, size=(64, 64))
+                    surf = load_image_surface(png_pressed, size=size)
                 else:
                     surf = pygame.image.load(png_pressed)
 
@@ -322,13 +388,10 @@ class Theme:
                 print(f"Error loading {button_type} pressed PNG: {e}")
         elif SVG_SUPPORT and os.path.exists(svg_pressed):
             try:
-                surf = self.load_svg_as_surface(svg_pressed, 64, 64)
+                surf = self.load_svg_as_surface(svg_pressed, size[0], size[1])
                 setattr(self, pressed_attr, surf)
             except Exception as e:
                 print(f"Error loading {button_type} pressed SVG: {e}")
-                print(f"Loaded SVG {button_type} button: {svg_path}")
-            except Exception as e:
-                print(f"Error loading {button_type} button SVG: {e}")
 
     def load_svg_as_surface(
         self, svg_path: str, width: int = None, height: int = None
@@ -402,9 +465,12 @@ class Theme:
         return self.colors.get(color_key, default)
 
     def get_media_button_image(self, button_type: str, state: str = "normal") -> Optional[pygame.Surface]:
-        """Get media button image by type and state (normal | hover | pressed)
+        """Get media button image by type and state (normal | hover | pressed).
 
-        Returns None if that state isn't available for the given button.
+        If a state-specific asset isn't present, fall back to the 'normal' state so
+        a theme that only provides a single static image still works.
+
+        Returns the pygame.Surface for the requested button (or None if none exists).
         """
         if state not in ("normal", "hover", "pressed"):
             state = "normal"
@@ -416,9 +482,123 @@ class Theme:
         else:
             attr = f"{button_type}_button_pressed"
 
-        return getattr(self, attr, None)
+        img = getattr(self, attr, None)
 
+        # If hover/pressed requested but not available, fall back to normal
+        if img is None and state != "normal":
+            img = getattr(self, f"{button_type}_button", None)
 
+        return img
+
+    # Theme config helpers (moved inside Theme): parsing & loader
+    def _parse_color_value(self, s: str):
+        """Parse color value from theme.conf.
+
+        Accepts hex (#RRGGBB) or comma-separated r,g,b integers.
+        Returns a (r,g,b) tuple or None on parse failure.
+        """
+        s = s.strip()
+        if not s:
+            return None
+        if s.startswith("#") and len(s) == 7:
+            try:
+                return (int(s[1:3], 16), int(s[3:5], 16), int(s[5:7], 16))
+            except Exception:
+                return None
+        parts = [p.strip() for p in s.split(',') if p.strip()]
+        if len(parts) == 3:
+            try:
+                return (int(parts[0]), int(parts[1]), int(parts[2]))
+            except Exception:
+                return None
+        return None
+
+    def _load_theme_conf(self) -> None:
+        """Load theme colors from theme.conf (INI) inside theme_dir.
+
+        Supported section: [colors]
+        """
+        import configparser
+
+        conf_file = os.path.join(self.theme_dir, "theme.conf")
+        if not os.path.exists(conf_file):
+            return
+        parser = configparser.ConfigParser()
+        try:
+            parser.read(conf_file)
+        except Exception:
+            return
+        # Parse the colors section if present
+        if "colors" in parser:
+            for key, val in parser.items("colors"):
+                if key in self.colors:
+                    parsed = self._parse_color_value(val)
+                    if parsed:
+                        self.colors[key] = parsed
+
+        # Parse per-button color overrides: support either [button_colors]
+        # or a legacy [buttons] section to be flexible.
+        for section_name in ("button_colors", "buttons"):
+            if section_name in parser:
+                for key, val in parser.items(section_name):
+                    # Normalize key to lowercase to make lookups case-insensitive
+                    raw = key.strip().lower()
+                    parsed = self._parse_color_value(val)
+                    if not parsed:
+                        continue
+
+                    # Support keys with suffixes: _hover, _pressed. Otherwise normal.
+                    state = "normal"
+                    base = raw
+                    if raw.endswith("_hover"):
+                        base = raw[: -len("_hover")]
+                        state = "hover"
+                    elif raw.endswith("_pressed"):
+                        base = raw[: -len("_pressed")]
+                        state = "pressed"
+
+                    if base not in self.button_colors:
+                        self.button_colors[base] = {}
+
+                    self.button_colors[base][state] = parsed
+
+        return
+
+    def get_button_color(
+        self, button_name: str, default: Tuple[int, int, int] = None, state: str = "normal"
+    ) -> Tuple[int, int, int]:
+        """Get a color for a specific button name.
+
+        Looks up per-button color overrides defined in theme.conf (case-insensitive).
+        Falls back to the theme's general `button` color or the optional `default`.
+        """
+        if default is None:
+            default = self.get_color("button")
+
+        if not button_name:
+            return default
+
+        name = button_name.strip().lower()
+
+        entry = self.button_colors.get(name)
+        if isinstance(entry, dict):
+            # Prefer requested state, fallback to normal, then default
+            if state in entry:
+                return entry[state]
+            if "normal" in entry:
+                return entry["normal"]
+
+        # Support legacy flat mapping where entry was a tuple
+        if entry and isinstance(entry, tuple):
+            return entry
+
+        return default
+
+    # ---------- theme.conf helpers (move into Theme) ----------
+
+    
+
+    
 class ThemeManager:
     """Manages application themes"""
 
@@ -525,4 +705,116 @@ class ThemeManager:
             )
 
             print(f"Created default theme in: {default_dir}")
+            # Create a simple theme.conf so themes are editable and install
+            # with sensible color keys for users to customize. Use the
+            # canonical Theme.DEFAULT_COLORS rather than referencing
+            # ThemeManager.self.colors which doesn't exist.
+            conf_path = os.path.join(default_dir, "theme.conf")
+            try:
+                with open(conf_path, "w", encoding="utf-8") as f:
+                    f.write("[colors]\n")
+                    # Use Theme.DEFAULT_COLORS to avoid relying on instance state
+                    for k, v in Theme.DEFAULT_COLORS.items():
+                        f.write(f"{k} = {v[0]},{v[1]},{v[2]}\n")
+
+                    # Provide an example section for per-button colors. This
+                    # allows theme authors to give specific colors for named
+                    # text buttons (eg. CLR, ENT, Credits) using [button_colors]
+                    f.write("\n[button_colors]\n")
+                    f.write("credits = 255,215,0\n")
+                    f.write("credits_hover = 255,230,128\n")
+                    f.write("credits_pressed = 200,150,0\n")
+                    f.write("clr = 200,50,50\n")
+                    f.write("clr_hover = 230,100,100\n")
+                    f.write("ent = 100,200,100\n")
+            except Exception:
+                pass
+
             self.discover_themes()
+
+    def create_theme(
+        self,
+        name: str,
+        colors: Dict[str, Tuple[int, int, int]] = None,
+        button_colors: Dict[str, Tuple[int, int, int]] = None,
+    ) -> bool:
+        """Create a new theme directory with placeholder assets and a theme.conf.
+
+        Args:
+            name: The directory name for the new theme inside themes_dir
+            colors: Optional mapping of color keys -> (r,g,b) to write in [colors]
+            button_colors: Optional mapping of button name -> (r,g,b) for [button_colors]
+
+        Returns True on success, False if the theme already existed or creation failed.
+        """
+        if not name:
+            return False
+
+        theme_dir = os.path.join(self.themes_dir, name)
+        if os.path.exists(theme_dir):
+            # don't overwrite existing theme
+            return False
+
+        try:
+            os.makedirs(theme_dir, exist_ok=False)
+
+            # Create simple placeholder images (same shapes as default)
+            try:
+                bg_surface = pygame.Surface((1000, 700))
+                bg_surface.fill(Theme.DEFAULT_COLORS.get("background", (32, 32, 32)))
+                pygame.image.save(bg_surface, os.path.join(theme_dir, "background.png"))
+
+                btn_surface = pygame.Surface((100, 50))
+                btn_surface.fill(Theme.DEFAULT_COLORS.get("button", (64, 64, 64)))
+                pygame.image.save(btn_surface, os.path.join(theme_dir, "button.png"))
+
+                btn_hover_surface = pygame.Surface((100, 50))
+                btn_hover_surface.fill(Theme.DEFAULT_COLORS.get("button_hover", (100, 100, 100)))
+                pygame.image.save(btn_hover_surface, os.path.join(theme_dir, "button_hover.png"))
+
+                btn_pressed_surface = pygame.Surface((100, 50))
+                btn_pressed_surface.fill(Theme.DEFAULT_COLORS.get("button_pressed", (50, 50, 50)))
+                pygame.image.save(btn_pressed_surface, os.path.join(theme_dir, "button_pressed.png"))
+            except Exception:
+                # If writing images fails, continue — theme.conf is most important
+                pass
+
+            # Write theme.conf
+            conf_path = os.path.join(theme_dir, "theme.conf")
+            with open(conf_path, "w", encoding="utf-8") as f:
+                # Colors section: use provided colors overriding defaults
+                f.write("[colors]\n")
+                base_colors = dict(Theme.DEFAULT_COLORS)
+                if colors:
+                    # replace only known keys
+                    for k, v in colors.items():
+                        if k in base_colors and isinstance(v, (tuple, list)) and len(v) == 3:
+                            base_colors[k] = (int(v[0]), int(v[1]), int(v[2]))
+
+                for k, v in base_colors.items():
+                    f.write(f"{k} = {v[0]},{v[1]},{v[2]}\n")
+
+                # button_colors section: support either simple tuple (normal) or
+                # nested dicts { 'normal':(...), 'hover':(...), 'pressed':(...) }
+                if button_colors:
+                    f.write("\n[button_colors]\n")
+                    for btn, col in button_colors.items():
+                        if isinstance(col, (tuple, list)) and len(col) == 3:
+                            f.write(f"{btn} = {int(col[0])},{int(col[1])},{int(col[2])}\n")
+                        elif isinstance(col, dict):
+                            # write known states if provided
+                            for st in ("normal", "hover", "pressed"):
+                                if st in col and isinstance(col[st], (tuple, list)) and len(col[st]) == 3:
+                                    keyname = btn if st == "normal" else f"{btn}_{st}"
+                                    f.write(f"{keyname} = {int(col[st][0])},{int(col[st][1])},{int(col[st][2])}\n")
+
+            # refresh discovery
+            self.discover_themes()
+            return True
+        except Exception:
+            # Fail quietly and return False on any error
+            return False
+
+    
+
+    

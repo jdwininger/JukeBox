@@ -125,13 +125,21 @@ class AlbumLibrary:
 
     MAX_ALBUMS = 52
 
-    def __init__(self, library_directory: str):
+    def __init__(self, library_directory: str = None):
         """
         Initialize the album library
 
         Args:
             library_directory: Path to the main music directory
         """
+        # Allow tests or consumers to construct without explicitly passing
+        # a directory. When None, create a temporary directory so the
+        # instance remains usable without modifying the repository root.
+        if library_directory is None:
+            import tempfile
+
+            library_directory = tempfile.mkdtemp(prefix="jukebox_alb_lib_")
+
         self.library_directory = library_directory
         self.albums: Dict[int, Album] = {}
         self._ensure_directory_structure()
