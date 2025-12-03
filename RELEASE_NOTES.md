@@ -38,3 +38,10 @@ If you want a fully offline, prebuilt venv included in release tar (fully standa
 Theme & styling improvements
 ----------------------------------
 - Added theme.conf per-button color overrides (new `[button_colors]` section) so theme authors can assign specific colors to text-labeled buttons (eg. `CLR`, `ENT`, `Credits`) without image assets. The system still prefers per-button images where provided and falls back to general theme colors.
+
+Selection UX & queueing
+----------------------------------
+- Selection UX changed to require explicit confirmation: typing a 4-digit album+track number no longer auto-executes. The user must press `ENT` (or Return/Enter) to accept a selection. This allows correcting mistakes with Backspace or `CLR` before confirming.
+- While a track is playing, typing a new selection will show the typed digits visually above the Now Playing box (typed buffer is shown while entry is active) — the UI also highlights typed input with a green border/text to distinguish it from the current playing selection (red).
+- Fix: queueing while a track is playing now works reliably even in environments where the audio mixer API is not available; the player uses a logical playback flag in addition to the mixer-reported state when deciding queue behavior.
+- Tests added/updated to cover these behaviors: `test_player_queue.py`, `test_player_queue_mixer_unavailable.py`, `test_keypad_selection.py`, and `test_selection_display.py` (check number-pad flow, ENT/CLR/backspace handling, selection overlay behavior and color cue).
