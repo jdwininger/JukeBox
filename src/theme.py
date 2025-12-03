@@ -294,6 +294,11 @@ class Theme:
             "credits", self.credits_button_path, self.credits_button_svg_path, size=(65, 85)
         )
 
+        # Load exit button and its variants (PNG first then SVG)
+        self._load_media_button(
+            "exit", self.exit_button_path, self.exit_button_svg_path
+        )
+
     def _load_media_button(
         self, button_type: str, png_path: str, svg_path: str, size: Tuple[int, int] = (50, 50)
     ) -> None:
