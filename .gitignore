@@ -76,6 +76,7 @@ RELEASE_NOTES.md
 JukeBox-*.AppImage.sha256
 JukeBox-*.release-manifest.txt
 library_export.csv
+
 # Large binaries / build artifacts (ignore common packaged binaries)
 *.AppImage
 *.apk
@@ -94,6 +95,10 @@ COMPREHENSIVE_THEMING.md
 OPTIMIZATION_FIXES.md
 PERFORMANCE_OPTIMIZATIONS.md
 MAIN_SCREEN_LAYOUT.md
+
+# Debug images created by tests / UI debug helpers
+jbox_debug/
+dev-resources/jbox_debug/
 
 .gitignore
 Jeremy
